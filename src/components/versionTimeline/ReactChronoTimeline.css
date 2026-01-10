@@ -1,0 +1,97 @@
+/* React Chrono 时间轴容器 */
+.react-chrono-timeline {
+  width: 100%;
+  padding: 40px 60px;
+  background-color: var(--bg-primary, #ffffff);
+  min-height: 600px;
+}
+
+/* 头部 */
+.react-chrono-timeline .timeline-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.react-chrono-timeline .timeline-logo {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+}
+
+.react-chrono-timeline .timeline-title {
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--text-primary, #333333);
+  margin: 0;
+}
+
+.react-chrono-timeline .timeline-badge {
+  padding: 4px 12px;
+  background-color: #52c41a;
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 12px;
+  margin-left: auto;
+}
+
+/* Chrono 容器 */
+.chrono-container {
+  margin-top: 20px;
+}
+
+/* 自定义卡片样式 */
+.custom-card {
+  border-radius: 4px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  transition: all 0.3s ease !important;
+}
+
+.custom-card:hover {
+  box-shadow: 0 4px 16px rgba(24, 144, 255, 0.15) !important;
+  transform: translateY(-2px) !important;
+}
+
+.custom-card-title {
+  font-weight: 500 !important;
+  line-height: 1.6 !important;
+  margin-bottom: 8px !important;
+  white-space: pre-wrap !important;
+}
+
+.custom-card-text {
+  line-height: 1.5 !important;
+  white-space: pre-wrap !important;
+}
+
+/* 高亮文本 */
+.custom-card-text .highlight {
+  color: #ff7a45;
+  font-weight: 500;
+}
+
+/* 暗色主题适配 */
+[data-theme='dark'] .react-chrono-timeline {
+  --bg-primary: #1a1a1a;
+  --text-primary: #e0e0e0;
+}
+
+[data-theme='dark'] .custom-card {
+  background-color: #262626 !important;
+  border-color: #434343 !important;
+}
+
+[data-theme='dark'] .custom-card:hover {
+  box-shadow: 0 4px 16px rgba(64, 150, 255, 0.2) !important;
+}
+
+/* 覆盖 react-chrono 的默认样式 */
+.react-chrono-timeline :global(.timeline-horizontal-container) {
+  padding: 20px 0;
+}
+
+.react-chrono-timeline :global(.timeline-card-content) {
+  padding: 16px !important;
+}

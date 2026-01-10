@@ -19,6 +19,8 @@ export const enUS: Locale = {
   app: {
     title: 'Compare',
     overview: 'Overview',
+    radarMode: 'Radar',
+    timelineMode: 'Timeline',
   },
 
   // Tabs

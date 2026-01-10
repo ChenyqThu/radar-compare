@@ -10,6 +10,7 @@ import { SettingsButton } from '@/components/settings/SettingsButton'
 import { Toolbar } from '@/components/toolbar/Toolbar'
 import { ImportModal } from '@/components/io/ImportModal'
 import { CreateTimelineModal } from '@/components/timeline/CreateTimelineModal'
+import { VersionTimeline, ReactChronoTimeline, VersionTimelineEnhanced, ubiquitiTimelineData, simpleTimelineData } from '@/components/versionTimeline'
 import { useRadarStore } from '@/stores/radarStore'
 import { useUIStore } from '@/stores/uiStore'
 import { initializeDatabase } from '@/services/db'
@@ -26,6 +27,8 @@ function App() {
     closeSettingsDrawer,
     createTimelineModalVisible,
     setCreateTimelineModalVisible,
+    appMode,
+    timelineImplementation,
   } = useUIStore()
 
   const activeRadar = getActiveRadar()
@@ -83,26 +86,44 @@ function App() {
     <Layout className={styles.layout}>
       <Navbar />
       <Content className={styles.content}>
-        <div className={styles.header}>
-          <RadarTabs />
-          <Toolbar />
-        </div>
-        <div className={styles.chartArea}>
-          {isTimeline ? (
-            <TimelineRadarChart timelineId={activeRadar.id} />
-          ) : (
-            <RadarChart />
-          )}
-        </div>
-        {/* 时间轴模式下不显示设置按钮 */}
-        {!isTimeline && <SettingsButton />}
-        <SettingsDrawer />
-        <SubRadarDrawer />
-        <ImportModal />
-        <CreateTimelineModal
-          open={createTimelineModalVisible}
-          onClose={() => setCreateTimelineModalVisible(false)}
-        />
+        {appMode === 'timeline' ? (
+          // 版本时间轴工具模式
+          <div className={styles.timelineMode}>
+            <div className={styles.chartArea}>
+              {timelineImplementation === 'custom' ? (
+                <VersionTimeline data={ubiquitiTimelineData} />
+              ) : timelineImplementation === 'react-chrono' ? (
+                <ReactChronoTimeline data={ubiquitiTimelineData} />
+              ) : (
+                <VersionTimelineEnhanced data={ubiquitiTimelineData} />
+              )}
+            </div>
+          </div>
+        ) : (
+          // 雷达图工具模式
+          <>
+            <div className={styles.header}>
+              <RadarTabs />
+              <Toolbar />
+            </div>
+            <div className={styles.chartArea}>
+              {isTimeline ? (
+                <TimelineRadarChart timelineId={activeRadar.id} />
+              ) : (
+                <RadarChart />
+              )}
+            </div>
+            {/* 时间轴雷达图模式下不显示设置按钮 */}
+            {!isTimeline && <SettingsButton />}
+            <SettingsDrawer />
+            <SubRadarDrawer />
+            <ImportModal />
+            <CreateTimelineModal
+              open={createTimelineModalVisible}
+              onClose={() => setCreateTimelineModalVisible(false)}
+            />
+          </>
+        )}
       </Content>
     </Layout>
   )

@@ -43,3 +43,14 @@
   overflow: hidden;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
+
+.timelineMode {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.timelineMode .chartArea {
+  border-radius: 8px;
+}

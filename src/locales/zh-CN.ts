@@ -17,6 +17,8 @@ export const zhCN = {
   app: {
     title: '竞品对比',
     overview: '总览',
+    radarMode: '雷达图',
+    timelineMode: '时间轴',
   },
 
   // Tabs

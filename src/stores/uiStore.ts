@@ -3,8 +3,13 @@ import { persist } from 'zustand/middleware'
 import type { UUID } from '@/types'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
+export type AppMode = 'radar' | 'timeline'
 
 interface UIState {
+  // 应用模式 (雷达图 vs 时间轴)
+  appMode: AppMode
+  setAppMode: (mode: AppMode) => void
+
   // 主题
   theme: ThemeMode
   setTheme: (theme: ThemeMode) => void
@@ -41,6 +46,10 @@ interface UIState {
   // 设置面板 Tab
   activeSettingsTab: 'vendor' | 'dimension'
   setActiveSettingsTab: (tab: 'vendor' | 'dimension') => void
+
+  // 时间轴方案选择 ('custom' | 'react-chrono' | 'enhanced')
+  timelineImplementation: 'custom' | 'react-chrono' | 'enhanced'
+  setTimelineImplementation: (impl: 'custom' | 'react-chrono' | 'enhanced') => void
 }
 
 // 获取系统主题
@@ -71,6 +80,9 @@ const initialTheme = getSystemTheme()
 export const useUIStore = create<UIState>()(
   persist(
     (set) => ({
+      appMode: 'radar',
+      setAppMode: (mode) => set({ appMode: mode }),
+
       theme: initialTheme,
       setTheme: (theme) => {
         applyTheme(theme)
@@ -101,10 +113,13 @@ export const useUIStore = create<UIState>()(
 
       activeSettingsTab: 'dimension',
       setActiveSettingsTab: (tab) => set({ activeSettingsTab: tab }),
+
+      timelineImplementation: 'enhanced',
+      setTimelineImplementation: (impl) => set({ timelineImplementation: impl }),
     }),
     {
       name: 'radar-ui',
-      partialize: (state) => ({ theme: state.theme }),
+      partialize: (state) => ({ theme: state.theme, appMode: state.appMode }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           applyTheme(state.theme)

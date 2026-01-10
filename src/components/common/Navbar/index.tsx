@@ -1,13 +1,14 @@
 import { Button, Space } from 'antd'
-import { SunOutlined, MoonOutlined } from '@ant-design/icons'
+import { SunOutlined, MoonOutlined, RadarChartOutlined, HistoryOutlined } from '@ant-design/icons'
 import { useUIStore } from '@/stores/uiStore'
 import { useI18n } from '@/locales'
 import omadaLight from '@/assets/omada_light.png'
 import omadaDark from '@/assets/Omada_dark.png'
 import styles from './Navbar.module.css'
+import type { AppMode } from '@/stores/uiStore'
 
 export function Navbar() {
-  const { theme, setTheme } = useUIStore()
+  const { theme, setTheme, appMode, setAppMode } = useUIStore()
   const { language, setLanguage, t } = useI18n()
 
   const toggleLanguage = () => {
@@ -20,12 +21,28 @@ export function Navbar() {
 
   const logoSrc = theme === 'light' ? omadaLight : omadaDark
 
+  const navItems: Array<{ key: AppMode; icon: React.ReactNode; label: string }> = [
+    { key: 'radar', icon: <RadarChartOutlined />, label: t.app.radarMode || '雷达图' },
+    { key: 'timeline', icon: <HistoryOutlined />, label: t.app.timelineMode || '时间轴' },
+  ]
+
   return (
     <div className={styles.navbar}>
       <div className={styles.left}>
         <img src={logoSrc} alt="Omada" className={styles.logo} />
         <div className={styles.divider} />
-        <span className={styles.title}>{t.app.title}</span>
+        <div className={styles.navMenu}>
+          {navItems.map((item) => (
+            <button
+              key={item.key}
+              className={`${styles.navItem} ${appMode === item.key ? styles.active : ''}`}
+              onClick={() => setAppMode(item.key)}
+            >
+              <span className={styles.navIcon}>{item.icon}</span>
+              <span className={styles.navLabel}>{item.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
       <div className={styles.right}>
         <Space size={4}>
