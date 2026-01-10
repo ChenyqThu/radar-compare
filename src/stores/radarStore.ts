@@ -90,7 +90,7 @@ interface RadarState {
   importMultipleRadarCharts: (data: RadarChart[]) => void
 
   // 时间标记操作
-  setRadarTimeMarker: (radarId: UUID, year: number, month: number) => void
+  setRadarTimeMarker: (radarId: UUID, year: number, month?: number) => void
   clearRadarTimeMarker: (radarId: UUID) => void
 
   // 时间轴雷达图操作
@@ -822,11 +822,12 @@ export const useRadarStore = create<RadarState>()(
     setRadarTimeMarker: (radarId, year, month) => {
       const { currentProject } = get()
       if (!currentProject) return
+      const timeMarker: TimeMarker = month !== undefined ? { year, month } : { year }
       const updated = {
         ...currentProject,
         radarCharts: currentProject.radarCharts.map((r) => {
           if (r.id === radarId && isRegularRadar(r)) {
-            return { ...r, timeMarker: { year, month }, updatedAt: Date.now() }
+            return { ...r, timeMarker, updatedAt: Date.now() }
           }
           return r
         }),
@@ -1022,8 +1023,8 @@ export const useRadarStore = create<RadarState>()(
         .map((id) => currentProject.radarCharts.find((r) => r.id === id))
         .filter((r): r is RadarChart => r !== undefined && isRegularRadar(r) && !!r.timeMarker)
         .sort((a, b) => {
-          const aTime = a.timeMarker!.year * 100 + a.timeMarker!.month
-          const bTime = b.timeMarker!.year * 100 + b.timeMarker!.month
+          const aTime = a.timeMarker!.year * 100 + (a.timeMarker!.month ?? 1)
+          const bTime = b.timeMarker!.year * 100 + (b.timeMarker!.month ?? 1)
           return aTime - bTime
         })
 

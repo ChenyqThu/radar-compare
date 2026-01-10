@@ -32,8 +32,8 @@ export interface Vendor {
 
 // 时间标记
 export interface TimeMarker {
-  year: number   // e.g., 2024
-  month: number  // 1-12
+  year: number      // e.g., 2024
+  month?: number    // 1-12 (可选)
 }
 
 export interface RadarChart {

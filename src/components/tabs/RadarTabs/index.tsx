@@ -10,8 +10,21 @@ import {
   CalendarOutlined,
   HistoryOutlined,
   LockOutlined,
+  HolderOutlined,
 } from '@ant-design/icons'
 import { useState, useRef, useEffect } from 'react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+} from '@dnd-kit/sortable'
 import { useRadarStore } from '@/stores/radarStore'
 import { useI18n } from '@/locales'
 import { isTimelineRadar, isRegularRadar } from '@/types'
@@ -27,15 +40,24 @@ export function RadarTabs() {
     duplicateRadarChart,
     renameRadarChart,
     setRadarTimeMarker,
-    clearRadarTimeMarker,
     isRadarReferencedByTimeline,
     deleteTimelineRadar,
+    reorderRadarCharts,
   } = useRadarStore()
   const { t, language } = useI18n()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
   const [timeMarkerPopoverId, setTimeMarkerPopoverId] = useState<string | null>(null)
   const inputRef = useRef<any>(null)
+
+  // 拖拽传感器配置
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 移动8px后才触发拖拽，避免误触
+      },
+    })
+  )
 
   useEffect(() => {
     if (editingId && inputRef.current) {
@@ -47,6 +69,19 @@ export function RadarTabs() {
   if (!currentProject) return null
 
   const { radarCharts, activeRadarId } = currentProject
+
+  // 处理拖拽结束
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = radarCharts.findIndex((r) => r.id === active.id)
+    const newIndex = radarCharts.findIndex((r) => r.id === over.id)
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      reorderRadarCharts(oldIndex, newIndex)
+    }
+  }
 
   const handleRename = (id: string, currentName: string) => {
     setEditingId(id)
@@ -197,17 +232,10 @@ export function RadarTabs() {
             </div>
           ) : (
             <>
+              <HolderOutlined className={styles.dragHandle} />
               {isTimeline && <HistoryOutlined className={styles.timelineIcon} />}
               {isReferenced && <LockOutlined className={styles.lockIcon} />}
-              <span
-                className={styles.tabName}
-                onClick={(e) => {
-                  if (radar.id === activeRadarId) {
-                    e.stopPropagation()
-                    handleRename(radar.id, radar.name)
-                  }
-                }}
-              >
+              <span className={styles.tabName}>
                 {radar.name}
               </span>
               {timeMarker && (
@@ -225,12 +253,14 @@ export function RadarTabs() {
                     <TimeMarkerPicker
                       value={timeMarker}
                       onChange={(value) => {
-                        if (value) {
-                          setRadarTimeMarker(radar.id, value.year, value.month)
+                        if (value === null) {
+                          // 取消或清除
+                          setTimeMarkerPopoverId(null)
                         } else {
-                          clearRadarTimeMarker(radar.id)
+                          // 确认选择
+                          setRadarTimeMarker(radar.id, value.year, value.month)
+                          setTimeMarkerPopoverId(null)
                         }
-                        setTimeMarkerPopoverId(null)
                       }}
                     />
                   </div>
@@ -252,22 +282,26 @@ export function RadarTabs() {
   })
 
   return (
-    <div className={styles.container}>
-      <Tabs
-        activeKey={activeRadarId ?? undefined}
-        onChange={setActiveRadar}
-        type="card"
-        items={items}
-        className={styles.tabs}
-      />
-      <Button
-        type="text"
-        icon={<PlusOutlined />}
-        onClick={() => addRadarChart()}
-        className={styles.addBtn}
-      >
-        {t.tabs.newTab}
-      </Button>
-    </div>
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={radarCharts.map((r) => r.id)} strategy={horizontalListSortingStrategy}>
+        <div className={styles.container}>
+          <Tabs
+            activeKey={activeRadarId ?? undefined}
+            onChange={setActiveRadar}
+            type="card"
+            items={items}
+            className={styles.tabs}
+          />
+          <Button
+            type="text"
+            icon={<PlusOutlined />}
+            onClick={() => addRadarChart()}
+            className={styles.addBtn}
+          >
+            {t.tabs.newTab}
+          </Button>
+        </div>
+      </SortableContext>
+    </DndContext>
   )
 }

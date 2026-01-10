@@ -156,3 +156,25 @@
 .timeMarkerPopover {
   padding: 4px;
 }
+
+.dragHandle {
+  opacity: 0;
+  cursor: grab;
+  color: var(--color-text-quaternary);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  margin-right: 4px;
+  font-size: 12px;
+}
+
+.dragHandle:hover {
+  opacity: 0.8 !important;
+  color: var(--color-text-secondary);
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.tabLabel:hover .dragHandle {
+  opacity: 0.5;
+}
