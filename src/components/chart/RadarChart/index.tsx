@@ -34,16 +34,11 @@ function SubDimensionRadar({ dimension, direction }: { dimension: Dimension; dir
   const { getActiveRadar } = useRadarStore()
   const { theme } = useUIStore()
   const activeRadar = getActiveRadar()
-  const [animKey, setAnimKey] = useState(0)
 
   const isDark = theme === 'dark'
 
   // 只有普通雷达图才有 vendors
   const regularRadar = activeRadar && isRegularRadar(activeRadar) ? activeRadar : null
-
-  useEffect(() => {
-    setAnimKey((k) => k + 1)
-  }, [dimension.id])
 
   const option = useMemo<EChartsOption>(() => {
     if (!dimension || !regularRadar || dimension.subDimensions.length === 0) {
@@ -132,7 +127,7 @@ function SubDimensionRadar({ dimension, direction }: { dimension: Dimension; dir
   const animClass = direction === 'left' ? styles.slideFromLeft : direction === 'right' ? styles.slideFromRight : ''
 
   return (
-    <div key={animKey} className={`${styles.subRadarContainer} ${animClass}`}>
+    <div className={`${styles.subRadarContainer} ${animClass}`}>
       <ReactECharts
         option={option}
         style={{ height: '100%', width: '100%' }}

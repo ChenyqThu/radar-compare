@@ -261,13 +261,18 @@ export function RadarTabs() {
             </div>
           ) : (
             <>
-              <div className={styles.tabMainRow}>
-                <HolderOutlined className={styles.dragHandle} />
-                {isTimeline && <HistoryOutlined className={styles.timelineIcon} />}
-                {isReferenced && <LockOutlined className={styles.lockIcon} />}
+              <HolderOutlined className={styles.dragHandle} />
+              {isTimeline && <HistoryOutlined className={styles.timelineIcon} />}
+              {isReferenced && <LockOutlined className={styles.lockIcon} />}
+              <div className={styles.tabContent}>
                 <span className={styles.tabName}>
                   {radar.name}
                 </span>
+                {timeMarker && (
+                  <span className={styles.timeMarkerBadge}>
+                    {formatTimeMarker(timeMarker, language)}
+                  </span>
+                )}
                 <Dropdown menu={{ items: getMenuItems(radar.id, radar.name) }} trigger={['click']}>
                   <MoreOutlined
                     className={styles.moreIcon}
@@ -275,11 +280,6 @@ export function RadarTabs() {
                   />
                 </Dropdown>
               </div>
-              {timeMarker && (
-                <span className={styles.timeMarkerBadge}>
-                  {formatTimeMarker(timeMarker, language)}
-                </span>
-              )}
               <Popover
                 open={timeMarkerPopoverId === radar.id}
                 onOpenChange={(open) => !open && setTimeMarkerPopoverId(null)}

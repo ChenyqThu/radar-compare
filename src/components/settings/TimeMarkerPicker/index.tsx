@@ -74,6 +74,7 @@ export function TimeMarkerPicker({
         style={{ width: 80 }}
         allowClear
         onClear={handleClear}
+        getPopupContainer={(trigger) => trigger.parentElement || document.body}
       />
       <Select
         placeholder={t.timeline.selectMonth}
@@ -84,13 +85,7 @@ export function TimeMarkerPicker({
         size={size}
         style={{ width: 80 }}
         allowClear
-      />
-      <Button
-        type="text"
-        size="small"
-        icon={<CloseOutlined />}
-        onClick={handleCancel}
-        className={styles.cancelBtn}
+        getPopupContainer={(trigger) => trigger.parentElement || document.body}
       />
       <Button
         type="text"
@@ -99,6 +94,13 @@ export function TimeMarkerPicker({
         onClick={handleConfirm}
         disabled={!tempYear}
         className={styles.confirmBtn}
+      />
+      <Button
+        type="text"
+        size="small"
+        icon={<CloseOutlined />}
+        onClick={handleCancel}
+        className={styles.cancelBtn}
       />
     </Space>
   )
