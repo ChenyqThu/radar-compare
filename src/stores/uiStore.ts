@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { UUID } from '@/types'
 
-export type ThemeMode = 'light' | 'dark'
+export type ThemeMode = 'light' | 'dark' | 'system'
 
 interface UIState {
   // 主题
@@ -53,9 +53,10 @@ const getSystemTheme = (): ThemeMode => {
 
 // 应用主题
 const applyTheme = (theme: ThemeMode) => {
-  document.documentElement.setAttribute('data-theme', theme)
+  const actualTheme = theme === 'system' ? getSystemTheme() : theme
+  document.documentElement.setAttribute('data-theme', actualTheme)
 
-  if (theme === 'dark') {
+  if (actualTheme === 'dark') {
     document.body.style.backgroundColor = '#0d0d0d'
     document.body.style.colorScheme = 'dark'
   } else {

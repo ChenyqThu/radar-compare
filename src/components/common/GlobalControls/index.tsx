@@ -2,7 +2,7 @@ import { Dropdown, Button, Space, Tooltip } from 'antd'
 import { SunOutlined, MoonOutlined, GlobalOutlined, DesktopOutlined } from '@ant-design/icons'
 import type { MenuProps } from 'antd'
 import { useUIStore, type ThemeMode } from '@/stores/uiStore'
-import { useI18n, type LanguageCode } from '@/locales'
+import { useI18n } from '@/locales'
 import styles from './GlobalControls.module.css'
 
 const themeIcons: Record<ThemeMode, React.ReactNode> = {
