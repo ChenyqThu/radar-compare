@@ -1,6 +1,6 @@
 .container {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 8px;
 }
 
@@ -12,27 +12,51 @@
   margin-bottom: 0;
 }
 
+.tabs :global(.ant-tabs-nav::before) {
+  border-bottom: none;
+}
+
 .tabs :global(.ant-tabs-tab) {
+  margin: 0 2px 0 0 !important;
+  padding: 10px 12px !important;
+  background: var(--color-fill-tertiary);
+  border: 1px solid var(--color-border);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  height: 44px;
+  display: flex;
+  align-items: center;
 }
 
 .tabs :global(.ant-tabs-tab:hover) {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  background: var(--color-fill-secondary);
 }
 
 .tabs :global(.ant-tabs-tab-active) {
-  transform: scale(1.02);
+  background: var(--color-bg-container) !important;
+  border-color: var(--color-border);
+  transform: translateY(0) !important;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+  z-index: 1;
+  height: 46px;
+}
+
+.tabs :global(.ant-tabs-tab-active::after) {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-bg-container);
 }
 
 .tabLabel {
   display: flex;
   align-items: center;
-  gap: 2px;
-  transition: gap 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.tabLabel:hover {
-  gap: 6px;
+  gap: 4px;
 }
 
 .tabName {
@@ -144,9 +168,10 @@
   cursor: grab;
   color: var(--color-text-quaternary);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  margin-right: -2px;
   font-size: 12px;
-  transform: scale(0.8);
+  width: 0;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .dragHandle:hover {
@@ -160,8 +185,7 @@
 
 .tabLabel:hover .dragHandle {
   opacity: 0.5;
-  margin-right: 2px;
-  transform: scale(1);
+  width: 16px;
 }
 
 .moreIcon {
@@ -170,19 +194,19 @@
   cursor: pointer;
   padding: 2px;
   border-radius: 4px;
-  margin-left: -2px;
-  transform: scale(0.8);
+  width: 0;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .moreIcon:hover {
   background: var(--color-fill-secondary);
-  transform: scale(1.05) !important;
+  opacity: 1 !important;
 }
 
 .tabLabel:hover .moreIcon {
   opacity: 1;
-  margin-left: 2px;
-  transform: scale(1);
+  width: 20px;
 }
 
 .dragTrigger {

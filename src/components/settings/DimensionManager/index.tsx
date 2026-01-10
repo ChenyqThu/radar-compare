@@ -18,6 +18,7 @@ import {
   CloseOutlined,
   EditOutlined,
   FullscreenOutlined,
+  InfoCircleOutlined,
 } from '@ant-design/icons'
 import {
   DndContext,
@@ -185,6 +186,13 @@ function SortableRow({
     return dim.weight
   }
 
+  const getDescription = (): string => {
+    if (row.isSubDimension && row.subDimension) {
+      return row.subDimension.description || ''
+    }
+    return dim.description || ''
+  }
+
   const handleViewSubRadar = () => {
     openSubRadarDrawer(dim.id)
   }
@@ -252,6 +260,11 @@ function SortableRow({
             <span className={styles.nameText}>
               {getName() || '未命名'}
             </span>
+            {getDescription() && (
+              <Tooltip title={getDescription()} placement="topLeft" overlayStyle={{ maxWidth: 400 }}>
+                <InfoCircleOutlined className={styles.infoIcon} />
+              </Tooltip>
+            )}
             <Tooltip title="编辑名称">
               <Button
                 type="text"

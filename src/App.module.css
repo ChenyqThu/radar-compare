@@ -28,16 +28,17 @@
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
+  align-items: flex-end;
+  margin-bottom: 0;
   flex-shrink: 0;
+  gap: 16px;
 }
 
 .chartArea {
   flex: 1;
   min-height: 0;
   background: var(--color-bg-container);
-  border-radius: 8px;
+  border-radius: 0 8px 8px 8px;
   box-shadow: var(--shadow);
   overflow: hidden;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
