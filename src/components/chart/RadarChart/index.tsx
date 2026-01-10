@@ -124,6 +124,8 @@ function SubDimensionRadar({ dimension, direction }: { dimension: Dimension; dir
       animation: true,
       animationDuration: 400,
       animationEasing: 'cubicOut',
+      animationDurationUpdate: 600,
+      animationEasingUpdate: 'cubicInOut',
     }
   }, [dimension, regularRadar, isDark])
 
@@ -134,7 +136,6 @@ function SubDimensionRadar({ dimension, direction }: { dimension: Dimension; dir
       <ReactECharts
         option={option}
         style={{ height: '100%', width: '100%' }}
-        notMerge={true}
       />
     </div>
   )

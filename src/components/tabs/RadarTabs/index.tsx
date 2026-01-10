@@ -261,12 +261,20 @@ export function RadarTabs() {
             </div>
           ) : (
             <>
-              <HolderOutlined className={styles.dragHandle} />
-              {isTimeline && <HistoryOutlined className={styles.timelineIcon} />}
-              {isReferenced && <LockOutlined className={styles.lockIcon} />}
-              <span className={styles.tabName}>
-                {radar.name}
-              </span>
+              <div className={styles.tabMainRow}>
+                <HolderOutlined className={styles.dragHandle} />
+                {isTimeline && <HistoryOutlined className={styles.timelineIcon} />}
+                {isReferenced && <LockOutlined className={styles.lockIcon} />}
+                <span className={styles.tabName}>
+                  {radar.name}
+                </span>
+                <Dropdown menu={{ items: getMenuItems(radar.id, radar.name) }} trigger={['click']}>
+                  <MoreOutlined
+                    className={styles.moreIcon}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </Dropdown>
+              </div>
               {timeMarker && (
                 <span className={styles.timeMarkerBadge}>
                   {formatTimeMarker(timeMarker, language)}
@@ -297,12 +305,6 @@ export function RadarTabs() {
               >
                 <span />
               </Popover>
-              <Dropdown menu={{ items: getMenuItems(radar.id, radar.name) }} trigger={['click']}>
-                <MoreOutlined
-                  className={styles.moreIcon}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </Dropdown>
             </>
           )}
         </div>

@@ -63,47 +63,43 @@ export function TimeMarkerPicker({
   }
 
   return (
-    <Space direction="vertical" size={8} style={{ width: 180 }}>
-      <Space size={4}>
-        <Select
-          placeholder={t.timeline.selectYear}
-          value={tempYear}
-          onChange={setTempYear}
-          options={yearOptions}
-          disabled={disabled}
-          size={size}
-          style={{ width: 80 }}
-          allowClear
-          onClear={handleClear}
-        />
-        <Select
-          placeholder={t.timeline.selectMonth}
-          value={tempMonth}
-          onChange={setTempMonth}
-          options={monthOptions}
-          disabled={disabled || !tempYear}
-          size={size}
-          style={{ width: 80 }}
-          allowClear
-        />
-      </Space>
-      <Space size={4} style={{ width: '100%', justifyContent: 'flex-end' }}>
-        <Button
-          type="text"
-          size="small"
-          icon={<CloseOutlined />}
-          onClick={handleCancel}
-          className={styles.cancelBtn}
-        />
-        <Button
-          type="text"
-          size="small"
-          icon={<CheckOutlined />}
-          onClick={handleConfirm}
-          disabled={!tempYear}
-          className={styles.confirmBtn}
-        />
-      </Space>
+    <Space size={4}>
+      <Select
+        placeholder={t.timeline.selectYear}
+        value={tempYear}
+        onChange={setTempYear}
+        options={yearOptions}
+        disabled={disabled}
+        size={size}
+        style={{ width: 80 }}
+        allowClear
+        onClear={handleClear}
+      />
+      <Select
+        placeholder={t.timeline.selectMonth}
+        value={tempMonth}
+        onChange={setTempMonth}
+        options={monthOptions}
+        disabled={disabled || !tempYear}
+        size={size}
+        style={{ width: 80 }}
+        allowClear
+      />
+      <Button
+        type="text"
+        size="small"
+        icon={<CloseOutlined />}
+        onClick={handleCancel}
+        className={styles.cancelBtn}
+      />
+      <Button
+        type="text"
+        size="small"
+        icon={<CheckOutlined />}
+        onClick={handleConfirm}
+        disabled={!tempYear}
+        className={styles.confirmBtn}
+      />
     </Space>
   )
 }
