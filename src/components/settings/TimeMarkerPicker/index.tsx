@@ -1,7 +1,9 @@
 import { Select, Space, Button } from 'antd'
+import { CheckOutlined, CloseOutlined } from '@ant-design/icons'
 import { useState, useEffect } from 'react'
 import { useI18n } from '@/locales'
 import type { TimeMarker } from '@/types'
+import styles from './TimeMarkerPicker.module.css'
 
 interface TimeMarkerPickerProps {
   value?: TimeMarker | null
@@ -86,12 +88,21 @@ export function TimeMarkerPicker({
         />
       </Space>
       <Space size={4} style={{ width: '100%', justifyContent: 'flex-end' }}>
-        <Button size="small" onClick={handleCancel}>
-          {t.common.cancel}
-        </Button>
-        <Button size="small" type="primary" onClick={handleConfirm} disabled={!tempYear}>
-          {t.common.confirm}
-        </Button>
+        <Button
+          type="text"
+          size="small"
+          icon={<CloseOutlined />}
+          onClick={handleCancel}
+          className={styles.cancelBtn}
+        />
+        <Button
+          type="text"
+          size="small"
+          icon={<CheckOutlined />}
+          onClick={handleConfirm}
+          disabled={!tempYear}
+          className={styles.confirmBtn}
+        />
       </Space>
     </Space>
   )

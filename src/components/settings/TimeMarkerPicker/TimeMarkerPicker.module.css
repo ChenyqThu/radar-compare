@@ -1,0 +1,24 @@
+.confirmBtn {
+  color: var(--color-success) !important;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.confirmBtn:hover {
+  background: rgba(82, 196, 26, 0.1) !important;
+  transform: scale(1.1);
+}
+
+.confirmBtn:disabled {
+  opacity: 0.4;
+}
+
+.cancelBtn {
+  color: var(--color-text-tertiary) !important;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.cancelBtn:hover {
+  color: var(--color-error) !important;
+  background: rgba(255, 77, 79, 0.1) !important;
+  transform: scale(1.1);
+}

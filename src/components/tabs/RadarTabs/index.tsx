@@ -24,12 +24,41 @@ import {
 import {
   SortableContext,
   horizontalListSortingStrategy,
+  useSortable,
 } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useRadarStore } from '@/stores/radarStore'
 import { useI18n } from '@/locales'
 import { isTimelineRadar, isRegularRadar } from '@/types'
 import { TimeMarkerPicker, formatTimeMarker } from '@/components/settings/TimeMarkerPicker'
 import styles from './RadarTabs.module.css'
+
+// 可拖拽的 Tab 项
+interface DraggableTabPaneProps {
+  id: string
+  children: React.ReactNode
+}
+
+function DraggableTabPane({ id, children }: DraggableTabPaneProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <div {...listeners} className={styles.dragTrigger}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 
 export function RadarTabs() {
   const {
@@ -291,6 +320,15 @@ export function RadarTabs() {
             type="card"
             items={items}
             className={styles.tabs}
+            renderTabBar={(props, DefaultTabBar) => (
+              <DefaultTabBar {...props}>
+                {(node) => (
+                  <DraggableTabPane key={node.key} id={node.key as string}>
+                    {node}
+                  </DraggableTabPane>
+                )}
+              </DefaultTabBar>
+            )}
           />
           <Button
             type="text"
