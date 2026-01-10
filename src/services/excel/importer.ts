@@ -3,6 +3,14 @@ import { nanoid } from 'nanoid'
 import type { RadarChart, Dimension, SubDimension, Vendor, ValidationResult, ValidationError, ValidationWarning } from '@/types'
 import { PRESET_COLORS, PRESET_MARKERS } from '@/types'
 
+// 多sheet导入结果
+export interface MultiSheetImportResult {
+  isValid: boolean
+  errors: ValidationError[]
+  warnings: ValidationWarning[]
+  radars: RadarChart[]
+}
+
 export async function importFromExcel(file: File): Promise<ValidationResult> {
   return new Promise((resolve) => {
     const reader = new FileReader()
@@ -32,6 +40,82 @@ export async function importFromExcel(file: File): Promise<ValidationResult> {
         errors: [{ field: 'file', message: '文件读取失败' }],
         warnings: [],
         preview: null,
+      })
+    }
+
+    reader.readAsArrayBuffer(file)
+  })
+}
+
+// 导入多sheet Excel文件
+export async function importMultipleFromExcel(file: File): Promise<MultiSheetImportResult> {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer)
+        const workbook = XLSX.read(data, { type: 'array' })
+
+        const allErrors: ValidationError[] = []
+        const allWarnings: ValidationWarning[] = []
+        const radars: RadarChart[] = []
+
+        workbook.SheetNames.forEach((sheetName, sheetIndex) => {
+          const sheet = workbook.Sheets[sheetName]
+          const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][]
+
+          const result = parseExcelData(jsonData, sheetName)
+
+          if (result.errors.length > 0) {
+            // 为错误添加sheet名称前缀
+            result.errors.forEach((err) => {
+              allErrors.push({
+                ...err,
+                field: `[${sheetName}] ${err.field}`,
+              })
+            })
+          }
+
+          if (result.warnings.length > 0) {
+            result.warnings.forEach((warn) => {
+              allWarnings.push({
+                ...warn,
+                field: `[${sheetName}] ${warn.field}`,
+              })
+            })
+          }
+
+          if (result.preview) {
+            // 使用sheet名称作为雷达图名称
+            result.preview.name = sheetName
+            result.preview.order = sheetIndex
+            radars.push(result.preview)
+          }
+        })
+
+        resolve({
+          isValid: radars.length > 0,
+          errors: allErrors,
+          warnings: allWarnings,
+          radars,
+        })
+      } catch (error) {
+        resolve({
+          isValid: false,
+          errors: [{ field: 'file', message: '文件解析失败: ' + (error as Error).message }],
+          warnings: [],
+          radars: [],
+        })
+      }
+    }
+
+    reader.onerror = () => {
+      resolve({
+        isValid: false,
+        errors: [{ field: 'file', message: '文件读取失败' }],
+        warnings: [],
+        radars: [],
       })
     }
 
@@ -88,7 +172,7 @@ export async function importFromJson(file: File): Promise<ValidationResult> {
   })
 }
 
-function parseExcelData(rows: any[][]): ValidationResult {
+function parseExcelData(rows: any[][], sheetName?: string): ValidationResult {
   const errors: ValidationError[] = []
   const warnings: ValidationWarning[] = []
 
@@ -207,7 +291,7 @@ function parseExcelData(rows: any[][]): ValidationResult {
   const now = Date.now()
   const radarChart: RadarChart = {
     id: nanoid(),
-    name: '导入的对比图',
+    name: sheetName || '导入的对比图',
     order: 0,
     dimensions,
     vendors,

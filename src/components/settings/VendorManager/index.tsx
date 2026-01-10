@@ -22,7 +22,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useRadarStore } from '@/stores/radarStore'
 import { useI18n } from '@/locales'
 import type { Vendor, MarkerType } from '@/types'
-import { PRESET_MARKERS } from '@/types'
+import { PRESET_MARKERS, isRegularRadar } from '@/types'
 import styles from './VendorManager.module.css'
 
 // PowerPoint 风格的预设颜色调色板
@@ -246,9 +246,11 @@ export function VendorManager() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  if (!activeRadar) return null
+  // 只有普通雷达图才能管理 Vendor
+  const regularRadar = activeRadar && isRegularRadar(activeRadar) ? activeRadar : null
+  if (!regularRadar) return null
 
-  const { vendors } = activeRadar
+  const { vendors } = regularRadar
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string)

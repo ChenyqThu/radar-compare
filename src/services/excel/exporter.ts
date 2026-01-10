@@ -1,8 +1,9 @@
 import * as XLSX from 'xlsx'
 import type { RadarChart, Project } from '@/types'
+import { isRegularRadar } from '@/types'
 
-export function exportToExcel(radar: RadarChart, filename?: string) {
-  const wb = XLSX.utils.book_new()
+// 将单个雷达图转换为sheet数据
+function radarToSheetData(radar: RadarChart): any[][] {
   const rows: any[][] = []
 
   // 表头
@@ -44,9 +45,11 @@ export function exportToExcel(radar: RadarChart, filename?: string) {
     }
   })
 
-  const ws = XLSX.utils.aoa_to_sheet(rows)
+  return rows
+}
 
-  // 设置列宽
+// 设置sheet列宽
+function setColumnWidths(ws: XLSX.WorkSheet, vendorCount: number) {
   ws['!cols'] = [
     { wch: 15 }, // 维度
     { wch: 10 }, // 维度权重
@@ -54,11 +57,48 @@ export function exportToExcel(radar: RadarChart, filename?: string) {
     { wch: 15 }, // 子维度
     { wch: 12 }, // 子维度权重
     { wch: 20 }, // 子维度说明
-    ...radar.vendors.map(() => ({ wch: 10 })),
+    ...Array(vendorCount).fill({ wch: 10 }),
   ]
+}
 
-  XLSX.utils.book_append_sheet(wb, ws, radar.name.substring(0, 31))
+// 导出单个雷达图
+export function exportToExcel(radar: RadarChart, filename?: string) {
+  const wb = XLSX.utils.book_new()
+  const rows = radarToSheetData(radar)
+  const ws = XLSX.utils.aoa_to_sheet(rows)
+  setColumnWidths(ws, radar.vendors.length)
+
+  // Sheet名称最长31字符
+  const sheetName = radar.name.substring(0, 31)
+  XLSX.utils.book_append_sheet(wb, ws, sheetName)
   XLSX.writeFile(wb, filename || `${radar.name}.xlsx`)
+}
+
+// 导出多个雷达图（每个tab一个sheet）
+export function exportMultipleToExcel(radars: RadarChart[], filename?: string) {
+  const wb = XLSX.utils.book_new()
+
+  // 过滤出普通雷达图（非时间轴）
+  const regularRadars = radars.filter(isRegularRadar)
+
+  regularRadars.forEach((radar) => {
+    const rows = radarToSheetData(radar)
+    const ws = XLSX.utils.aoa_to_sheet(rows)
+    setColumnWidths(ws, radar.vendors.length)
+
+    // Sheet名称最长31字符，且不能重复
+    let sheetName = radar.name.substring(0, 31)
+    let counter = 1
+    while (wb.SheetNames.includes(sheetName)) {
+      const suffix = ` (${counter})`
+      sheetName = radar.name.substring(0, 31 - suffix.length) + suffix
+      counter++
+    }
+
+    XLSX.utils.book_append_sheet(wb, ws, sheetName)
+  })
+
+  XLSX.writeFile(wb, filename || '竞品对比.xlsx')
 }
 
 export function exportToJson(project: Project, filename?: string) {

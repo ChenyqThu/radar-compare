@@ -2,9 +2,37 @@ import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import { nanoid } from 'nanoid'
 import { debounce } from 'lodash-es'
-import type { Project, RadarChart, Vendor, Dimension, SubDimension, UUID } from '@/types'
-import { PRESET_COLORS, PRESET_MARKERS } from '@/types'
+import type {
+  Project,
+  RadarChart,
+  Vendor,
+  Dimension,
+  SubDimension,
+  UUID,
+  TimeMarker,
+  TimelineRadarChart,
+  AnyRadarChart,
+} from '@/types'
+import { PRESET_COLORS, PRESET_MARKERS, isTimelineRadar, isRegularRadar } from '@/types'
 import { db, getAllProjects, getProject, saveProject } from '@/services/db'
+
+// 校验结果类型
+interface ValidationResult {
+  valid: boolean
+  errors: string[]  // i18n keys
+}
+
+// 时间轴数据类型
+interface TimelineData {
+  timelineId: UUID
+  timePoints: Array<{
+    radarId: UUID
+    timeMarker: TimeMarker
+    name: string
+  }>
+  dimensions: Dimension[]
+  vendors: Vendor[]
+}
 
 interface RadarState {
   currentProject: Project | null
@@ -12,7 +40,7 @@ interface RadarState {
   isLoading: boolean
   lastSavedAt: number | null
 
-  getActiveRadar: () => RadarChart | null
+  getActiveRadar: () => AnyRadarChart | null
 
   // 项目操作
   loadProject: (projectId: UUID) => Promise<void>
@@ -59,6 +87,22 @@ interface RadarState {
 
   // 导入
   importRadarChart: (data: RadarChart) => void
+  importMultipleRadarCharts: (data: RadarChart[]) => void
+
+  // 时间标记操作
+  setRadarTimeMarker: (radarId: UUID, year: number, month: number) => void
+  clearRadarTimeMarker: (radarId: UUID) => void
+
+  // 时间轴雷达图操作
+  createTimelineRadar: (name: string, sourceRadarIds: UUID[]) => ValidationResult
+  deleteTimelineRadar: (timelineId: UUID) => void
+  updateTimelineSources: (timelineId: UUID, sourceRadarIds: UUID[]) => ValidationResult
+
+  // 校验和查询
+  validateTimelineConsistency: (sourceRadarIds: UUID[]) => ValidationResult
+  isRadarReferencedByTimeline: (radarId: UUID) => boolean
+  getTimelineData: (timelineId: UUID) => TimelineData | null
+  getRegularRadars: () => RadarChart[]
 }
 
 const debouncedSave = debounce(async (project: Project) => {
@@ -174,8 +218,20 @@ export const useRadarStore = create<RadarState>()(
     },
 
     deleteRadarChart: (radarId) => {
-      const { currentProject } = get()
-      if (!currentProject || currentProject.radarCharts.length <= 1) return
+      const { currentProject, isRadarReferencedByTimeline } = get()
+      if (!currentProject) return
+
+      // 检查是否被时间轴引用
+      if (isRadarReferencedByTimeline(radarId)) {
+        return // 被引用的雷达图不能删除
+      }
+
+      // 统计普通雷达图数量（排除时间轴）
+      const regularRadars = currentProject.radarCharts.filter(isRegularRadar)
+      if (regularRadars.length <= 1 && regularRadars.some((r) => r.id === radarId)) {
+        return // 至少保留一个普通雷达图
+      }
+
       const newRadars = currentProject.radarCharts.filter((r) => r.id !== radarId)
       const newActiveId = currentProject.activeRadarId === radarId ? newRadars[0]?.id : currentProject.activeRadarId
       const updated = { ...currentProject, radarCharts: newRadars, activeRadarId: newActiveId }
@@ -260,7 +316,7 @@ export const useRadarStore = create<RadarState>()(
     addVendor: (vendor) => {
       const { currentProject, getActiveRadar } = get()
       const activeRadar = getActiveRadar()
-      if (!currentProject || !activeRadar) return
+      if (!currentProject || !activeRadar || !isRegularRadar(activeRadar)) return
       const usedColors = activeRadar.vendors.map((v) => v.color)
       const availableColor = PRESET_COLORS.find((c) => !usedColors.includes(c)) ?? PRESET_COLORS[0]
       const usedMarkers = activeRadar.vendors.map((v) => v.markerType)
@@ -286,7 +342,7 @@ export const useRadarStore = create<RadarState>()(
     updateVendor: (vendorId, updates) => {
       const { currentProject, getActiveRadar } = get()
       const activeRadar = getActiveRadar()
-      if (!currentProject || !activeRadar) return
+      if (!currentProject || !activeRadar || !isRegularRadar(activeRadar)) return
       const updatedRadar = {
         ...activeRadar,
         vendors: activeRadar.vendors.map((v) => (v.id === vendorId ? { ...v, ...updates } : v)),
@@ -303,7 +359,7 @@ export const useRadarStore = create<RadarState>()(
     deleteVendor: (vendorId) => {
       const { currentProject, getActiveRadar } = get()
       const activeRadar = getActiveRadar()
-      if (!currentProject || !activeRadar) return
+      if (!currentProject || !activeRadar || !isRegularRadar(activeRadar)) return
       const updatedRadar = {
         ...activeRadar,
         vendors: activeRadar.vendors.filter((v) => v.id !== vendorId),
@@ -333,7 +389,7 @@ export const useRadarStore = create<RadarState>()(
     reorderVendors: (fromIndex, toIndex) => {
       const { currentProject, getActiveRadar } = get()
       const activeRadar = getActiveRadar()
-      if (!currentProject || !activeRadar) return
+      if (!currentProject || !activeRadar || !isRegularRadar(activeRadar)) return
       const vendors = [...activeRadar.vendors]
       const [removed] = vendors.splice(fromIndex, 1)
       vendors.splice(toIndex, 0, removed)
@@ -350,7 +406,7 @@ export const useRadarStore = create<RadarState>()(
     toggleVendorVisibility: (vendorId) => {
       const { currentProject, getActiveRadar } = get()
       const activeRadar = getActiveRadar()
-      if (!currentProject || !activeRadar) return
+      if (!currentProject || !activeRadar || !isRegularRadar(activeRadar)) return
       const updatedRadar = {
         ...activeRadar,
         vendors: activeRadar.vendors.map((v) => (v.id === vendorId ? { ...v, visible: !v.visible } : v)),
@@ -367,7 +423,7 @@ export const useRadarStore = create<RadarState>()(
     addDimension: (dimension) => {
       const { currentProject, getActiveRadar } = get()
       const activeRadar = getActiveRadar()
-      if (!currentProject || !activeRadar) return
+      if (!currentProject || !activeRadar || !isRegularRadar(activeRadar)) return
       const newDimension: Dimension = {
         id: nanoid(),
         name: dimension?.name ?? `维度 ${activeRadar.dimensions.length + 1}`,
@@ -390,7 +446,7 @@ export const useRadarStore = create<RadarState>()(
     updateDimension: (dimensionId, updates) => {
       const { currentProject, getActiveRadar } = get()
       const activeRadar = getActiveRadar()
-      if (!currentProject || !activeRadar) return
+      if (!currentProject || !activeRadar || !isRegularRadar(activeRadar)) return
       const updatedRadar = {
         ...activeRadar,
         dimensions: activeRadar.dimensions.map((d) => (d.id === dimensionId ? { ...d, ...updates } : d)),
@@ -407,7 +463,7 @@ export const useRadarStore = create<RadarState>()(
     deleteDimension: (dimensionId) => {
       const { currentProject, getActiveRadar } = get()
       const activeRadar = getActiveRadar()
-      if (!currentProject || !activeRadar) return
+      if (!currentProject || !activeRadar || !isRegularRadar(activeRadar)) return
       const updatedRadar = {
         ...activeRadar,
         dimensions: activeRadar.dimensions.filter((d) => d.id !== dimensionId),
@@ -424,7 +480,7 @@ export const useRadarStore = create<RadarState>()(
     reorderDimensions: (fromIndex, toIndex) => {
       const { currentProject, getActiveRadar } = get()
       const activeRadar = getActiveRadar()
-      if (!currentProject || !activeRadar) return
+      if (!currentProject || !activeRadar || !isRegularRadar(activeRadar)) return
       const dimensions = [...activeRadar.dimensions]
       const [removed] = dimensions.splice(fromIndex, 1)
       dimensions.splice(toIndex, 0, removed)
@@ -441,7 +497,7 @@ export const useRadarStore = create<RadarState>()(
     addSubDimension: (dimensionId, subDimension) => {
       const { currentProject, getActiveRadar } = get()
       const activeRadar = getActiveRadar()
-      if (!currentProject || !activeRadar) return
+      if (!currentProject || !activeRadar || !isRegularRadar(activeRadar)) return
       const dimension = activeRadar.dimensions.find((d) => d.id === dimensionId)
       if (!dimension) return
       const newSubDimension: SubDimension = {
@@ -471,7 +527,7 @@ export const useRadarStore = create<RadarState>()(
     updateSubDimension: (dimensionId, subDimensionId, updates) => {
       const { currentProject, getActiveRadar } = get()
       const activeRadar = getActiveRadar()
-      if (!currentProject || !activeRadar) return
+      if (!currentProject || !activeRadar || !isRegularRadar(activeRadar)) return
       const updatedRadar = {
         ...activeRadar,
         dimensions: activeRadar.dimensions.map((d) =>
@@ -492,7 +548,7 @@ export const useRadarStore = create<RadarState>()(
     deleteSubDimension: (dimensionId, subDimensionId) => {
       const { currentProject, getActiveRadar } = get()
       const activeRadar = getActiveRadar()
-      if (!currentProject || !activeRadar) return
+      if (!currentProject || !activeRadar || !isRegularRadar(activeRadar)) return
       const updatedRadar = {
         ...activeRadar,
         dimensions: activeRadar.dimensions.map((d) =>
@@ -511,7 +567,7 @@ export const useRadarStore = create<RadarState>()(
     reorderSubDimensions: (dimensionId, fromIndex, toIndex) => {
       const { currentProject, getActiveRadar } = get()
       const activeRadar = getActiveRadar()
-      if (!currentProject || !activeRadar) return
+      if (!currentProject || !activeRadar || !isRegularRadar(activeRadar)) return
       const dimension = activeRadar.dimensions.find((d) => d.id === dimensionId)
       if (!dimension) return
       const subDimensions = [...dimension.subDimensions]
@@ -535,7 +591,7 @@ export const useRadarStore = create<RadarState>()(
     moveSubToOtherParent: (fromParentId, subId, toParentId, toIndex) => {
       const { currentProject, getActiveRadar } = get()
       const activeRadar = getActiveRadar()
-      if (!currentProject || !activeRadar) return
+      if (!currentProject || !activeRadar || !isRegularRadar(activeRadar)) return
 
       const fromParent = activeRadar.dimensions.find((d) => d.id === fromParentId)
       const subDim = fromParent?.subDimensions.find((s) => s.id === subId)
@@ -569,7 +625,7 @@ export const useRadarStore = create<RadarState>()(
     promoteSubToDimension: (parentId, subId, toDimensionIndex) => {
       const { currentProject, getActiveRadar } = get()
       const activeRadar = getActiveRadar()
-      if (!currentProject || !activeRadar) return
+      if (!currentProject || !activeRadar || !isRegularRadar(activeRadar)) return
 
       const parent = activeRadar.dimensions.find((d) => d.id === parentId)
       const subDim = parent?.subDimensions.find((s) => s.id === subId)
@@ -610,14 +666,14 @@ export const useRadarStore = create<RadarState>()(
     demoteDimensionToSub: (dimensionId, toParentId, toIndex) => {
       const { currentProject, getActiveRadar } = get()
       const activeRadar = getActiveRadar()
-      if (!currentProject || !activeRadar) return
+      if (!currentProject || !activeRadar || !isRegularRadar(activeRadar)) return
       if (dimensionId === toParentId) return // 不能把自己变成自己的子维度
 
       const dimension = activeRadar.dimensions.find((d) => d.id === dimensionId)
       if (!dimension) return
 
       // 如果有子维度，先把它们提升为主维度
-      const promotedDimensions: Dimension[] = dimension.subDimensions.map((sub, idx) => ({
+      const promotedDimensions: Dimension[] = dimension.subDimensions.map((sub) => ({
         id: sub.id,
         name: sub.name,
         description: sub.description,
@@ -669,7 +725,7 @@ export const useRadarStore = create<RadarState>()(
     setDimensionScore: (dimensionId, vendorId, score) => {
       const { currentProject, getActiveRadar } = get()
       const activeRadar = getActiveRadar()
-      if (!currentProject || !activeRadar) return
+      if (!currentProject || !activeRadar || !isRegularRadar(activeRadar)) return
       const clampedScore = Math.max(0, Math.min(10, Math.round(score)))
       const updatedRadar = {
         ...activeRadar,
@@ -689,7 +745,7 @@ export const useRadarStore = create<RadarState>()(
     setSubDimensionScore: (dimensionId, subDimensionId, vendorId, score) => {
       const { currentProject, getActiveRadar } = get()
       const activeRadar = getActiveRadar()
-      if (!currentProject || !activeRadar) return
+      if (!currentProject || !activeRadar || !isRegularRadar(activeRadar)) return
       const clampedScore = Math.max(0, Math.min(10, Math.round(score)))
       const updatedRadar = {
         ...activeRadar,
@@ -732,6 +788,260 @@ export const useRadarStore = create<RadarState>()(
       }
       set({ currentProject: updated })
       debouncedSave(updated)
+    },
+
+    importMultipleRadarCharts: (data) => {
+      const { currentProject } = get()
+      if (!currentProject || data.length === 0) return
+      const now = Date.now()
+      const importedRadars: RadarChart[] = data.map((radar, idx) => ({
+        ...radar,
+        id: nanoid(),
+        name: radar.name,
+        order: currentProject.radarCharts.length + idx,
+        createdAt: now,
+        updatedAt: now,
+      }))
+      const updated = {
+        ...currentProject,
+        radarCharts: [...currentProject.radarCharts, ...importedRadars],
+        activeRadarId: importedRadars[0].id,
+      }
+      set({ currentProject: updated })
+      debouncedSave(updated)
+    },
+
+    // 获取所有普通雷达图（非时间轴）
+    getRegularRadars: () => {
+      const { currentProject } = get()
+      if (!currentProject) return []
+      return currentProject.radarCharts.filter(isRegularRadar)
+    },
+
+    // 设置时间标记
+    setRadarTimeMarker: (radarId, year, month) => {
+      const { currentProject } = get()
+      if (!currentProject) return
+      const updated = {
+        ...currentProject,
+        radarCharts: currentProject.radarCharts.map((r) => {
+          if (r.id === radarId && isRegularRadar(r)) {
+            return { ...r, timeMarker: { year, month }, updatedAt: Date.now() }
+          }
+          return r
+        }),
+      }
+      set({ currentProject: updated })
+      debouncedSave(updated)
+    },
+
+    // 清除时间标记
+    clearRadarTimeMarker: (radarId) => {
+      const { currentProject } = get()
+      if (!currentProject) return
+      const updated = {
+        ...currentProject,
+        radarCharts: currentProject.radarCharts.map((r) => {
+          if (r.id === radarId && isRegularRadar(r)) {
+            const { timeMarker, ...rest } = r
+            return { ...rest, updatedAt: Date.now() } as RadarChart
+          }
+          return r
+        }),
+      }
+      set({ currentProject: updated })
+      debouncedSave(updated)
+    },
+
+    // 校验时间轴一致性
+    validateTimelineConsistency: (sourceRadarIds) => {
+      const { currentProject } = get()
+      const errors: string[] = []
+
+      if (!currentProject) {
+        return { valid: false, errors: ['timeline.noProject'] }
+      }
+
+      // 至少需要 2 个数据源
+      if (sourceRadarIds.length < 2) {
+        errors.push('timeline.minSourcesRequired')
+        return { valid: false, errors }
+      }
+
+      // 获取所有源雷达图
+      const radars = sourceRadarIds
+        .map((id) => currentProject.radarCharts.find((r) => r.id === id))
+        .filter((r): r is RadarChart => r !== undefined && isRegularRadar(r))
+
+      if (radars.length !== sourceRadarIds.length) {
+        errors.push('timeline.invalidSources')
+        return { valid: false, errors }
+      }
+
+      // 所有源必须有时间标记
+      const missingTimeMarker = radars.filter((r) => !r.timeMarker)
+      if (missingTimeMarker.length > 0) {
+        errors.push('timeline.missingTimeMarker')
+      }
+
+      // 维度结构必须匹配（按名称）
+      const firstRadar = radars[0]
+      const getDimensionSignature = (r: RadarChart) =>
+        r.dimensions
+          .map((d) => d.name)
+          .sort()
+          .join('|')
+
+      const mismatchedDimensions = radars.filter(
+        (r) => getDimensionSignature(r) !== getDimensionSignature(firstRadar)
+      )
+      if (mismatchedDimensions.length > 0) {
+        errors.push('timeline.dimensionMismatch')
+      }
+
+      // Vendor 结构必须匹配（按名称）
+      const getVendorSignature = (r: RadarChart) =>
+        r.vendors
+          .map((v) => v.name)
+          .sort()
+          .join('|')
+
+      const mismatchedVendors = radars.filter(
+        (r) => getVendorSignature(r) !== getVendorSignature(firstRadar)
+      )
+      if (mismatchedVendors.length > 0) {
+        errors.push('timeline.vendorMismatch')
+      }
+
+      return { valid: errors.length === 0, errors }
+    },
+
+    // 检查雷达图是否被时间轴引用
+    isRadarReferencedByTimeline: (radarId) => {
+      const { currentProject } = get()
+      if (!currentProject) return false
+      return currentProject.radarCharts.some(
+        (r) => isTimelineRadar(r) && r.sourceRadarIds.includes(radarId)
+      )
+    },
+
+    // 创建时间轴雷达图
+    createTimelineRadar: (name, sourceRadarIds) => {
+      const { currentProject, validateTimelineConsistency } = get()
+      if (!currentProject) {
+        return { valid: false, errors: ['timeline.noProject'] }
+      }
+
+      const validation = validateTimelineConsistency(sourceRadarIds)
+      if (!validation.valid) {
+        return validation
+      }
+
+      const now = Date.now()
+      const newTimeline: TimelineRadarChart = {
+        id: nanoid(),
+        name,
+        order: currentProject.radarCharts.length,
+        isTimeline: true,
+        sourceRadarIds,
+        createdAt: now,
+        updatedAt: now,
+      }
+
+      const updated = {
+        ...currentProject,
+        radarCharts: [...currentProject.radarCharts, newTimeline],
+        activeRadarId: newTimeline.id,
+      }
+      set({ currentProject: updated })
+      debouncedSave(updated)
+
+      return { valid: true, errors: [] }
+    },
+
+    // 删除时间轴雷达图
+    deleteTimelineRadar: (timelineId) => {
+      const { currentProject } = get()
+      if (!currentProject) return
+
+      const timeline = currentProject.radarCharts.find((r) => r.id === timelineId)
+      if (!timeline || !isTimelineRadar(timeline)) return
+
+      const newRadars = currentProject.radarCharts.filter((r) => r.id !== timelineId)
+      const newActiveId =
+        currentProject.activeRadarId === timelineId
+          ? newRadars[0]?.id ?? null
+          : currentProject.activeRadarId
+
+      const updated = {
+        ...currentProject,
+        radarCharts: newRadars,
+        activeRadarId: newActiveId,
+      }
+      set({ currentProject: updated })
+      debouncedSave(updated)
+    },
+
+    // 更新时间轴数据源
+    updateTimelineSources: (timelineId, sourceRadarIds) => {
+      const { currentProject, validateTimelineConsistency } = get()
+      if (!currentProject) {
+        return { valid: false, errors: ['timeline.noProject'] }
+      }
+
+      const validation = validateTimelineConsistency(sourceRadarIds)
+      if (!validation.valid) {
+        return validation
+      }
+
+      const updated = {
+        ...currentProject,
+        radarCharts: currentProject.radarCharts.map((r) => {
+          if (r.id === timelineId && isTimelineRadar(r)) {
+            return { ...r, sourceRadarIds, updatedAt: Date.now() }
+          }
+          return r
+        }),
+      }
+      set({ currentProject: updated })
+      debouncedSave(updated)
+
+      return { valid: true, errors: [] }
+    },
+
+    // 获取时间轴数据
+    getTimelineData: (timelineId) => {
+      const { currentProject } = get()
+      if (!currentProject) return null
+
+      const timeline = currentProject.radarCharts.find((r) => r.id === timelineId)
+      if (!timeline || !isTimelineRadar(timeline)) return null
+
+      // 获取所有源雷达图并按时间排序
+      const sourceRadars = timeline.sourceRadarIds
+        .map((id) => currentProject.radarCharts.find((r) => r.id === id))
+        .filter((r): r is RadarChart => r !== undefined && isRegularRadar(r) && !!r.timeMarker)
+        .sort((a, b) => {
+          const aTime = a.timeMarker!.year * 100 + a.timeMarker!.month
+          const bTime = b.timeMarker!.year * 100 + b.timeMarker!.month
+          return aTime - bTime
+        })
+
+      if (sourceRadars.length === 0) return null
+
+      // 使用第一个源的维度和 Vendor 结构
+      const firstRadar = sourceRadars[0]
+
+      return {
+        timelineId,
+        timePoints: sourceRadars.map((r) => ({
+          radarId: r.id,
+          timeMarker: r.timeMarker!,
+          name: r.name,
+        })),
+        dimensions: firstRadar.dimensions,
+        vendors: firstRadar.vendors,
+      }
     },
   }))
 )

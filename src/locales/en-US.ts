@@ -12,6 +12,7 @@ export const enUS: Locale = {
     loading: 'Loading...',
     noData: 'No data',
     action: 'Action',
+    expand: 'Expand',
   },
 
   // App
@@ -34,12 +35,31 @@ export const enUS: Locale = {
     import: 'Import',
     export: 'Export',
     exportImage: 'Export Image',
-    exportExcel: 'Export Excel',
+    exportExcel: 'Export Current Tab',
+    exportAllTabs: 'Export All Tabs',
     exportJSON: 'Export JSON',
     downloadTemplate: 'Download Template',
     exportSuccess: 'Export success',
     templateDownloadSuccess: 'Template downloaded',
     pleaseSelectRadar: 'Please select a radar chart first',
+    importFailed: 'Import failed',
+    importSuccess: 'Import success',
+    dataPreview: 'Data Preview',
+    sheetsFound: 'Found',
+    sheets: 'sheets',
+    subDimensionCount: 'Sub-dimensions',
+    importAllSheets: 'Import all sheets',
+    dragExcel: 'Click or drag Excel file here',
+    excelHint: 'Supports .xlsx, .xls formats',
+    dragJson: 'Click or drag JSON file here',
+    jsonHint: 'Supports exported JSON format',
+    confirmImport: 'Confirm Import',
+    parseSuccess: 'Parse success',
+    confirmToImport: 'Data format is correct, confirm to import',
+    reselect: 'Reselect file',
+    row: 'Row',
+    rowSuffix: '',
+    warning: 'Warning',
   },
 
   // Settings
@@ -67,6 +87,7 @@ export const enUS: Locale = {
     dragHint: 'Drag hint: Drag to main dimension to promote/reorder, drag to sub-dimension to move/demote',
     pleaseAddVendor: 'Please add comparison objects in "Series" first',
     pleaseAddDimension: 'Please add dimensions first',
+    weightDistribution: 'Weight Distribution',
   },
 
   // Vendor
@@ -100,5 +121,29 @@ export const enUS: Locale = {
   language: {
     zh: '中文',
     en: 'English',
+  },
+
+  // Timeline
+  timeline: {
+    createTimeline: 'Create Timeline',
+    timeCompare: 'Time Compare',
+    selectSources: 'Select Sources',
+    selectYear: 'Year',
+    selectMonth: 'Month',
+    timeMarker: 'Time Marker',
+    setTimeMarker: 'Set Time Point',
+    clearTimeMarker: 'Clear Time Point',
+    minSourcesRequired: 'At least 2 sources required',
+    missingTimeMarker: 'Selected charts missing time marker',
+    dimensionMismatch: 'Dimension structure mismatch',
+    vendorMismatch: 'Vendor structure mismatch',
+    cannotDeleteReferenced: 'Cannot delete: referenced by timeline',
+    allYears: 'All',
+    noTimeMarker: 'Not set',
+    editSources: 'Edit Sources',
+    name: 'Name',
+    sourcesPreview: 'Sources Preview',
+    noEligibleSources: 'No eligible sources (set time point for tabs first)',
+    selectAtLeast2: 'Please select at least 2 sources',
   },
 }

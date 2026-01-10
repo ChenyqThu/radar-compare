@@ -4,26 +4,30 @@ import ReactECharts from 'echarts-for-react'
 import type { EChartsOption } from 'echarts'
 import { useUIStore } from '@/stores/uiStore'
 import { useRadarStore } from '@/stores/radarStore'
+import { isRegularRadar } from '@/types'
 import styles from './SubRadarDrawer.module.css'
 
-const { Title, Text } = Typography
+const { Title } = Typography
 
 export function SubRadarDrawer() {
   const { subRadarDrawer, closeSubRadarDrawer } = useUIStore()
   const { getActiveRadar } = useRadarStore()
   const activeRadar = getActiveRadar()
 
+  // 只有普通雷达图才有维度数据
+  const regularRadar = activeRadar && isRegularRadar(activeRadar) ? activeRadar : null
+
   const dimension = useMemo(() => {
-    if (!activeRadar || !subRadarDrawer.dimensionId) return null
-    return activeRadar.dimensions.find((d) => d.id === subRadarDrawer.dimensionId)
-  }, [activeRadar, subRadarDrawer.dimensionId])
+    if (!regularRadar || !subRadarDrawer.dimensionId) return null
+    return regularRadar.dimensions.find((d) => d.id === subRadarDrawer.dimensionId)
+  }, [regularRadar, subRadarDrawer.dimensionId])
 
   const option = useMemo<EChartsOption>(() => {
-    if (!dimension || !activeRadar || dimension.subDimensions.length === 0) {
+    if (!dimension || !regularRadar || dimension.subDimensions.length === 0) {
       return {}
     }
 
-    const visibleVendors = activeRadar.vendors.filter((v) => v.visible)
+    const visibleVendors = regularRadar.vendors.filter((v) => v.visible)
 
     return {
       tooltip: { trigger: 'item' },
@@ -54,18 +58,20 @@ export function SubRadarDrawer() {
         },
       ],
     }
-  }, [dimension, activeRadar])
+  }, [dimension, regularRadar])
 
   const tableColumns = [
     { title: '子维度', dataIndex: 'name', key: 'name', width: 120 },
     { title: '权重', dataIndex: 'weight', key: 'weight', width: 70, render: (v: number) => `${v}%` },
-    ...(activeRadar?.vendors.filter((v) => v.visible).map((vendor) => ({
-      title: <span style={{ color: vendor.color }}>{vendor.name}</span>,
-      dataIndex: vendor.id,
-      key: vendor.id,
-      width: 70,
-      render: (v: number) => v?.toFixed(1) ?? '-',
-    })) ?? []),
+    ...(regularRadar
+      ? regularRadar.vendors.filter((v) => v.visible).map((vendor) => ({
+          title: <span style={{ color: vendor.color }}>{vendor.name}</span>,
+          dataIndex: vendor.id,
+          key: vendor.id,
+          width: 70,
+          render: (v: number) => v?.toFixed(1) ?? '-',
+        }))
+      : []),
   ]
 
   const tableData = dimension?.subDimensions.map((sub) => ({
@@ -73,7 +79,7 @@ export function SubRadarDrawer() {
     name: sub.name,
     weight: sub.weight,
     ...Object.fromEntries(
-      activeRadar?.vendors.map((v) => [v.id, sub.scores[v.id]]) ?? []
+      regularRadar ? regularRadar.vendors.map((v) => [v.id, sub.scores[v.id]]) : []
     ),
   }))
 

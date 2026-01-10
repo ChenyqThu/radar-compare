@@ -3,6 +3,7 @@ import {
   Button,
   Input,
   InputNumber,
+  Modal,
   Popconfirm,
   Tooltip,
   Typography,
@@ -16,6 +17,7 @@ import {
   CheckOutlined,
   CloseOutlined,
   EditOutlined,
+  FullscreenOutlined,
 } from '@ant-design/icons'
 import {
   DndContext,
@@ -41,6 +43,7 @@ import { useRadarStore } from '@/stores/radarStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useI18n } from '@/locales'
 import type { Dimension, Vendor, SubDimension } from '@/types'
+import { isRegularRadar } from '@/types'
 import { getDimensionScore } from '@/utils/calculation'
 import styles from './DimensionManager.module.css'
 
@@ -281,7 +284,7 @@ function SortableRow({
         <div key={vendor.id} className={styles.scoreCell}>
           {hasSubDimensions ? (
             <span className={styles.calculatedScore}>
-              {getDimensionScore(dim, vendor.id).toFixed(0)}
+              {getDimensionScore(dim, vendor.id).toFixed(1)}
             </span>
           ) : (
             <InputNumber
@@ -366,72 +369,123 @@ export function DimensionManager() {
     updateDimension,
     updateSubDimension,
   } = useRadarStore()
+  const { theme } = useUIStore()
   const { t } = useI18n()
   const activeRadar = getActiveRadar()
+
+  // 只有普通雷达图才能管理维度 - 提前定义以便后续 hooks 使用
+  const regularRadar = activeRadar && isRegularRadar(activeRadar) ? activeRadar : null
+  const vendors = regularRadar?.vendors ?? []
+  const dimensions = regularRadar?.dimensions ?? []
+
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [activeId, setActiveId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
+  const [sunburstModalVisible, setSunburstModalVisible] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  // Sunburst chart option
-  const sunburstOption = useMemo<EChartsOption>(() => {
-    if (!activeRadar || activeRadar.dimensions.length === 0) return {}
+  // 生成旭日图配置
+  const createSunburstOption = useCallback((showLabel: boolean): EChartsOption => {
+    if (dimensions.length === 0) return {}
 
-    const colors = [
-      '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
-      '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#48b8d0',
-    ]
+    const isDark = theme === 'dark'
 
-    const data = activeRadar.dimensions.map((dim, i) => ({
-      name: dim.name || t.dimension.unnamed,
-      value: dim.weight,
-      itemStyle: { color: colors[i % colors.length] },
-      children: dim.subDimensions.length > 0
-        ? dim.subDimensions.map((sub) => ({
-            name: sub.name || t.dimension.unnamed,
-            value: sub.weight,
-          }))
-        : undefined,
-    }))
+    // 参考 sunburst-book 的渐变色系，适配明暗主题
+    const colors = isDark
+      ? ['#4992ff', '#7cffb2', '#fddd60', '#ff6e76', '#58d9f9', '#05c091', '#ff8a45', '#8d48e3', '#dd79ff']
+      : ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc']
+
+    // 计算维度权重总和用于归一化
+    const totalDimWeight = dimensions.reduce((sum, d) => sum + d.weight, 0)
+
+    const data = dimensions.map((dim, i) => {
+      // 归一化后的维度权重
+      const normalizedDimWeight = totalDimWeight > 0 ? (dim.weight / totalDimWeight) * 100 : 0
+      // 子维度权重总和
+      const totalSubWeight = dim.subDimensions.reduce((sum, s) => sum + s.weight, 0)
+
+      return {
+        name: dim.name || t.dimension.unnamed,
+        value: normalizedDimWeight,
+        itemStyle: { color: colors[i % colors.length] },
+        children: dim.subDimensions.length > 0
+          ? dim.subDimensions.map((sub) => ({
+              name: sub.name || t.dimension.unnamed,
+              // 子维度权重 = (子维度权重 / 子维度权重总和) * 父维度权重
+              value: totalSubWeight > 0 ? (sub.weight / totalSubWeight) * normalizedDimWeight : 0,
+            }))
+          : undefined,
+      }
+    })
 
     return {
       tooltip: {
         trigger: 'item',
-        formatter: (params: any) => `${params.name}: ${params.value}%`,
+        formatter: (params: any) => {
+          const ancestors = params.treePathInfo || []
+          if (ancestors.length > 2) {
+            // 子维度 - 显示相对于父维度的百分比
+            const parentValue = ancestors[ancestors.length - 2]?.value || 1
+            const percent = parentValue > 0 ? ((params.value / parentValue) * 100).toFixed(1) : '0'
+            return `${params.name}: ${percent}%`
+          }
+          return `${params.name}: ${params.value.toFixed(1)}%`
+        },
       },
       series: [
         {
           type: 'sunburst',
           data,
-          radius: ['15%', '90%'],
+          radius: ['20%', '90%'],
+          sort: undefined,
+          emphasis: {
+            focus: 'ancestor',
+          },
           label: {
+            show: showLabel,
             rotate: 'radial',
             fontSize: 11,
+            color: isDark ? '#f0f0f0' : '#333',
             overflow: 'truncate',
             width: 60,
           },
           itemStyle: {
-            borderRadius: 4,
+            borderRadius: 6,
             borderWidth: 2,
-            borderColor: 'var(--color-bg-container)',
+            borderColor: isDark ? '#1f1f1f' : '#fff',
           },
           levels: [
             {},
             {
-              r0: '15%',
-              r: '55%',
-              label: { fontSize: 12, fontWeight: 500 },
+              r0: '20%',
+              r: '50%',
+              label: {
+                show: showLabel,
+                fontSize: 12,
+                fontWeight: 500,
+                color: isDark ? '#ffffff' : '#333',
+              },
+              itemStyle: {
+                shadowBlur: 2,
+                shadowColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)',
+              },
             },
             {
-              r0: '55%',
+              r0: '50%',
               r: '90%',
-              label: { fontSize: 10 },
-              itemStyle: { opacity: 0.8 },
+              label: {
+                show: showLabel,
+                fontSize: 10,
+                color: isDark ? '#d0d0d0' : '#666',
+              },
+              itemStyle: {
+                opacity: 0.85,
+              },
             },
           ],
         },
@@ -440,11 +494,12 @@ export function DimensionManager() {
       animationDuration: 500,
       animationEasing: 'cubicOut',
     }
-  }, [activeRadar, t.dimension.unnamed])
+  }, [dimensions, theme, t.dimension.unnamed])
 
-  if (!activeRadar) return null
-
-  const { vendors, dimensions } = activeRadar
+  // 小图配置（不显示文本）
+  const sunburstOption = useMemo(() => createSunburstOption(false), [createSunburstOption])
+  // 大图配置（显示文本）
+  const sunburstModalOption = useMemo(() => createSunburstOption(true), [createSunburstOption])
 
   const ensureExpanded = useCallback((id: string) => {
     setExpandedIds((prev) => {
@@ -495,6 +550,9 @@ export function DimensionManager() {
     setEditingId(null)
     setEditValue('')
   }, [])
+
+  // 所有 hooks 已调用完毕，现在可以提前返回
+  if (!regularRadar) return null
 
   const rows: RowData[] = []
   dimensions.forEach((dim) => {
@@ -691,13 +749,40 @@ export function DimensionManager() {
 
       {dimensions.length > 0 && (
         <div className={styles.sunburstContainer}>
+          <div className={styles.sunburstHeader}>
+            <Text type="secondary" style={{ fontSize: 12 }}>{t.dimension.weightDistribution}</Text>
+            <Tooltip title={t.common.expand}>
+              <Button
+                type="text"
+                size="small"
+                icon={<FullscreenOutlined />}
+                onClick={() => setSunburstModalVisible(true)}
+                className={styles.expandBtn}
+              />
+            </Tooltip>
+          </div>
           <ReactECharts
             option={sunburstOption}
-            style={{ height: 220, width: '100%' }}
+            style={{ height: 180, width: '100%' }}
             notMerge={true}
           />
         </div>
       )}
+
+      <Modal
+        open={sunburstModalVisible}
+        onCancel={() => setSunburstModalVisible(false)}
+        footer={null}
+        width={600}
+        centered
+        title={t.dimension.weightDistribution}
+      >
+        <ReactECharts
+          option={sunburstModalOption}
+          style={{ height: 450, width: '100%' }}
+          notMerge={true}
+        />
+      </Modal>
     </div>
   )
 }

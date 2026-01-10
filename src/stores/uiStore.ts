@@ -30,6 +30,10 @@ interface UIState {
   importModalVisible: boolean
   setImportModalVisible: (visible: boolean) => void
 
+  // 创建时间轴弹窗
+  createTimelineModalVisible: boolean
+  setCreateTimelineModalVisible: (visible: boolean) => void
+
   // 编辑状态
   editingItemId: UUID | null
   setEditingItemId: (id: UUID | null) => void
@@ -87,6 +91,9 @@ export const useUIStore = create<UIState>()(
 
       importModalVisible: false,
       setImportModalVisible: (visible) => set({ importModalVisible: visible }),
+
+      createTimelineModalVisible: false,
+      setCreateTimelineModalVisible: (visible) => set({ createTimelineModalVisible: visible }),
 
       editingItemId: null,
       setEditingItemId: (id) => set({ editingItemId: id }),

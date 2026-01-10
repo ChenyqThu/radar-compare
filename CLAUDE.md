@@ -4,7 +4,7 @@
 
 ## 项目概述
 
-纯前端竞品能力对比可视化工具，支持多雷达图 Tab 切换、维度/子维度管理、多 Vendor 对比、数据导入导出，以及中英文切换和明暗主题切换。
+纯前端竞品能力对比可视化工具，支持多雷达图 Tab 切换、维度/子维度管理、多 Vendor 对比、**时间轴雷达图对比**、数据导入导出，以及中英文切换和明暗主题切换。
 
 ## 技术栈
 
@@ -29,7 +29,8 @@ src/
 ├── components/
 │   ├── chart/
 │   │   ├── RadarChart/       # 主雷达图 + 子维度雷达图
-│   │   └── SubRadarDrawer/   # 子维度雷达图抽屉(已整合到RadarChart)
+│   │   ├── SubRadarDrawer/   # 子维度雷达图抽屉(已整合到RadarChart)
+│   │   └── TimelineRadarChart/ # 时间轴雷达图(双列布局)
 │   ├── common/
 │   │   ├── Navbar/           # 顶部导航栏
 │   │   └── GlobalControls/   # 全局控制组件(备用)
@@ -40,7 +41,11 @@ src/
 │   │   ├── SettingsButton/   # 浮动设置按钮
 │   │   ├── VendorManager/    # 系列管理表格
 │   │   ├── DimensionManager/ # 维度管理表格 + 旭日图
-│   │   └── ScoreSummary/     # 总分展示
+│   │   ├── ScoreSummary/     # 总分展示
+│   │   └── TimeMarkerPicker/ # 时间标记选择器
+│   ├── timeline/
+│   │   ├── TimelineSlider/   # 时间轴滑块控件
+│   │   └── VendorSwitcher/   # Vendor 快速切换器
 │   ├── toolbar/
 │   │   └── Toolbar/          # 工具栏(导入导出)
 │   └── io/
@@ -110,6 +115,22 @@ interface RadarChart {
   vendors: Vendor[]
   createdAt: number
   updatedAt: number
+  timeMarker?: TimeMarker          // 时间标记(可选)
+}
+
+// 时间标记
+interface TimeMarker {
+  year: number                      // 年份
+  quarter?: number                  // 季度 (1-4, 可选)
+  label?: string                    // 自定义标签
+}
+
+// 时间点(用于时间轴雷达图)
+interface TimePoint {
+  year: number
+  quarter?: number
+  label: string                     // 显示标签，如 "2024 Q1" 或 "2024"
+  radarId: string                   // 关联的雷达图 ID
 }
 
 // 项目
@@ -159,24 +180,40 @@ interface Project {
 - 支持多个雷达图 Tab 切换
 - 右键菜单: 重命名、复制、删除
 - 单击当前 Tab 进入编辑模式
+- **时间标记**: 为每个 Tab 设置时间点 (年份 + 可选季度)
+- **时间轴雷达图**: 自动聚合所有带时间标记的 Tab，创建时间轴对比视图
 
-### 5. 国际化 (i18n)
+### 5. 时间轴雷达图
+
+- **自动生成**: 当存在 ≥2 个带时间标记的普通雷达图 Tab 时自动创建
+- **双列布局**:
+  - 左侧: 主雷达图(维度总分对比)
+  - 右侧: 子维度雷达图(当维度包含子维度时)，支持左右箭头切换
+- **时间轴滑块**: 底部滑块控件，支持拖拽快速切换时间点
+- **Vendor 切换器**: 顶部筛选器，支持单选或"All"模式
+- **平滑动画**: 切换时间点时，雷达图数据以 Magic Move 效果平滑过渡 (600ms)
+- **特殊图标**: Tab 带有脉冲动画的历史图标，易于识别
+- **仅显示线条**: 时间轴雷达图不填充区域，仅显示轮廓线
+
+### 6. 国际化 (i18n)
 
 - 支持中文 (zh-CN) 和英文 (en-US)
 - 点击顶部导航栏按钮切换
 - 语言偏好保存到 localStorage
 
-### 6. 主题切换
+### 7. 主题切换
 
 - 支持浅色/深色主题
 - 基于 CSS 变量实现
 - 首次加载跟随系统偏好
 
-### 7. 数据导入导出
+### 8. 数据导入导出
 
 - **导出**: Excel (.xlsx)、JSON
 - **导入**: Excel、JSON
 - **模板下载**: 提供标准 Excel 模板
+- **多 Tab 导出**: 支持一键导出所有 Tab 到多个 Excel 工作表
+- **多 Sheet 导入**: 支持导入多个 Excel 工作表为不同的 Tab
 
 ## 开发命令
 
@@ -204,11 +241,17 @@ npm run lint
 | `src/stores/radarStore.ts` | 业务数据和所有操作方法 |
 | `src/stores/uiStore.ts` | UI 状态 (主题、抽屉、Tab) |
 | `src/locales/index.ts` | i18n store 和语言切换 |
-| `src/components/chart/RadarChart/index.tsx` | 雷达图渲染和交互 |
+| `src/components/chart/RadarChart/index.tsx` | 主雷达图渲染和交互 |
+| `src/components/chart/TimelineRadarChart/index.tsx` | 时间轴雷达图(双列布局) |
+| `src/components/timeline/TimelineSlider/index.tsx` | 时间轴滑块控件 |
+| `src/components/timeline/VendorSwitcher/index.tsx` | Vendor 快速切换器 |
 | `src/components/settings/DimensionManager/index.tsx` | 维度表格和旭日图 |
 | `src/components/settings/VendorManager/index.tsx` | 系列管理表格 |
+| `src/components/settings/TimeMarkerPicker/index.tsx` | 时间标记选择器 |
 | `src/utils/calculation.ts` | 分数计算核心逻辑 |
 | `src/services/db/index.ts` | IndexedDB 初始化和 CRUD |
+| `src/services/excel/exporter.ts` | Excel 导出(单/多 Tab) |
+| `src/services/excel/importer.ts` | Excel 导入(单/多 Sheet) |
 | `src/styles/global.css` | CSS 变量和全局样式 |
 
 ## 注意事项

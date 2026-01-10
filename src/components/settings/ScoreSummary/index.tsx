@@ -1,27 +1,29 @@
 import { useMemo } from 'react'
-import { Space, Typography, Tag, Tooltip } from 'antd'
+import { Space, Tag, Tooltip } from 'antd'
 import { TrophyOutlined } from '@ant-design/icons'
 import { useRadarStore } from '@/stores/radarStore'
+import { isRegularRadar } from '@/types'
 import { calculateVendorTotalScores } from '@/utils/calculation'
 import styles from './ScoreSummary.module.css'
-
-const { Text } = Typography
 
 export function ScoreSummary() {
   const { getActiveRadar } = useRadarStore()
   const activeRadar = getActiveRadar()
 
+  // 只有普通雷达图才能显示分数汇总
+  const regularRadar = activeRadar && isRegularRadar(activeRadar) ? activeRadar : null
+
   const scores = useMemo(() => {
-    if (!activeRadar) return []
-    return calculateVendorTotalScores(activeRadar.dimensions, activeRadar.vendors)
+    if (!regularRadar) return []
+    return calculateVendorTotalScores(regularRadar.dimensions, regularRadar.vendors)
       .filter((s) => {
-        const vendor = activeRadar.vendors.find((v) => v.id === s.vendorId)
+        const vendor = regularRadar.vendors.find((v) => v.id === s.vendorId)
         return vendor?.visible
       })
       .sort((a, b) => b.totalScore - a.totalScore)
-  }, [activeRadar])
+  }, [regularRadar])
 
-  if (!activeRadar || scores.length === 0) return null
+  if (!regularRadar || scores.length === 0) return null
 
   return (
     <Space size={8}>

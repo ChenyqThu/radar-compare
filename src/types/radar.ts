@@ -30,6 +30,12 @@ export interface Vendor {
   visible: boolean
 }
 
+// 时间标记
+export interface TimeMarker {
+  year: number   // e.g., 2024
+  month: number  // 1-12
+}
+
 export interface RadarChart {
   id: UUID
   name: string
@@ -38,13 +44,37 @@ export interface RadarChart {
   vendors: Vendor[]
   createdAt: number
   updatedAt: number
+  timeMarker?: TimeMarker  // 可选时间标记
+}
+
+// 时间轴雷达图（特殊类型，引用其他 Tab）
+export interface TimelineRadarChart {
+  id: UUID
+  name: string
+  order: number
+  isTimeline: true         // 类型标识
+  sourceRadarIds: UUID[]   // 引用的 Tab ID 列表
+  createdAt: number
+  updatedAt: number
+}
+
+// 联合类型
+export type AnyRadarChart = RadarChart | TimelineRadarChart
+
+// 类型守卫
+export function isTimelineRadar(chart: AnyRadarChart): chart is TimelineRadarChart {
+  return 'isTimeline' in chart && chart.isTimeline === true
+}
+
+export function isRegularRadar(chart: AnyRadarChart): chart is RadarChart {
+  return !isTimelineRadar(chart)
 }
 
 export interface Project {
   id: UUID
   name: string
   description: string
-  radarCharts: RadarChart[]
+  radarCharts: AnyRadarChart[]  // 支持普通雷达图和时间轴雷达图
   activeRadarId: UUID | null
   createdAt: number
   updatedAt: number

@@ -5,9 +5,11 @@ import type { EChartsOption } from 'echarts'
 import { Empty, Button, Typography } from 'antd'
 import { LeftOutlined, RightOutlined } from '@ant-design/icons'
 import { useRadarStore } from '@/stores/radarStore'
+import { useUIStore } from '@/stores/uiStore'
 import { useI18n } from '@/locales'
 import { calculateAllDimensionScores } from '@/utils/calculation'
 import type { Dimension } from '@/types'
+import { isRegularRadar } from '@/types'
 import styles from './RadarChart.module.css'
 
 // Helper function to create radial gradient for radar chart area
@@ -30,30 +32,46 @@ const { Text } = Typography
 // 子维度雷达图组件（带动画）
 function SubDimensionRadar({ dimension, direction }: { dimension: Dimension; direction: 'left' | 'right' | null }) {
   const { getActiveRadar } = useRadarStore()
+  const { theme } = useUIStore()
   const activeRadar = getActiveRadar()
   const [animKey, setAnimKey] = useState(0)
+
+  const isDark = theme === 'dark'
+
+  // 只有普通雷达图才有 vendors
+  const regularRadar = activeRadar && isRegularRadar(activeRadar) ? activeRadar : null
 
   useEffect(() => {
     setAnimKey((k) => k + 1)
   }, [dimension.id])
 
   const option = useMemo<EChartsOption>(() => {
-    if (!dimension || !activeRadar || dimension.subDimensions.length === 0) {
+    if (!dimension || !regularRadar || dimension.subDimensions.length === 0) {
       return {}
     }
 
-    const visibleVendors = activeRadar.vendors.filter((v) => v.visible)
+    const visibleVendors = regularRadar.vendors.filter((v) => v.visible)
 
     return {
       tooltip: {
         trigger: 'item',
         confine: true,
+        formatter: (params: any) => {
+          if (!params.value || !Array.isArray(params.value)) return params.name
+          const values = dimension.subDimensions.map((sub, i) =>
+            `${sub.name}: ${Number(params.value[i]).toFixed(1)}`
+          )
+          return `<strong>${params.name}</strong><br/>${values.join('<br/>')}`
+        },
       },
       legend: {
         show: true,
         data: visibleVendors.map((v) => v.name),
         bottom: 10,
         selectedMode: 'multiple',
+        textStyle: {
+          color: isDark ? '#e0e0e0' : '#333',
+        },
         itemStyle: {
           borderWidth: 0,
         },
@@ -68,22 +86,24 @@ function SubDimensionRadar({ dimension, direction }: { dimension: Dimension; dir
         radius: '65%',
         center: ['50%', '50%'],
         axisName: {
-          color: '#666',
+          color: isDark ? '#b0b0b0' : '#666',
           fontSize: 11,
         },
         splitArea: {
           areaStyle: {
-            color: ['rgba(24, 144, 255, 0.02)', 'rgba(24, 144, 255, 0.04)'],
+            color: isDark
+              ? ['rgba(80, 140, 200, 0.03)', 'rgba(80, 140, 200, 0.06)']
+              : ['rgba(24, 144, 255, 0.02)', 'rgba(24, 144, 255, 0.04)'],
           },
         },
         splitLine: {
           lineStyle: {
-            color: 'rgba(0, 0, 0, 0.1)',
+            color: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.1)',
           },
         },
         axisLine: {
           lineStyle: {
-            color: 'rgba(0, 0, 0, 0.15)',
+            color: isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.15)',
           },
         },
       },
@@ -105,7 +125,7 @@ function SubDimensionRadar({ dimension, direction }: { dimension: Dimension; dir
       animationDuration: 400,
       animationEasing: 'cubicOut',
     }
-  }, [dimension, activeRadar])
+  }, [dimension, regularRadar, isDark])
 
   const animClass = direction === 'left' ? styles.slideFromLeft : direction === 'right' ? styles.slideFromRight : ''
 
@@ -156,16 +176,23 @@ function AnimatedText({ text, direction }: { text: string; direction: 'left' | '
 export function RadarChart() {
   const chartRef = useRef<ReactECharts>(null)
   const { getActiveRadar } = useRadarStore()
+  const { theme } = useUIStore()
   const { t } = useI18n()
   const activeRadar = getActiveRadar()
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [direction, setDirection] = useState<'left' | 'right' | null>(null)
 
+  const isDark = theme === 'dark'
+
+  // 只有普通雷达图才有维度数据
+  const regularRadar = activeRadar && isRegularRadar(activeRadar) ? activeRadar : null
+  const dimensions = regularRadar?.dimensions ?? []
+  const vendors = regularRadar?.vendors ?? []
+
   // 找出所有有 3+ 子维度的维度
   const dimensionsWithSubRadar = useMemo(() => {
-    if (!activeRadar) return []
-    return activeRadar.dimensions.filter((d) => d.subDimensions.length >= 3)
-  }, [activeRadar])
+    return dimensions.filter((d) => d.subDimensions.length >= 3)
+  }, [dimensions])
 
   // 是否显示双雷达图布局
   const showDualLayout = dimensionsWithSubRadar.length > 0
@@ -192,28 +219,38 @@ export function RadarChart() {
   }, [dimensionsWithSubRadar.length])
 
   const mainOption = useMemo<EChartsOption>(() => {
-    if (!activeRadar || activeRadar.dimensions.length === 0) {
+    if (dimensions.length === 0) {
       return {}
     }
 
-    const visibleVendors = activeRadar.vendors.filter((v) => v.visible)
-    const scores = calculateAllDimensionScores(activeRadar.dimensions, activeRadar.vendors)
+    const visibleVendors = vendors.filter((v) => v.visible)
+    const scores = calculateAllDimensionScores(dimensions, vendors)
 
     return {
       tooltip: {
         trigger: 'item',
         confine: true,
+        formatter: (params: any) => {
+          if (!params.value || !Array.isArray(params.value)) return params.name
+          const values = dimensions.map((dim, i) =>
+            `${dim.name}: ${Number(params.value[i]).toFixed(1)}`
+          )
+          return `<strong>${params.name}</strong><br/>${values.join('<br/>')}`
+        },
       },
       legend: {
         data: visibleVendors.map((v) => v.name),
         bottom: 20,
         selectedMode: 'multiple',
+        textStyle: {
+          color: isDark ? '#e0e0e0' : '#333',
+        },
         itemStyle: {
           borderWidth: 0,
         },
       },
       radar: {
-        indicator: activeRadar.dimensions.map((d) => ({
+        indicator: dimensions.map((d) => ({
           name: d.name,
           max: 10,
         })),
@@ -221,23 +258,25 @@ export function RadarChart() {
         splitNumber: 5,
         radius: showDualLayout ? '55%' : undefined,
         axisName: {
-          color: '#333',
+          color: isDark ? '#d0d0d0' : '#333',
           fontSize: 13,
           fontWeight: 500,
         },
         splitArea: {
           areaStyle: {
-            color: ['rgba(24, 144, 255, 0.02)', 'rgba(24, 144, 255, 0.04)'],
+            color: isDark
+              ? ['rgba(80, 140, 200, 0.03)', 'rgba(80, 140, 200, 0.06)']
+              : ['rgba(24, 144, 255, 0.02)', 'rgba(24, 144, 255, 0.04)'],
           },
         },
         splitLine: {
           lineStyle: {
-            color: 'rgba(0, 0, 0, 0.1)',
+            color: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.1)',
           },
         },
         axisLine: {
           lineStyle: {
-            color: 'rgba(0, 0, 0, 0.15)',
+            color: isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.15)',
           },
         },
       },
@@ -277,9 +316,9 @@ export function RadarChart() {
       animationDuration: 500,
       animationEasing: 'cubicOut',
     }
-  }, [activeRadar, showDualLayout])
+  }, [dimensions, vendors, showDualLayout, isDark])
 
-  if (!activeRadar) {
+  if (!regularRadar) {
     return (
       <div className={styles.empty}>
         <Empty description={t.chart.noData} />
@@ -287,12 +326,12 @@ export function RadarChart() {
     )
   }
 
-  if (activeRadar.dimensions.length === 0 || activeRadar.vendors.length === 0) {
+  if (dimensions.length === 0 || vendors.length === 0) {
     return (
       <div className={styles.empty}>
         <Empty
           description={
-            activeRadar.dimensions.length === 0
+            dimensions.length === 0
               ? t.chart.pleaseAddDimension
               : t.chart.pleaseAddVendor
           }

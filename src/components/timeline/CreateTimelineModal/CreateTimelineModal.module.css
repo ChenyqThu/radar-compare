@@ -1,0 +1,22 @@
+.form {
+  margin-top: 16px;
+}
+
+.transferItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.itemTitle {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemTag {
+  flex-shrink: 0;
+  font-size: 10px;
+  margin: 0;
+}
