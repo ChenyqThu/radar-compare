@@ -1,0 +1,288 @@
+.container {
+  display: flex;
+  flex-direction: column;
+}
+
+.tableHeader {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border-secondary);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  gap: 8px;
+  transition: border-color 0.3s ease, color 0.3s ease;
+}
+
+.tableBody {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border-secondary);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  gap: 8px;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.row:hover {
+  background: var(--color-fill);
+}
+
+.row:hover .dragHandle {
+  opacity: 1;
+}
+
+.dragHandle {
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: grab;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.dragHandle:hover {
+  color: var(--color-primary);
+  transform: scale(1.1);
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.nameCell {
+  flex: 1;
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+}
+
+.nameInput {
+  transition: all 0.2s ease;
+}
+
+.nameInput:hover {
+  border-color: var(--color-primary);
+}
+
+.colorCell {
+  width: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.markerCell {
+  width: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.visibleCell {
+  width: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.actionCell {
+  width: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.actionBtn {
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.actionBtn:hover {
+  transform: scale(1.1);
+}
+
+.empty {
+  text-align: center;
+  padding: 32px;
+  color: var(--color-text-secondary);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.dragOverlay {
+  background: var(--color-bg-container);
+  box-shadow: var(--shadow-elevated);
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  opacity: 0.95;
+  transform: scale(1.02);
+  padding: 8px;
+}
+
+.dragOverlay .dragHandle {
+  opacity: 1;
+  color: var(--color-primary);
+}
+
+/* Color Palette */
+.colorPalette {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+}
+
+.colorRow {
+  display: flex;
+  gap: 4px;
+}
+
+.colorSwatch {
+  width: 20px;
+  height: 20px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.colorSwatch:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+.colorSwatchActive {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.3);
+}
+
+/* Marker Palette */
+.markerPalette {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+}
+
+.markerSwatch {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--color-bg-container);
+  padding: 0;
+}
+
+.markerSwatch:hover {
+  border-color: var(--color-primary);
+  background: var(--color-fill);
+  transform: scale(1.1);
+}
+
+.markerSwatchActive {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* Color Button */
+.colorBtn {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.colorBtn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Marker Button */
+.markerBtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--color-bg-container);
+  padding: 0;
+}
+
+.markerBtn:hover {
+  border-color: var(--color-primary);
+  background: var(--color-fill);
+  transform: scale(1.05);
+}
+
+.addRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 0;
+  border: 1px dashed var(--color-border);
+  border-radius: 6px;
+  margin-top: 12px;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.addRow:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.addRow:active {
+  transform: scale(0.98);
+}

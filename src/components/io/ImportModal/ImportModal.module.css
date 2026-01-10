@@ -1,0 +1,14 @@
+.dragger {
+  margin-top: 16px;
+}
+
+.result {
+  padding: 16px 0;
+}
+
+.preview {
+  margin-top: 24px;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 8px;
+}

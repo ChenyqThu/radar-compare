@@ -1,0 +1,357 @@
+.container {
+  display: flex;
+  flex-direction: column;
+}
+
+.tableHeader {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border-secondary);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  gap: 8px;
+  transition: border-color 0.3s ease, color 0.3s ease;
+}
+
+.tableBody {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border-secondary);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  gap: 8px;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.row:hover {
+  background: var(--color-fill);
+}
+
+.row:hover .dragHandle {
+  opacity: 1;
+}
+
+.row:hover .editBtn {
+  opacity: 1;
+}
+
+.subRow {
+  background: var(--color-fill);
+  animation: slideInSub 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes slideInSub {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.subRow:hover {
+  background: var(--color-fill-secondary);
+}
+
+.dragHandle {
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: grab;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.dragHandle:hover {
+  color: var(--color-primary);
+  transform: scale(1.1);
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.expandCell {
+  width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.expandIcon {
+  cursor: pointer;
+  font-size: 10px;
+  color: #999;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.expandIcon:hover {
+  background: rgba(22, 119, 255, 0.1);
+  color: var(--color-primary);
+}
+
+.expandIcon.expanded {
+  transform: rotate(90deg);
+  color: var(--color-primary);
+}
+
+.nameCell {
+  flex: 1;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 8px;
+}
+
+.subPrefix {
+  color: var(--color-text-tertiary);
+  margin-left: 8px;
+  margin-right: 4px;
+  transition: color 0.2s;
+}
+
+.subRow:hover .subPrefix {
+  color: var(--color-primary);
+}
+
+.nameWrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.nameText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+
+.editBtn {
+  opacity: 0;
+  color: var(--color-text-tertiary) !important;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  flex-shrink: 0;
+}
+
+.editBtn:hover {
+  opacity: 1 !important;
+  color: var(--color-primary) !important;
+  transform: scale(1.1);
+}
+
+.editContainer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  animation: fadeIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.editInput {
+  flex: 1;
+  min-width: 80px;
+}
+
+.confirmBtn {
+  color: var(--color-success) !important;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.confirmBtn:hover {
+  background: rgba(82, 196, 26, 0.1) !important;
+  transform: scale(1.1);
+}
+
+.cancelBtn {
+  color: var(--color-text-tertiary) !important;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.cancelBtn:hover {
+  color: var(--color-error) !important;
+  background: rgba(255, 77, 79, 0.1) !important;
+  transform: scale(1.1);
+}
+
+.weightCell {
+  width: 72px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.weightInput {
+  width: 64px !important;
+  transition: all 0.2s ease;
+}
+
+.weightInput:hover {
+  border-color: var(--color-primary);
+}
+
+.scoreCell {
+  width: 56px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.scoreInput {
+  width: 48px !important;
+  transition: all 0.2s ease;
+}
+
+.scoreInput:hover {
+  border-color: var(--color-primary);
+}
+
+.calculatedScore {
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+  font-weight: 500;
+  text-align: center;
+  width: 100%;
+}
+
+.actionCell {
+  width: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  gap: 2px;
+}
+
+.actionBtn {
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.actionBtn:hover {
+  transform: scale(1.1);
+}
+
+.radarBtn {
+  color: var(--color-primary) !important;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.radarBtn:hover {
+  background: rgba(22, 119, 255, 0.1) !important;
+  transform: scale(1.1);
+}
+
+.empty {
+  text-align: center;
+  padding: 32px;
+  color: var(--color-text-secondary);
+  animation: fadeIn 0.3s ease;
+}
+
+.hint {
+  text-align: center;
+  padding: 16px;
+  animation: fadeIn 0.3s ease;
+}
+
+.dragHint {
+  text-align: center;
+  padding: 8px;
+  margin-top: 8px;
+  background: var(--color-fill);
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.dragOverlay {
+  background: var(--color-bg-container);
+  box-shadow: var(--shadow-elevated);
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  opacity: 0.95;
+  transform: scale(1.02);
+}
+
+.dragOverlay .dragHandle {
+  opacity: 1;
+  color: var(--color-primary);
+}
+
+.addRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 0;
+  border: 1px dashed var(--color-border);
+  border-radius: 6px;
+  margin-top: 12px;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.addRow:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.addRow:active {
+  transform: scale(0.98);
+}
+
+.sunburstContainer {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--color-fill);
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+}

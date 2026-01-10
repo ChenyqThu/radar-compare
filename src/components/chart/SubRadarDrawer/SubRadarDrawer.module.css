@@ -1,0 +1,15 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.chart {
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.table {
+  padding: 0 8px;
+}

@@ -1,0 +1,89 @@
+.drawer :global(.ant-drawer-body) {
+  padding: 0;
+  position: relative;
+}
+
+.drawer :global(.ant-drawer-content) {
+  overflow: visible;
+}
+
+.drawer :global(.ant-drawer-content-wrapper) {
+  transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1) !important;
+}
+
+.drawer :global(.ant-drawer-header) {
+  border-bottom: 1px solid var(--color-border-secondary);
+  transition: border-color 0.3s ease;
+}
+
+.resizeHandle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  background: transparent;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 10;
+}
+
+.resizeHandle:hover {
+  background: linear-gradient(90deg, rgba(24, 144, 255, 0.4), transparent);
+  width: 8px;
+}
+
+.resizeHandle:active {
+  background: linear-gradient(90deg, rgba(24, 144, 255, 0.6), transparent);
+}
+
+.tabs {
+  height: 100%;
+}
+
+.tabs :global(.ant-tabs-content) {
+  height: calc(100vh - 120px);
+}
+
+.tabs :global(.ant-tabs-tabpane) {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.tabs :global(.ant-tabs-nav) {
+  padding: 0 16px;
+  margin-bottom: 0;
+}
+
+.tabs :global(.ant-tabs-tab) {
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.tabs :global(.ant-tabs-tab:hover) {
+  transform: translateY(-1px);
+}
+
+.tabs :global(.ant-tabs-tab-active) {
+  transform: scale(1.02);
+}
+
+.tabs :global(.ant-tabs-ink-bar) {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.tabContent {
+  padding: 16px;
+  height: 100%;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
