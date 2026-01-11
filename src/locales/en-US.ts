@@ -16,6 +16,7 @@ export const enUS: Locale = {
     action: 'Action',
     expand: 'Expand',
     featureComingSoon: 'Feature coming soon',
+    initFailed: 'Initialization failed',
   },
 
   // App
@@ -24,6 +25,11 @@ export const enUS: Locale = {
     overview: 'Overview',
     radarMode: 'Radar',
     timelineMode: 'Timeline',
+  },
+
+  // Project
+  project: {
+    defaultName: 'My Project',
   },
 
   // Tabs
@@ -178,12 +184,27 @@ export const enUS: Locale = {
     syncErrorRetry: 'Sync failed, click to retry',
     lastSync: 'Last sync',
     cloudReady: 'Cloud ready',
+    cloudConnected: 'Cloud connected',
     offline: 'Offline',
     offlineHintShort: 'No network, data saved locally',
     offlineWithPending: 'Offline -',
     pendingChanges: 'pending changes',
     retry: 'Retry',
     retryingSync: 'Retrying sync...',
+  },
+
+  // Landing Page
+  landing: {
+    title: 'Competitive Comparison Visualization Tool',
+    subtitle: 'Compare product capabilities through radar charts with team collaboration and timeline tracking',
+    signInWithGoogle: 'Sign in with Google',
+    cloudHint: 'Data securely stored in the cloud, accessible across devices',
+    feature1Title: 'Radar Chart Comparison',
+    feature1Desc: 'Visualize multi-dimensional data comparison with custom dimensions and weights',
+    feature2Title: 'Team Collaboration',
+    feature2Desc: 'Real-time cloud sync with multi-user collaborative editing',
+    feature3Title: 'Timeline Tracking',
+    feature3Desc: 'Record product evolution and compare capability changes across time points',
   },
 
   // Sync
@@ -201,12 +222,15 @@ export const enUS: Locale = {
 
   // Share
   share: {
-    title: 'Share Project',
+    title: 'Share',
     createLink: 'Create Link',
     manageLinks: 'Manage Links',
     shareType: 'Share Type',
     readonly: 'Read Only',
     editable: 'Editable',
+    sharingTab: 'Sharing',
+    noActiveTab: 'Please select a Tab first',
+    editableHint: 'Editable shares require collaborators to login. Changes sync to the original project.',
     password: 'Access Password (Optional)',
     passwordPlaceholder: 'Leave empty for no password',
     expiry: 'Expiry Time (Optional)',
@@ -231,6 +255,23 @@ export const enUS: Locale = {
     expired: 'Expired',
     maxViewsReached: 'Max views reached',
     revoked: 'Revoked',
+    loginToCollaborate: 'Please login to collaborate',
+    collaborating: 'Collaborating',
+    collaborators: 'Collaborators',
+    noCollaborators: 'No collaborators yet',
+    confirmRemoveCollaborator: 'Remove this collaborator?',
+    joinedAt: 'Joined',
+    leaveCollaboration: 'Leave Collaboration',
+    confirmLeave: 'Leave collaboration?',
+    leaveHint: 'You will no longer be able to edit this project',
+    leaveSuccess: 'Left collaboration',
+    leaveFailed: 'Failed to leave collaboration',
+    notOwner: 'You are not the owner of this project',
+    notOwnerHint: 'Only project owners can create and manage share links',
+    copyToMyProject: 'Copy to My Project',
+    copyToMyProjectHint: 'This will add a copy of the shared content to your project. The copy is independent from the original.',
+    copySuccess: 'Copied to my project',
+    copyFailed: 'Copy failed',
   },
 
   // Share View
@@ -243,6 +284,18 @@ export const enUS: Locale = {
     access: 'Access',
     wrongPassword: 'Wrong password',
     sharedView: 'Shared View',
+    backToHome: 'Back to Home',
+  },
+
+  // Collaborations
+  collaborations: {
+    title: 'My Collaborations',
+    empty: 'No collaborative projects yet',
+    visit: 'Visit',
+    joinedAt: 'Joined',
+    expiresAt: 'Expires',
+    expiresIn: 'Expires in {days} days',
+    noExpiry: 'Never expires',
   },
 
   // Version Timeline

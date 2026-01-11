@@ -9,6 +9,11 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export type ShareType = 'readonly' | 'editable'
+export type ShareScope = 'project' | 'tabs'
+export type CollaboratorRole = 'viewer' | 'editor'
+export type ChartType = 'radar' | 'timeline' | 'version_timeline'
+
 export interface Database {
   radar_compare: {
     Tables: {
@@ -47,7 +52,7 @@ export interface Database {
           owner_id: string
           name: string
           description: string
-          data: Json
+          active_chart_id: string | null
           version: number
           created_at: string
           updated_at: string
@@ -57,7 +62,7 @@ export interface Database {
           owner_id: string
           name: string
           description?: string
-          data: Json
+          active_chart_id?: string | null
           version?: number
           created_at?: string
           updated_at?: string
@@ -67,8 +72,43 @@ export interface Database {
           owner_id?: string
           name?: string
           description?: string
-          data?: Json
+          active_chart_id?: string | null
           version?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      radar_charts: {
+        Row: {
+          id: string
+          project_id: string
+          name: string
+          chart_type: ChartType
+          order_index: number
+          data: Json
+          time_marker: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          project_id: string
+          name: string
+          chart_type?: ChartType
+          order_index?: number
+          data: Json
+          time_marker?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          name?: string
+          chart_type?: ChartType
+          order_index?: number
+          data?: Json
+          time_marker?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -78,7 +118,9 @@ export interface Database {
           id: string
           project_id: string
           created_by: string
-          share_type: 'readonly' | 'editable'
+          share_type: ShareType
+          share_scope: ShareScope
+          shared_tab_ids: string[] | null
           share_token: string
           password_hash: string | null
           expires_at: string | null
@@ -91,7 +133,9 @@ export interface Database {
           id?: string
           project_id: string
           created_by: string
-          share_type: 'readonly' | 'editable'
+          share_type: ShareType
+          share_scope?: ShareScope
+          shared_tab_ids?: string[] | null
           share_token?: string
           password_hash?: string | null
           expires_at?: string | null
@@ -104,7 +148,9 @@ export interface Database {
           id?: string
           project_id?: string
           created_by?: string
-          share_type?: 'readonly' | 'editable'
+          share_type?: ShareType
+          share_scope?: ShareScope
+          shared_tab_ids?: string[] | null
           share_token?: string
           password_hash?: string | null
           expires_at?: string | null
@@ -119,7 +165,8 @@ export interface Database {
           id: string
           project_id: string
           user_id: string
-          role: 'viewer' | 'editor' | 'admin'
+          share_id: string | null
+          role: CollaboratorRole
           invited_by: string | null
           created_at: string
         }
@@ -127,7 +174,8 @@ export interface Database {
           id?: string
           project_id: string
           user_id: string
-          role: 'viewer' | 'editor' | 'admin'
+          share_id?: string | null
+          role?: CollaboratorRole
           invited_by?: string | null
           created_at?: string
         }
@@ -135,13 +183,21 @@ export interface Database {
           id?: string
           project_id?: string
           user_id?: string
-          role?: 'viewer' | 'editor' | 'admin'
+          share_id?: string | null
+          role?: CollaboratorRole
           invited_by?: string | null
           created_at?: string
         }
       }
     }
-    Functions: Record<string, never>
+    Functions: {
+      get_project_by_share_token: {
+        Args: {
+          p_token: string
+        }
+        Returns: Json
+      }
+    }
     Enums: Record<string, never>
   }
 }
@@ -149,5 +205,33 @@ export interface Database {
 // Convenience types
 export type Profile = Database['radar_compare']['Tables']['profiles']['Row']
 export type CloudProject = Database['radar_compare']['Tables']['projects']['Row']
+export type RadarChartRow = Database['radar_compare']['Tables']['radar_charts']['Row']
 export type Share = Database['radar_compare']['Tables']['shares']['Row']
 export type Collaborator = Database['radar_compare']['Tables']['collaborators']['Row']
+
+// Extended types for frontend use
+export interface ShareWithOwner extends Share {
+  owner?: Profile
+  project?: { name: string }
+}
+
+export interface CollaboratorWithProfile extends Collaborator {
+  profile?: Profile
+}
+
+export interface ProjectWithMeta extends CloudProject {
+  isOwner: boolean
+  isCollaborator: boolean
+  ownerName?: string
+  collaboratorCount?: number
+}
+
+// Cloud project metadata (for list view)
+export interface CloudProjectMeta {
+  id: string
+  name: string
+  description: string
+  activeChartId: string | null
+  updatedAt: string
+  createdAt: string
+}

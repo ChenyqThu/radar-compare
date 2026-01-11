@@ -3,7 +3,6 @@ import { supabase, isSupabaseConfigured } from '@/services/supabase'
 import type { AuthStore } from '@/types/auth'
 import { toAuthUser } from '@/types/auth'
 import type { Database } from '@/types/supabase'
-import { useSyncStore } from './syncStore'
 import { useRadarStore } from './radarStore'
 
 type ProfileInsert = Database['radar_compare']['Tables']['profiles']['Insert']
@@ -65,10 +64,13 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
     set({ isLoading: true, error: null })
 
+    // Always redirect to /auth/callback
+    const redirectTo = `${window.location.origin}/auth/callback`
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo,
       },
     })
 
@@ -85,10 +87,13 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
     set({ isLoading: true, error: null })
 
+    // Always redirect to /auth/callback
+    const redirectTo = `${window.location.origin}/auth/callback`
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'notion',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo,
       },
     })
 
@@ -187,11 +192,8 @@ export function initializeAuth(): () => void {
         if (event === 'SIGNED_IN') {
           ensureProfile().catch(() => {})
 
-          // Trigger data sync after sign in
-          useSyncStore.getState().checkAndSync().then(() => {
-            // Refresh project list after sync
-            useRadarStore.getState().refreshProjectList()
-          }).catch(() => {})
+          // Refresh project list after sign in (cloud-only mode)
+          useRadarStore.getState().refreshProjectList().catch(() => {})
         }
       } else if (event === 'SIGNED_OUT') {
         // User signed out

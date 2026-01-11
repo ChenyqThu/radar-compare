@@ -1,106 +1,302 @@
-import { useState, useEffect } from 'react'
-import { Layout, Spin, Empty, Typography, Input, Button, message, Space, Tag } from 'antd'
-import { LockOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons'
+import { useState, useEffect, useCallback } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Layout, Spin, Empty, Typography, Input, Button, message } from 'antd'
+import { LockOutlined, LoginOutlined } from '@ant-design/icons'
+import { Navbar } from '@/components/common/Navbar'
+import { RadarTabs } from '@/components/tabs/RadarTabs'
 import { RadarChart } from '@/components/chart/RadarChart'
+import { TimelineRadarChart } from '@/components/chart/TimelineRadarChart'
+import { SubRadarDrawer } from '@/components/chart/SubRadarDrawer'
+import { SettingsDrawer } from '@/components/settings/SettingsDrawer'
+import { SettingsButton } from '@/components/settings/SettingsButton'
+import { Toolbar } from '@/components/toolbar/Toolbar'
+import { ImportModal } from '@/components/io/ImportModal'
+import {
+  VersionTimelineView,
+  VersionEventEditor,
+  TimelineInfoEditor,
+  TimelineToolbar,
+  TimelineImportModal,
+} from '@/components/versionTimeline'
+import { LoginModal } from '@/components/auth'
 import { useRadarStore } from '@/stores/radarStore'
+import { useUIStore } from '@/stores/uiStore'
+import { useAuthStore } from '@/stores/authStore'
 import {
   getShareByToken,
-  getCloudProject,
+  getProjectByShareToken,
   incrementShareViewCount,
   isShareLinkValid,
-  type ShareLink,
+  joinCollaboration,
 } from '@/services/supabase'
+import { isTimelineRadar } from '@/types'
+import { isVersionTimeline } from '@/types/versionTimeline'
 import { useI18n } from '@/locales'
+import type { VersionEvent } from '@/types/versionTimeline'
 import styles from './ShareView.module.css'
 
 const { Content } = Layout
 
-interface ShareViewProps {
-  shareToken: string
+interface PendingShareData {
+  id: string
+  projectId: string
+  shareType: 'readonly' | 'editable'
+  ownerId: string
+  password?: string
+  sharedTabIds?: string[]
 }
 
-export function ShareView({ shareToken }: ShareViewProps) {
+export function ShareView() {
+  const { token: shareToken } = useParams<{ token: string }>()
+  const navigate = useNavigate()
   const { t } = useI18n()
+  const { user } = useAuthStore()
+  const { getActiveRadar, getActiveVersionTimeline } = useRadarStore()
+  const {
+    settingsDrawerVisible,
+    openSettingsDrawer,
+    closeSettingsDrawer,
+    appMode,
+    shareMode,
+    shareInfo,
+    setShareMode,
+  } = useUIStore()
+
+  // Share page states
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [share, setShare] = useState<ShareLink | null>(null)
   const [passwordRequired, setPasswordRequired] = useState(false)
   const [password, setPassword] = useState('')
-  const [projectLoaded, setProjectLoaded] = useState(false)
+  const [loginRequired, setLoginRequired] = useState(false)
+  const [pendingShareData, setPendingShareData] = useState<PendingShareData | null>(null)
 
-  useEffect(() => {
-    loadShare()
-  }, [shareToken])
+  // Version Timeline event editor state
+  const [eventEditorOpen, setEventEditorOpen] = useState(false)
+  const [editingEvent, setEditingEvent] = useState<VersionEvent | null>(null)
+  const [timelineImportOpen, setTimelineImportOpen] = useState(false)
+  const [infoEditorOpen, setInfoEditorOpen] = useState(false)
 
-  const loadShare = async () => {
-    setLoading(true)
-    setError(null)
+  const activeRadar = getActiveRadar()
+  const activeVersionTimeline = getActiveVersionTimeline()
+  const isTimeline = activeRadar && isTimelineRadar(activeRadar)
+  const isVersionTimelineMode = activeRadar && isVersionTimeline(activeRadar)
 
-    const shareData = await getShareByToken(shareToken)
+  // Compute readonly status
+  const isReadonly = shareMode && shareInfo?.shareType === 'readonly'
 
-    if (!shareData) {
-      setError(t.shareView?.linkNotFound || '分享链接不存在或已失效')
+  // In share mode, always hide "create new" actions (new tab, timeline compare)
+  // but allow editing existing content for editable shares
+  const hideCreateActions = shareMode
+
+  // Load shared project
+  const loadSharedProject = useCallback(
+    async (shareData: PendingShareData) => {
+      if (!shareToken) return
+
+      const result = await getProjectByShareToken(shareToken)
+      if (!result || !result.project) {
+        setError(t.shareView?.projectNotFound || '项目不存在')
+        setLoading(false)
+        return
+      }
+
+      const { project, charts, share } = result
+      const sharedTabIds = share.sharedTabIds || shareData.sharedTabIds || []
+      const activeTabId = sharedTabIds.length > 0 ? sharedTabIds[0] : project.activeChartId
+
+      // Determine appMode based on the shared tab type
+      const sharedTab = charts.find((c) => c.id === activeTabId)
+      const isVersionTimelineTab = sharedTab && isVersionTimeline(sharedTab)
+
+      // Increment view count
+      await incrementShareViewCount(shareData.id)
+
+      // For editable shares, join as collaborator
+      if (shareData.shareType === 'editable' && user) {
+        const joinResult = await joinCollaboration(
+          shareData.id,
+          shareData.projectId,
+          shareData.ownerId
+        )
+        if (!joinResult.success) {
+          console.warn('Failed to join collaboration:', joinResult.error)
+        }
+      }
+
+      // Load FULL project into store
+      useRadarStore.setState({
+        currentProject: {
+          id: project.id,
+          name: project.name,
+          description: project.description || '',
+          radarCharts: charts,
+          activeRadarId: activeTabId,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        },
+        currentProjectId: project.id,
+        currentProjectName: project.name,
+        isLoading: false,
+      })
+
+      // Set correct app mode based on shared tab type
+      useUIStore.getState().setAppMode(isVersionTimelineTab ? 'timeline' : 'radar')
+
+      // Set share mode with sharedTabIds for UI filtering
+      setShareMode(true, {
+        token: shareToken,
+        shareType: shareData.shareType,
+        projectId: shareData.projectId,
+        projectName: project.name,
+        sharedTabIds: sharedTabIds.length > 0 ? sharedTabIds : undefined,
+      })
+
       setLoading(false)
-      return
-    }
+    },
+    [shareToken, setShareMode, t, user]
+  )
 
-    // Check if link is valid
-    const { valid, reason } = isShareLinkValid(shareData)
-    if (!valid) {
-      setError(reason || t.shareView?.linkExpired || '链接已失效')
-      setLoading(false)
-      return
-    }
+  // Handle password submit
+  const handlePasswordSubmit = useCallback(async () => {
+    if (!pendingShareData) return
 
-    setShare(shareData)
-
-    // Check if password is required
-    if (shareData.password) {
-      setPasswordRequired(true)
-      setLoading(false)
-      return
-    }
-
-    // Load project
-    await loadProject(shareData)
-  }
-
-  const loadProject = async (shareData: ShareLink) => {
-    setLoading(true)
-
-    const project = await getCloudProject(shareData.projectId)
-
-    if (!project) {
-      setError(t.shareView?.projectNotFound || '项目不存在')
-      setLoading(false)
-      return
-    }
-
-    // Increment view count
-    await incrementShareViewCount(shareData.id)
-
-    // Load project into store (read-only mode)
-    useRadarStore.setState({
-      currentProject: project,
-      isLoading: false,
-    })
-
-    setProjectLoaded(true)
-    setLoading(false)
-  }
-
-  const handlePasswordSubmit = async () => {
-    if (!share) return
-
-    // Simple password check (in production, this should be done server-side)
-    if (password === share.password) {
-      await loadProject(share)
+    if (password === pendingShareData.password) {
       setPasswordRequired(false)
+      setLoading(true)
+      await loadSharedProject(pendingShareData)
     } else {
       message.error(t.shareView?.wrongPassword || '密码错误')
     }
-  }
+  }, [pendingShareData, password, loadSharedProject, t])
 
+  // Load share data on mount
+  useEffect(() => {
+    if (!shareToken) {
+      navigate('/', { replace: true })
+      return
+    }
+
+    const loadShare = async () => {
+      if (shareMode) return // Already loaded
+
+      setLoading(true)
+      setError(null)
+
+      const shareData = await getShareByToken(shareToken)
+
+      if (!shareData) {
+        setError(t.shareView?.linkNotFound || '分享链接不存在或已失效')
+        setLoading(false)
+        return
+      }
+
+      const { valid, reason } = isShareLinkValid(shareData)
+      if (!valid) {
+        setError(reason || t.shareView?.linkExpired || '链接已失效')
+        setLoading(false)
+        return
+      }
+
+      const pendingData: PendingShareData = {
+        id: shareData.id,
+        projectId: shareData.projectId,
+        shareType: shareData.shareType,
+        ownerId: shareData.createdBy || '',
+        password: shareData.password,
+        sharedTabIds: shareData.sharedTabIds,
+      }
+
+      // Check if password is required
+      if (shareData.password) {
+        setPendingShareData(pendingData)
+        setPasswordRequired(true)
+        setLoading(false)
+        return
+      }
+
+      // Check if login is required for editable shares
+      const currentUser = useAuthStore.getState().user
+      if (shareData.shareType === 'editable' && !currentUser) {
+        setPendingShareData(pendingData)
+        setLoginRequired(true)
+        setLoading(false)
+        return
+      }
+
+      // Load project directly
+      await loadSharedProject(pendingData)
+    }
+
+    loadShare()
+  }, [shareToken, loadSharedProject, t, shareMode, navigate])
+
+  // Auto-load project after login for editable shares
+  useEffect(() => {
+    if (loginRequired && user && pendingShareData) {
+      setLoginRequired(false)
+      setLoading(true)
+      loadSharedProject(pendingShareData)
+    }
+  }, [loginRequired, user, pendingShareData, loadSharedProject])
+
+  // Keyboard shortcuts (disabled in readonly mode)
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (isReadonly) return
+
+      const target = e.target as HTMLElement
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return
+      }
+
+      if (e.key === 's' || e.key === 'S') {
+        e.preventDefault()
+        if (settingsDrawerVisible) {
+          closeSettingsDrawer()
+        } else {
+          openSettingsDrawer()
+        }
+      }
+    },
+    [isReadonly, settingsDrawerVisible, openSettingsDrawer, closeSettingsDrawer]
+  )
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleKeyDown])
+
+  // Version Timeline handlers
+  const handleEventClick = useCallback(
+    (event: VersionEvent) => {
+      if (isReadonly) return
+      setEditingEvent(event)
+      setEventEditorOpen(true)
+    },
+    [isReadonly]
+  )
+
+  const handleAddEvent = useCallback(() => {
+    if (isReadonly) return
+    setEditingEvent(null)
+    setEventEditorOpen(true)
+  }, [isReadonly])
+
+  const handleEditInfo = useCallback(() => {
+    if (isReadonly) return
+    setInfoEditorOpen(true)
+  }, [isReadonly])
+
+  const handleImportTimeline = useCallback(() => {
+    if (isReadonly) return
+    setTimelineImportOpen(true)
+  }, [isReadonly])
+
+  // Loading state
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
@@ -109,22 +305,21 @@ export function ShareView({ shareToken }: ShareViewProps) {
     )
   }
 
+  // Error state
   if (error) {
     return (
-      <div className={styles.errorContainer}>
-        <Empty
-          description={error}
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-        />
+      <div className={styles.loadingContainer}>
+        <Empty description={error} image={Empty.PRESENTED_IMAGE_SIMPLE} />
       </div>
     )
   }
 
+  // Password prompt
   if (passwordRequired) {
     return (
-      <div className={styles.passwordContainer}>
-        <div className={styles.passwordCard}>
-          <LockOutlined className={styles.lockIcon} />
+      <div className={styles.loadingContainer}>
+        <div className={styles.promptCard}>
+          <LockOutlined className={styles.promptIcon} />
           <Typography.Title level={4}>
             {t.shareView?.passwordRequired || '此链接需要密码'}
           </Typography.Title>
@@ -134,9 +329,9 @@ export function ShareView({ shareToken }: ShareViewProps) {
             placeholder={t.shareView?.enterPassword || '请输入密码'}
             onPressEnter={handlePasswordSubmit}
             size="large"
-            style={{ marginBottom: 16 }}
+            style={{ marginBottom: 16, maxWidth: 300 }}
           />
-          <Button type="primary" onClick={handlePasswordSubmit} block size="large">
+          <Button type="primary" onClick={handlePasswordSubmit} size="large">
             {t.shareView?.access || '访问'}
           </Button>
         </div>
@@ -144,33 +339,118 @@ export function ShareView({ shareToken }: ShareViewProps) {
     )
   }
 
-  if (!projectLoaded) {
-    return null
+  // Login prompt for editable shares
+  if (loginRequired) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.promptCard}>
+          <LoginOutlined className={styles.promptIcon} />
+          <Typography.Title level={4}>
+            {t.share?.loginToCollaborate || '请登录以加入协作'}
+          </Typography.Title>
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
+            {t.share?.editableHint ||
+              '可编辑分享需要协作者登录后才能访问，修改会同步到原项目'}
+          </Typography.Paragraph>
+          <LoginModal open={true} onClose={() => {}} embedded={true} />
+        </div>
+      </div>
+    )
   }
 
+  // Main share view
   return (
     <Layout className={styles.layout}>
-      <div className={styles.shareHeader}>
-        <Typography.Title level={4} className={styles.projectName}>
-          {useRadarStore.getState().currentProject?.name}
-        </Typography.Title>
-        <Space>
-          <Tag color={share?.shareType === 'readonly' ? 'blue' : 'green'}>
-            {share?.shareType === 'readonly' ? (
-              <><EyeOutlined /> {t.share?.readonly || '只读'}</>
-            ) : (
-              <><EditOutlined /> {t.share?.editable || '可编辑'}</>
-            )}
-          </Tag>
-          <Typography.Text type="secondary">
-            {t.shareView?.sharedView || '分享视图'}
-          </Typography.Text>
-        </Space>
-      </div>
+      <Navbar />
       <Content className={styles.content}>
-        <div className={styles.chartArea}>
-          <RadarChart />
-        </div>
+        {appMode === 'timeline' ? (
+          // Version Timeline mode
+          <div className={styles.timelineMode}>
+            <div className={styles.header}>
+              {/* Always hide new tab button in share mode */}
+              <RadarTabs readonly={hideCreateActions} />
+              {!isReadonly && (
+                <TimelineToolbar
+                  onAddEvent={handleAddEvent}
+                  onEditInfo={handleEditInfo}
+                  onImport={handleImportTimeline}
+                />
+              )}
+            </div>
+            <div className={styles.chartArea}>
+              <VersionTimelineView
+                onEventClick={isReadonly ? undefined : handleEventClick}
+                onAddEvent={isReadonly ? undefined : handleAddEvent}
+              />
+            </div>
+            {!isReadonly && activeVersionTimeline && (
+              <>
+                <VersionEventEditor
+                  open={eventEditorOpen}
+                  onClose={() => setEventEditorOpen(false)}
+                  timelineId={activeVersionTimeline.id}
+                  event={editingEvent}
+                />
+                <TimelineInfoEditor
+                  open={infoEditorOpen}
+                  onClose={() => setInfoEditorOpen(false)}
+                  timelineId={activeVersionTimeline.id}
+                />
+              </>
+            )}
+            {!isReadonly && (
+              <TimelineImportModal
+                open={timelineImportOpen}
+                onClose={() => setTimelineImportOpen(false)}
+              />
+            )}
+          </div>
+        ) : (
+          // Radar chart mode
+          <>
+            <div className={styles.header}>
+              {/* Always hide new tab button in share mode */}
+              <RadarTabs readonly={hideCreateActions} />
+              {/* Show toolbar: hide time compare, hide import for readonly */}
+              <Toolbar hideTimeCompare hideImport={isReadonly} />
+            </div>
+            <div className={styles.chartArea}>
+              {isTimeline ? (
+                <TimelineRadarChart timelineId={activeRadar.id} />
+              ) : isVersionTimelineMode ? (
+                <VersionTimelineView
+                  onEventClick={isReadonly ? undefined : handleEventClick}
+                  onAddEvent={isReadonly ? undefined : handleAddEvent}
+                />
+              ) : (
+                <RadarChart />
+              )}
+            </div>
+            {!isTimeline && !isVersionTimelineMode && !isReadonly && <SettingsButton />}
+            {!isReadonly && (
+              <>
+                <SettingsDrawer />
+                <SubRadarDrawer />
+                <ImportModal />
+              </>
+            )}
+            {!isReadonly && activeVersionTimeline && (
+              <>
+                <VersionEventEditor
+                  open={eventEditorOpen}
+                  onClose={() => setEventEditorOpen(false)}
+                  timelineId={activeVersionTimeline.id}
+                  event={editingEvent}
+                />
+                <TimelineInfoEditor
+                  open={infoEditorOpen}
+                  onClose={() => setInfoEditorOpen(false)}
+                  timelineId={activeVersionTimeline.id}
+                />
+              </>
+            )}
+          </>
+        )}
       </Content>
     </Layout>
   )

@@ -1,30 +1,29 @@
+import { nanoid } from 'nanoid'
 import { supabase, isSupabaseConfigured } from './client'
-import type { Project } from '@/types'
-import type { Database } from '@/types/supabase'
+import type { Database, CloudProjectMeta } from '@/types/supabase'
 
-// Type aliases for Supabase tables
 type ProjectRow = Database['radar_compare']['Tables']['projects']['Row']
 type ProjectInsert = Database['radar_compare']['Tables']['projects']['Insert']
 
-// Cloud project metadata (without full data)
-export interface CloudProjectMeta {
-  id: string
-  name: string
-  description: string
-  version: number
-  updatedAt: string
-  createdAt: string
-}
-
 /**
- * Get all projects for the current user
+ * Get all projects owned by the current user (metadata only)
  */
 export async function getCloudProjects(): Promise<CloudProjectMeta[]> {
-  if (!isSupabaseConfigured) return []
+  if (!isSupabaseConfigured) {
+    console.log('[Cloud] Supabase not configured')
+    return []
+  }
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    console.log('[Cloud] No authenticated user')
+    return []
+  }
 
   const { data, error } = await supabase
     .from('projects')
-    .select('id, name, description, version, created_at, updated_at')
+    .select('id, name, description, active_chart_id, created_at, updated_at')
+    .eq('owner_id', user.id)
     .order('updated_at', { ascending: false })
 
   if (error) {
@@ -32,67 +31,107 @@ export async function getCloudProjects(): Promise<CloudProjectMeta[]> {
     return []
   }
 
-  // Cast data to expected type since Supabase schema types aren't inferred correctly
-  const rows = data as unknown as Pick<ProjectRow, 'id' | 'name' | 'description' | 'version' | 'created_at' | 'updated_at'>[]
+  type ProjectMetaRow = Pick<ProjectRow, 'id' | 'name' | 'description' | 'active_chart_id' | 'created_at' | 'updated_at'>
 
-  return (rows || []).map(p => ({
+  return (data as ProjectMetaRow[] || []).map(p => ({
     id: p.id,
     name: p.name,
     description: p.description || '',
-    version: p.version,
+    activeChartId: p.active_chart_id,
     updatedAt: p.updated_at,
     createdAt: p.created_at,
   }))
 }
 
 /**
- * Get a single project by ID
+ * Get or create the user's default project
+ * Returns the project ID
  */
-export async function getCloudProject(id: string): Promise<Project | null> {
+export async function getOrCreateDefaultProject(): Promise<string | null> {
   if (!isSupabaseConfigured) return null
 
-  const { data, error } = await supabase
-    .from('projects')
-    .select('*')
-    .eq('id', id)
-    .single()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
 
-  if (error) {
-    console.error('[Cloud] Failed to fetch project:', error)
-    return null
+  // Check for existing projects
+  const projects = await getCloudProjects()
+  if (projects.length > 0) {
+    return projects[0].id
   }
 
-  // Cast and extract data
-  const row = data as unknown as ProjectRow
-  return row?.data as unknown as Project || null
-}
-
-/**
- * Save a project to cloud (upsert)
- */
-export async function saveCloudProject(project: Project): Promise<boolean> {
-  if (!isSupabaseConfigured) return false
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return false
-
+  // Create default project
+  const projectId = nanoid()
   const insertData: ProjectInsert = {
-    id: project.id,
+    id: projectId,
     owner_id: user.id,
-    name: project.name,
-    description: project.description || '',
-    data: project as unknown as Database['radar_compare']['Tables']['projects']['Row']['data'],
-    version: 1,
+    name: '默认项目',
+    description: '',
   }
 
   const { error } = await supabase
     .from('projects')
-    .upsert(insertData as never, {
-      onConflict: 'id',
-    })
+    .insert(insertData as never)
 
   if (error) {
-    console.error('[Cloud] Failed to save project:', error)
+    console.error('[Cloud] Failed to create default project:', error)
+    return null
+  }
+
+  return projectId
+}
+
+/**
+ * Create a new project
+ */
+export async function createProject(name: string): Promise<string | null> {
+  if (!isSupabaseConfigured) return null
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const projectId = nanoid()
+  const insertData: ProjectInsert = {
+    id: projectId,
+    owner_id: user.id,
+    name,
+    description: '',
+  }
+
+  const { error } = await supabase
+    .from('projects')
+    .insert(insertData as never)
+
+  if (error) {
+    console.error('[Cloud] Failed to create project:', error)
+    return null
+  }
+
+  return projectId
+}
+
+/**
+ * Update project metadata
+ */
+export async function updateProjectMeta(
+  projectId: string,
+  meta: { name?: string; description?: string; activeChartId?: string | null }
+): Promise<boolean> {
+  if (!isSupabaseConfigured) return false
+
+  const updateData: Record<string, unknown> = {}
+  if (meta.name !== undefined) updateData.name = meta.name
+  if (meta.description !== undefined) updateData.description = meta.description
+  if (meta.activeChartId !== undefined) updateData.active_chart_id = meta.activeChartId
+
+  if (Object.keys(updateData).length === 0) return true
+
+  const { error } = await supabase
+    .from('projects')
+    .update(updateData as never)
+    .eq('id', projectId)
+
+  if (error) {
+    console.error('[Cloud] Failed to update project:', error)
     return false
   }
 
@@ -100,15 +139,15 @@ export async function saveCloudProject(project: Project): Promise<boolean> {
 }
 
 /**
- * Delete a project from cloud
+ * Delete a project (cascades to charts)
  */
-export async function deleteCloudProject(id: string): Promise<boolean> {
+export async function deleteCloudProject(projectId: string): Promise<boolean> {
   if (!isSupabaseConfigured) return false
 
   const { error } = await supabase
     .from('projects')
     .delete()
-    .eq('id', id)
+    .eq('id', projectId)
 
   if (error) {
     console.error('[Cloud] Failed to delete project:', error)
@@ -119,22 +158,29 @@ export async function deleteCloudProject(id: string): Promise<boolean> {
 }
 
 /**
- * Upload multiple projects to cloud (for first-time sync)
+ * Check if the current user is the owner of a project
  */
-export async function uploadLocalProjects(projects: Project[]): Promise<number> {
-  if (!isSupabaseConfigured || projects.length === 0) return 0
+export async function isProjectOwner(projectId: string): Promise<boolean> {
+  if (!isSupabaseConfigured) return true
 
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return 0
+  if (!user) return false
 
-  let successCount = 0
+  try {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('owner_id')
+      .eq('id', projectId)
+      .maybeSingle()
 
-  for (const project of projects) {
-    const success = await saveCloudProject(project)
-    if (success) successCount++
+    if (error || !data) {
+      return true // Local project
+    }
+
+    return (data as { owner_id: string }).owner_id === user.id
+  } catch {
+    return true
   }
-
-  return successCount
 }
 
 /**
@@ -143,9 +189,13 @@ export async function uploadLocalProjects(projects: Project[]): Promise<number> 
 export async function hasCloudProjects(): Promise<boolean> {
   if (!isSupabaseConfigured) return false
 
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+
   const { count, error } = await supabase
     .from('projects')
     .select('*', { count: 'exact', head: true })
+    .eq('owner_id', user.id)
 
   if (error) {
     console.error('[Cloud] Failed to check projects:', error)

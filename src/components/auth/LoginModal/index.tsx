@@ -16,9 +16,10 @@ function NotionIcon() {
 interface LoginModalProps {
   open: boolean
   onClose: () => void
+  embedded?: boolean  // When true, render without Modal wrapper
 }
 
-export function LoginModal({ open, onClose }: LoginModalProps) {
+export function LoginModal({ open, onClose, embedded = false }: LoginModalProps) {
   const { signInWithGoogle, signInWithNotion, signInWithEmail, signUpWithEmail, isLoading, error, clearError } = useAuthStore()
   const { t } = useI18n()
   const [form] = Form.useForm()
@@ -131,6 +132,50 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
     },
   ]
 
+  const loginContent = (
+    <div className={styles.container}>
+      <div className={styles.oauthButtons}>
+        <Button
+          icon={<GoogleOutlined />}
+          onClick={handleGoogleLogin}
+          loading={isLoading}
+          block
+          size="large"
+          className={styles.googleBtn}
+        >
+          {t.auth?.continueWithGoogle || '使用 Google 登录'}
+        </Button>
+        <Button
+          icon={<NotionIcon />}
+          onClick={handleNotionLogin}
+          loading={isLoading}
+          block
+          size="large"
+          className={styles.notionBtn}
+        >
+          {t.auth?.continueWithNotion || '使用 Notion 登录'}
+        </Button>
+      </div>
+
+      <Divider plain>{t.auth?.orContinueWith || '或'}</Divider>
+
+      <Tabs items={tabItems} centered />
+
+      {error && <div className={styles.error}>{error}</div>}
+
+      {!embedded && (
+        <p className={styles.hint}>
+          {t.auth?.offlineHint || '未登录时数据仅保存在本地'}
+        </p>
+      )}
+    </div>
+  )
+
+  // Embedded mode: render content directly without Modal
+  if (embedded) {
+    return loginContent
+  }
+
   return (
     <Modal
       title={t.auth?.loginTitle || '登录到 Radar Compare'}
@@ -140,40 +185,7 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
       width={400}
       centered
     >
-      <div className={styles.container}>
-        <div className={styles.oauthButtons}>
-          <Button
-            icon={<GoogleOutlined />}
-            onClick={handleGoogleLogin}
-            loading={isLoading}
-            block
-            size="large"
-            className={styles.googleBtn}
-          >
-            {t.auth?.continueWithGoogle || '使用 Google 登录'}
-          </Button>
-          <Button
-            icon={<NotionIcon />}
-            onClick={handleNotionLogin}
-            loading={isLoading}
-            block
-            size="large"
-            className={styles.notionBtn}
-          >
-            {t.auth?.continueWithNotion || '使用 Notion 登录'}
-          </Button>
-        </div>
-
-        <Divider plain>{t.auth?.orContinueWith || '或'}</Divider>
-
-        <Tabs items={tabItems} centered />
-
-        {error && <div className={styles.error}>{error}</div>}
-
-        <p className={styles.hint}>
-          {t.auth?.offlineHint || '未登录时数据仅保存在本地'}
-        </p>
-      </div>
+      {loginContent}
     </Modal>
   )
 }

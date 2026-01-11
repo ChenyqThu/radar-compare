@@ -86,6 +86,7 @@
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -125,14 +126,19 @@
 .addBtn {
   flex-shrink: 0;
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  color: var(--text-secondary);
+  /* Default color */
 }
 
 .addBtn:hover {
-  transform: scale(1.05);
+  transform: none;
+  /* Remove scale */
+  background: transparent !important;
+  color: var(--color-primary) !important;
 }
 
 .addBtn:active {
-  transform: scale(0.95);
+  transform: scale(0.98);
 }
 
 .timelineIcon {
@@ -146,9 +152,12 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.7;
   }

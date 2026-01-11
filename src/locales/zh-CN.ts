@@ -14,6 +14,7 @@ export const zhCN = {
     action: '操作',
     expand: '放大',
     featureComingSoon: '功能开发中，敬请期待',
+    initFailed: '初始化失败',
   },
 
   // App
@@ -22,6 +23,11 @@ export const zhCN = {
     overview: '总览',
     radarMode: '雷达图',
     timelineMode: '时间轴',
+  },
+
+  // Project
+  project: {
+    defaultName: '我的项目',
   },
 
   // Tabs
@@ -176,12 +182,27 @@ export const zhCN = {
     syncErrorRetry: '同步失败，点击重试',
     lastSync: '上次同步',
     cloudReady: '云端就绪',
+    cloudConnected: '已连接云端',
     offline: '离线模式',
     offlineHintShort: '网络已断开，数据仅保存在本地',
     offlineWithPending: '离线 - 有',
     pendingChanges: '个待同步更改',
     retry: '重试',
     retryingSync: '正在重试同步...',
+  },
+
+  // Landing Page
+  landing: {
+    title: '竞品能力对比可视化工具',
+    subtitle: '通过雷达图直观对比产品能力，支持团队协作与时间轴追踪',
+    signInWithGoogle: '使用 Google 账号登录',
+    cloudHint: '数据安全存储在云端，支持跨设备访问',
+    feature1Title: '雷达图对比',
+    feature1Desc: '直观展示多维度数据对比，支持自定义维度和权重',
+    feature2Title: '团队协作',
+    feature2Desc: '实时云端同步，支持多人协作编辑',
+    feature3Title: '时间轴追踪',
+    feature3Desc: '记录产品演进历程，对比不同时间节点的能力变化',
   },
 
   // Sync
@@ -199,12 +220,15 @@ export const zhCN = {
 
   // Share
   share: {
-    title: '分享项目',
+    title: '分享',
     createLink: '创建链接',
     manageLinks: '管理链接',
     shareType: '分享类型',
     readonly: '只读',
     editable: '可编辑',
+    sharingTab: '分享内容',
+    noActiveTab: '请先选择一个 Tab',
+    editableHint: '可编辑分享需要协作者登录后才能访问，修改会同步到原项目',
     password: '访问密码（可选）',
     passwordPlaceholder: '留空则无需密码',
     expiry: '过期时间（可选）',
@@ -229,6 +253,23 @@ export const zhCN = {
     expired: '已过期',
     maxViewsReached: '已达到最大访问次数',
     revoked: '已撤销',
+    loginToCollaborate: '请登录以加入协作',
+    collaborating: '协作中',
+    collaborators: '协作者',
+    noCollaborators: '暂无协作者',
+    confirmRemoveCollaborator: '确定移除此协作者？',
+    joinedAt: '加入时间',
+    leaveCollaboration: '离开协作',
+    confirmLeave: '确定离开协作？',
+    leaveHint: '离开后将无法再编辑此项目',
+    leaveSuccess: '已离开协作',
+    leaveFailed: '离开协作失败',
+    notOwner: '您不是此项目的所有者',
+    notOwnerHint: '只有项目所有者可以创建和管理分享链接',
+    copyToMyProject: '复制到我的项目',
+    copyToMyProjectHint: '将把分享的内容复制到你的项目中，副本与原项目独立。',
+    copySuccess: '已复制到我的项目',
+    copyFailed: '复制失败',
   },
 
   // Share View
@@ -241,6 +282,18 @@ export const zhCN = {
     access: '访问',
     wrongPassword: '密码错误',
     sharedView: '分享视图',
+    backToHome: '返回首页',
+  },
+
+  // Collaborations
+  collaborations: {
+    title: '我的协作',
+    empty: '暂无协作项目',
+    visit: '访问',
+    joinedAt: '加入时间',
+    expiresAt: '过期时间',
+    expiresIn: '{days} 天后过期',
+    noExpiry: '永不过期',
   },
 
   // Version Timeline

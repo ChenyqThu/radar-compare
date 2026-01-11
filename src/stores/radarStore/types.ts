@@ -28,27 +28,44 @@ export interface TimelineData {
   vendors: Vendor[]
 }
 
+// Project list item with collaboration info
+export interface ProjectListItem {
+  id: string
+  name: string
+  isCollaborated?: boolean  // true if user is a collaborator, not owner
+  role?: 'owner' | 'editor' | 'viewer'
+}
+
 // Store state
+// Note: We keep currentProject for backwards compatibility, but data comes from radar_charts table
 export interface RadarState {
+  // Project state - assembled from projects + radar_charts tables
   currentProject: Project | null
-  projectList: Pick<Project, 'id' | 'name'>[]
+
+  // Convenience getters for project metadata
+  currentProjectId: string | null
+  currentProjectName: string
+
+  projectList: ProjectListItem[]
   isLoading: boolean
   lastSavedAt: number | null
 
   getActiveRadar: () => AnyRadarChart | null
 
   // 项目操作
+  initialize: () => Promise<void>
   loadProject: (projectId: UUID) => Promise<void>
-  createProject: (name: string) => Promise<UUID>
+  createProject: (name: string) => Promise<string | null>
   deleteProject: (projectId: UUID) => Promise<void>
   renameProject: (projectId: UUID, name: string) => void
   refreshProjectList: () => Promise<void>
+  copySharedTabsToMyProject: (tabIds: string[], targetProjectId?: string) => Promise<string | null>
 
   // 雷达图操作
   setActiveRadar: (radarId: UUID) => void
-  addRadarChart: (name?: string) => void
-  deleteRadarChart: (radarId: UUID) => void
-  duplicateRadarChart: (radarId: UUID) => void
+  addRadarChart: (name?: string) => Promise<void>
+  deleteRadarChart: (radarId: UUID) => Promise<void>
+  duplicateRadarChart: (radarId: UUID) => Promise<void>
   renameRadarChart: (radarId: UUID, name: string) => void
   reorderRadarCharts: (fromIndex: number, toIndex: number) => void
 
@@ -89,8 +106,8 @@ export interface RadarState {
   clearRadarTimeMarker: (radarId: UUID) => void
 
   // 时间轴雷达图操作
-  createTimelineRadar: (name: string, sourceRadarIds: UUID[]) => ValidationResult
-  deleteTimelineRadar: (timelineId: UUID) => void
+  createTimelineRadar: (name: string, sourceRadarIds: UUID[]) => Promise<ValidationResult>
+  deleteTimelineRadar: (timelineId: UUID) => Promise<void>
   updateTimelineSources: (timelineId: UUID, sourceRadarIds: UUID[]) => ValidationResult
 
   // 校验和查询

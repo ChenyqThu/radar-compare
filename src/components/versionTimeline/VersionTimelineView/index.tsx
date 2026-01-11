@@ -9,7 +9,6 @@ import styles from './VersionTimelineView.module.css'
 
 // Constants for layout calculation
 const DEFAULT_ZOOM = 100 // Default zoom percentage
-const MIN_ZOOM = 50 // Minimum zoom (will be adjusted dynamically)
 const MAX_ZOOM = 300 // Maximum zoom
 
 interface LayoutEvent extends VersionEvent {
@@ -72,9 +71,39 @@ interface VersionTimelineViewProps {
 }
 
 // Layout constants
+// ----------------------------------------------------------------------
+// Constants & Helpers
+// ----------------------------------------------------------------------
+
 const EDGE_PADDING = 50 // Padding at left and right edges
 const TIMELINE_START_OFFSET = 200 // Space before first event for logo/orb
-const TIMELINE_END_OFFSET = 160 // Space after last event
+const TIMELINE_END_OFFSET = 100 // Space after last event
+
+// Zoom Constants derived from "4-Track Capacity"
+// Comfort: ~180px card / 3 tracks = 60px per event (Increased for better spacing)
+const PIXELS_PER_EVENT_COMFORT = 90
+// Limit: ~54px card (70% overlap) / 4 tracks = 13.5px per event
+const PIXELS_PER_EVENT_LIMIT = 13.5
+
+function calculatePerfectZoom(
+  eventsCount: number,
+  totalYears: number,
+  containerWidth: number
+) {
+  const contentWidth = containerWidth - EDGE_PADDING * 2
+  const fitZoom = totalYears > 0 ? contentWidth / totalYears : 100
+
+  const comfortZoom = totalYears > 0 ? (eventsCount * PIXELS_PER_EVENT_COMFORT) / totalYears : 0
+  const limitZoom = totalYears > 0 ? (eventsCount * PIXELS_PER_EVENT_LIMIT) / totalYears : 0
+
+  // MinZoom: Ensure we don't go beyond 70% overlap
+  const minZoom = Math.ceil(Math.max(fitZoom, limitZoom))
+
+  // PerfectZoom: Ensure we default to Comfort if Fit is too crowded
+  const perfectZoom = Math.ceil(Math.max(fitZoom, comfortZoom))
+
+  return { minZoom, perfectZoom }
+}
 
 export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
   onEventClick,
@@ -107,14 +136,32 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
     return () => resizeObserver.disconnect()
   }, [])
 
+  // Calculate dynamic zoom bounds
+  const { totalYears, eventCount } = useMemo(() => {
+    if (!timeline?.events.length) return { totalYears: 0, eventCount: 0 }
+    // Estimate unique years span roughly
+    const years = timeline.events.map(e => e.year)
+    const span = Math.max(...years) - Math.min(...years) || 1
+    return { totalYears: span, eventCount: timeline.events.length }
+  }, [timeline])
+
+  const { minZoom, perfectZoom } = useMemo(() => {
+    return calculatePerfectZoom(eventCount, totalYears, containerWidth)
+  }, [eventCount, totalYears, containerWidth])
+
+  // Initialize Zoom - MOVED to legacy effect below to support localStorage
+
   // Update scroll state
   const updateScrollState = useCallback(() => {
     const container = scrollContainerRef.current
     if (!container) return
 
-    setCanScrollLeft(container.scrollLeft > 0)
+    // Add a small buffer for float precision issues
+    const TOLERANCE = 5
+
+    setCanScrollLeft(container.scrollLeft > TOLERANCE)
     setCanScrollRight(
-      container.scrollLeft < container.scrollWidth - container.clientWidth - 1
+      container.scrollLeft < container.scrollWidth - container.clientWidth - TOLERANCE
     )
   }, [])
 
@@ -182,15 +229,13 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
   // Axis Break Toggle State
   const [enableAxisBreak, setEnableAxisBreak] = useState(true)
 
-  const { layoutEvents, timelineGradient, themeColor, totalWidth, minZoom, perfectZoom, timeSegments, hasPossibleBreaks } = useMemo(() => {
+  const { layoutEvents, timelineGradient, themeColor, totalWidth, timeSegments, hasPossibleBreaks } = useMemo(() => {
     if (!timeline || timeline.events.length === 0) {
       return {
         layoutEvents: [] as LayoutEvent[],
         timelineGradient: '',
         themeColor: '#0A7171',
         totalWidth: containerWidth,
-        minZoom: MIN_ZOOM,
-        perfectZoom: DEFAULT_ZOOM,
         timeSegments: [] as TimeSegment[],
         hasPossibleBreaks: false
       }
@@ -212,8 +257,8 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
     const hasPossibleBreaks = potentialScale.segments.some((s: TimeSegment) => s.type === 'break')
 
     // Theme colors
-    const theme = timeline.info.theme || 'teal'
-    const customThemeColor = timeline.info.themeColor || '#0A7171'
+    const theme = timeline.info?.theme || 'teal'
+    const customThemeColor = timeline.info?.themeColor || '#0A7171'
     const colors = generateTimelineColors(eventYears.length, theme)
 
     let gradient: string
@@ -243,8 +288,6 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
       timelineGradient: gradient,
       themeColor: customThemeColor,
       totalWidth,
-      minZoom: 50,
-      perfectZoom: 100,
       timeSegments: timeScale.segments,
       hasPossibleBreaks
     }
@@ -344,7 +387,7 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
       style={{ '--theme-color': themeColor } as React.CSSProperties}
     >
       {/* Company badge - top right */}
-      {timeline.info.company && (
+      {timeline.info?.company && (
         <span className={styles.companyBadge}>{timeline.info.company}</span>
       )}
 
@@ -354,24 +397,8 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
 
 
         {/* Zoom slider */}
+        {/* Zoom slider */}
         <div className={styles.zoomControl}>
-          {hasPossibleBreaks && (
-            <Tooltip title={enableAxisBreak ? t.versionTimeline.disableAxisBreak : t.versionTimeline.enableAxisBreak}>
-              <button
-                className={styles.fitButton}
-                onClick={() => setEnableAxisBreak(!enableAxisBreak)}
-                style={{
-                  color: enableAxisBreak ? 'var(--theme-color)' : undefined,
-                  marginRight: 8,
-                  borderRight: '1px solid var(--border-color)',
-                  paddingRight: 8
-                }}
-              >
-                {enableAxisBreak ? <DisconnectOutlined /> : <LinkOutlined />}
-              </button>
-            </Tooltip>
-          )}
-
           <ZoomOutOutlined className={styles.zoomIcon} onClick={() => handleZoomChange(Math.max(minZoom, (zoom || minZoom) - 10))} />
           <Slider
             className={styles.zoomSlider}
@@ -392,6 +419,19 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
             <CompressOutlined />
           </button>
         </div>
+
+        {/* Axis Break Toggle - Independent Button */}
+        {hasPossibleBreaks && (
+          <Tooltip title={enableAxisBreak ? t.versionTimeline.disableAxisBreak : t.versionTimeline.enableAxisBreak}>
+            <button
+              className={`${styles.toggleButton} ${enableAxisBreak ? styles.active : ''}`}
+              onClick={() => setEnableAxisBreak(!enableAxisBreak)}
+              style={{ marginLeft: 8 }}
+            >
+              {enableAxisBreak ? <DisconnectOutlined /> : <LinkOutlined />}
+            </button>
+          </Tooltip>
+        )}
       </div>
 
       {/* Floating Navigation Buttons */}
@@ -435,46 +475,44 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
             </div>
 
             {/* Logo */}
-            {timeline.info.logo && (
-              <img src={timeline.info.logo} alt={timeline.info.title} className={styles.logo} />
+            {timeline.info?.logo && (
+              <img src={timeline.info.logo} alt={timeline.info?.title || ''} className={styles.logo} />
             )}
 
             {/* Title */}
-            <h2 className={styles.title}>{timeline.info.title}</h2>
+            <h2 className={styles.title}>{timeline.info?.title || '大事记'}</h2>
           </div>
 
           {/* Timeline axis */}
           <div className={styles.timelineAxis}>
             {/* Timeline line - from logo area center to beyond last event */}
-            {/* Timeline Axis Segments */}
+            {/* Timeline Axis - Single Continuous Line */}
+            <div
+              className={styles.timelineLine}
+              style={{
+                left: `${EDGE_PADDING + 60}px`,
+                width: `${totalWidth - (EDGE_PADDING + 60) - EDGE_PADDING}px`,
+                background: timelineGradient,
+                backgroundRepeat: 'no-repeat',
+                borderRadius: '2px'
+              }}
+            />
+
+            {/* Render Break Icons as overlays */}
             {timeSegments.map((segment, index) => {
-              // Calculate position relative to the timeline start (after padding + offset)
+              if (segment.type !== 'break') return null
+
               const startLeft = EDGE_PADDING + TIMELINE_START_OFFSET + segment.pixelStart
-
-              if (segment.type === 'break') {
-                return (
-                  <div
-                    key={`seg-${index}`}
-                    className={styles.axisBreak}
-                    style={{
-                      left: `${startLeft + segment.pixelWidth / 2}px`
-                    }}
-                  >
-                    <AxisBreakIcon />
-                  </div>
-                )
-              }
-
               return (
                 <div
-                  key={`seg-${index}`}
-                  className={styles.timelineSegment}
+                  key={`break-${index}`}
+                  className={styles.axisBreak}
                   style={{
-                    left: `${startLeft}px`,
-                    width: `${segment.pixelWidth}px`,
-                    background: timelineGradient
+                    left: `${startLeft + segment.pixelWidth}px`
                   }}
-                />
+                >
+                  <AxisBreakIcon />
+                </div>
               )
             })}
 

@@ -125,6 +125,49 @@
       transparent 100%);
 }
 
+/* Independent Toggle Button */
+.toggleButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-color, #d9d9d9);
+  border-radius: 6px;
+  background-color: var(--bg-secondary, #ffffff);
+  color: var(--text-secondary, #666666);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  /* Ease out back (bounce) */
+}
+
+.toggleButton:hover {
+  border-color: var(--theme-color, var(--color-primary, #0A7171));
+  color: var(--theme-color, var(--color-primary, #0A7171));
+  background-color: transparent;
+}
+
+.toggleButton.active {
+  background-color: transparent;
+  color: var(--theme-color, var(--color-primary, #0A7171));
+  border-color: var(--theme-color, var(--color-primary, #0A7171));
+  font-weight: bold;
+  /* visual cue since bg is gone */
+}
+
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* Scroll container - full height */
 .scrollContainer {
   width: 100%;
@@ -642,9 +685,9 @@
   justify-content: center;
   gap: 8px;
   padding: 8px 24px;
-  background-color: var(--theme-color, var(--color-primary, #0A7171));
-  color: white;
-  border: none;
+  background-color: transparent;
+  color: var(--theme-color, var(--color-primary, #0A7171));
+  border: 1px dashed var(--theme-color, var(--color-primary, #0A7171));
   border-radius: 6px;
   font-size: 14px;
   cursor: pointer;
@@ -653,8 +696,9 @@
 }
 
 .addButton:hover {
-  filter: brightness(1.1);
-  transform: translateY(-1px);
+  filter: brightness(1.2);
+  transform: none;
+  background-color: transparent;
 }
 
 /* Dark theme */
@@ -836,7 +880,7 @@
   border: 1px solid var(--border-color, #d9d9d9);
   border-radius: 8px;
   /* Slightly larger radius */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  /* box-shadow removed */
 }
 
 .zoomIcon {
@@ -901,7 +945,7 @@
 
 .fitButton:hover {
   color: var(--theme-color, var(--color-primary, #0A7171));
-  background-color: rgba(10, 113, 113, 0.05);
+  background-color: transparent;
 }
 
 /* Dark mode adjustments */
@@ -924,23 +968,30 @@
   transform: translateY(-1.5px);
 }
 
+/* Break line - Vertical Slanted */
 .axisBreak {
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
   display: flex;
+  flex-direction: row;
+  /* Side by side lines */
+  gap: 3px;
   align-items: center;
   justify-content: center;
-  color: var(--border-color, #d9d9d9);
-  z-index: 1;
+  background-color: var(--bg-primary, #ffffff);
+  z-index: 5;
+  height: 20px;
+  /* Limit height to contain slanted lines */
 }
 
 .breakLine {
   width: 2px;
-  height: 12px;
+  height: 14px;
   background-color: var(--border-color, #d9d9d9);
-  transform: rotate(15deg);
-  margin: 0 1px;
+  border-radius: 1px;
+  transform: skewX(-20deg);
+  /* Slanted look */
 }
 
 :global([data-theme='dark']) .axisBreak {

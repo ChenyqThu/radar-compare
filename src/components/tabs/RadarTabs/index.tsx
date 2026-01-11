@@ -12,7 +12,7 @@ import {
   LockOutlined,
   HolderOutlined,
 } from '@ant-design/icons'
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useContext, createContext } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -30,20 +30,32 @@ import { CSS } from '@dnd-kit/utilities'
 import { useRadarStore } from '@/stores/radarStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useI18n } from '@/locales'
-import { isTimelineRadar, isRegularRadar } from '@/types'
+import { isTimelineRadar, isRegularRadar, type AnyRadarChart } from '@/types'
 import { isVersionTimeline } from '@/types/versionTimeline'
 import { TimeMarkerPicker, formatTimeMarker } from '@/components/settings/TimeMarkerPicker'
 import styles from './RadarTabs.module.css'
+
+// Context to pass drag listeners to the handle
+// useSortable listeners type is inferred
+const DragHandleContext = createContext<ReturnType<typeof useSortable>['listeners']>(undefined)
+
+// Component that consumes listeners and renders the handle
+function DragHandle() {
+  const listeners = useContext(DragHandleContext)
+  return <HolderOutlined {...listeners} className={styles.dragHandle} />
+}
 
 // 可拖拽的 Tab 项
 interface DraggableTabPaneProps {
   id: string
   children: React.ReactNode
+  disabled?: boolean
 }
 
-function DraggableTabPane({ id, children }: DraggableTabPaneProps) {
+function DraggableTabPane({ id, children, disabled }: DraggableTabPaneProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
+    disabled,
   })
 
   const style = {
@@ -54,15 +66,21 @@ function DraggableTabPane({ id, children }: DraggableTabPaneProps) {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
-      <div {...listeners} className={styles.dragTrigger}>
-        {children}
-      </div>
+      <DragHandleContext.Provider value={listeners}>
+        <div className={styles.dragTrigger}>
+          {children}
+        </div>
+      </DragHandleContext.Provider>
     </div>
   )
 }
 
 
-export function RadarTabs() {
+interface RadarTabsProps {
+  readonly?: boolean
+}
+
+export function RadarTabs({ readonly = false }: RadarTabsProps) {
   const {
     currentProject,
     setActiveRadar,
@@ -79,7 +97,7 @@ export function RadarTabs() {
     renameVersionTimeline,
     duplicateVersionTimeline,
   } = useRadarStore()
-  const { appMode, lastRadarModeTabId, lastTimelineModeTabId, setLastTabForMode } = useUIStore()
+  const { appMode, lastRadarModeTabId, lastTimelineModeTabId, setLastTabForMode, shareMode, shareInfo } = useUIStore()
   const { t, language } = useI18n()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -109,9 +127,15 @@ export function RadarTabs() {
     const { radarCharts, activeRadarId } = currentProject
 
     // 获取当前模式的 tab 列表
-    const currentModeCharts = appMode === 'timeline'
+    let currentModeCharts: AnyRadarChart[] = appMode === 'timeline'
       ? radarCharts.filter(isVersionTimeline)
       : radarCharts.filter(r => isRegularRadar(r) || isTimelineRadar(r))
+
+    // 在分享模式下，进一步过滤只显示分享的 Tab
+    if (shareMode && shareInfo?.sharedTabIds && shareInfo.sharedTabIds.length > 0) {
+      const sharedTabIds = new Set(shareInfo.sharedTabIds)
+      currentModeCharts = currentModeCharts.filter(chart => sharedTabIds.has(chart.id))
+    }
 
     // 如果当前模式没有任何 chart，不做处理
     if (currentModeCharts.length === 0) return
@@ -132,7 +156,7 @@ export function RadarTabs() {
 
       setActiveRadar(targetTab)
     }
-  }, [appMode, currentProject, lastRadarModeTabId, lastTimelineModeTabId, setActiveRadar])
+  }, [appMode, currentProject, lastRadarModeTabId, lastTimelineModeTabId, setActiveRadar, shareMode, shareInfo])
 
   // 当 activeRadarId 变化时，保存到对应模式的记忆
   useEffect(() => {
@@ -156,9 +180,15 @@ export function RadarTabs() {
   const { radarCharts, activeRadarId } = currentProject
 
   // 根据 appMode 过滤显示的 Tab
-  const filteredCharts = appMode === 'timeline'
+  let filteredCharts: AnyRadarChart[] = appMode === 'timeline'
     ? radarCharts.filter(isVersionTimeline)
     : radarCharts.filter(r => isRegularRadar(r) || isTimelineRadar(r))
+
+  // 在分享模式下，进一步过滤只显示分享的 Tab
+  if (shareMode && shareInfo?.sharedTabIds && shareInfo.sharedTabIds.length > 0) {
+    const sharedTabIds = new Set(shareInfo.sharedTabIds)
+    filteredCharts = filteredCharts.filter(chart => sharedTabIds.has(chart.id))
+  }
 
   // 处理拖拽结束
   const handleDragEnd = (event: DragEndEvent) => {
@@ -324,7 +354,7 @@ export function RadarTabs() {
       key: chart.id,
       label: (
         <div className={styles.tabLabel}>
-          {editingId === chart.id ? (
+          {editingId === chart.id && !readonly ? (
             <div className={styles.editContainer}>
               <Input
                 ref={inputRef}
@@ -332,7 +362,16 @@ export function RadarTabs() {
                 value={editValue}
                 onChange={(e) => setEditValue(e.target.value)}
                 onPressEnter={handleRenameConfirm}
-                onKeyDown={(e) => e.key === 'Escape' && handleRenameCancel()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    handleRenameCancel()
+                    return
+                  }
+                  // 阻止左右键冒泡，避免触发 Tabs 切换或 VersionTimeline滚动
+                  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                    e.stopPropagation()
+                  }
+                }}
                 onClick={(e) => e.stopPropagation()}
                 className={styles.editInput}
               />
@@ -359,7 +398,7 @@ export function RadarTabs() {
             </div>
           ) : (
             <>
-              <HolderOutlined className={styles.dragHandle} />
+              {!readonly && <DragHandle />}
               {isTimeline && <HistoryOutlined className={styles.timelineIcon} />}
               {isReferenced && <LockOutlined className={styles.lockIcon} />}
               <div className={styles.tabContent}>
@@ -371,14 +410,16 @@ export function RadarTabs() {
                     {formatTimeMarker(timeMarker, language)}
                   </span>
                 )}
-                <Dropdown menu={{ items: getMenuItems(chart.id, chart.name) }} trigger={['click']}>
-                  <MoreOutlined
-                    className={styles.moreIcon}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </Dropdown>
+                {!readonly && (
+                  <Dropdown menu={{ items: getMenuItems(chart.id, chart.name) }} trigger={['click']}>
+                    <MoreOutlined
+                      className={styles.moreIcon}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </Dropdown>
+                )}
               </div>
-              {!isVersionTimelineChart && (
+              {!readonly && !isVersionTimelineChart && (
                 <Popover
                   open={timeMarkerPopoverId === chart.id}
                   onOpenChange={(open) => !open && setTimeMarkerPopoverId(null)}
@@ -422,10 +463,10 @@ export function RadarTabs() {
   }
 
   // 获取添加按钮文本
-  const addButtonText = appMode === 'timeline' ? t.versionTimeline.addTimeline : t.tabs.newTab
+  const addButtonText = t.tabs.newTab
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={readonly ? undefined : handleDragEnd}>
       <SortableContext items={filteredCharts.map((r) => r.id)} strategy={horizontalListSortingStrategy}>
         <div className={styles.container}>
           <Tabs
@@ -437,21 +478,23 @@ export function RadarTabs() {
             renderTabBar={(props, DefaultTabBar) => (
               <DefaultTabBar {...props}>
                 {(node) => (
-                  <DraggableTabPane key={node.key} id={node.key as string}>
+                  <DraggableTabPane key={node.key} id={node.key as string} disabled={readonly}>
                     {node}
                   </DraggableTabPane>
                 )}
               </DefaultTabBar>
             )}
           />
-          <Button
-            type="text"
-            icon={<PlusOutlined />}
-            onClick={handleAdd}
-            className={styles.addBtn}
-          >
-            {addButtonText}
-          </Button>
+          {!readonly && (
+            <Button
+              type="text"
+              icon={<PlusOutlined />}
+              onClick={handleAdd}
+              className={styles.addBtn}
+            >
+              {addButtonText}
+            </Button>
+          )}
         </div>
       </SortableContext>
     </DndContext>

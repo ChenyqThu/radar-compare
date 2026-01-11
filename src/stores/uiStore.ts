@@ -4,8 +4,24 @@ import type { UUID } from '@/types'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type AppMode = 'radar' | 'timeline'
+export type ShareType = 'readonly' | 'editable'
+
+// 分享信息
+export interface ShareInfo {
+  token: string
+  shareType: ShareType
+  projectId: string
+  projectName: string
+  sharedTabIds?: string[]  // 分享的 Tab ID 列表，用于 UI 过滤
+}
 
 interface UIState {
+  // 分享模式
+  shareMode: boolean
+  shareInfo: ShareInfo | null
+  setShareMode: (active: boolean, info?: ShareInfo) => void
+  exitShareMode: () => void
+
   // 应用模式 (雷达图 vs 时间轴)
   appMode: AppMode
   setAppMode: (mode: AppMode) => void
@@ -85,6 +101,12 @@ const initialTheme = getSystemTheme()
 export const useUIStore = create<UIState>()(
   persist(
     (set) => ({
+      // 分享模式
+      shareMode: false,
+      shareInfo: null,
+      setShareMode: (active, info) => set({ shareMode: active, shareInfo: info || null }),
+      exitShareMode: () => set({ shareMode: false, shareInfo: null }),
+
       appMode: 'radar',
       setAppMode: (mode) => set({ appMode: mode }),
 

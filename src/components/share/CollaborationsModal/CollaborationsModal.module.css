@@ -1,0 +1,38 @@
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+.listItem {
+  border-bottom: 1px solid var(--border-color);
+  padding: 16px 0;
+}
+
+.listItem:last-child {
+  border-bottom: none;
+}
+
+.description {
+  width: 100%;
+}
+
+.tabList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.tabTag {
+  margin: 0;
+}
+
+.metaItem {
+  color: var(--text-color-secondary);
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

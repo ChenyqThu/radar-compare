@@ -10,7 +10,7 @@ import { createDimensionActions } from './dimensionActions'
 import { createTimelineActions } from './timelineActions'
 import { createVersionTimelineActions } from './versionTimelineActions'
 
-export type { RadarState, ValidationResult, TimelineData } from './types'
+export type { RadarState, ValidationResult, TimelineData, ProjectListItem } from './types'
 
 export const useRadarStore = create<RadarState>()(
   subscribeWithSelector((set, get) => {
@@ -25,7 +25,13 @@ export const useRadarStore = create<RadarState>()(
     const versionTimelineActions = createVersionTimelineActions(set, get)
 
     return {
+      // Project state - assembled from projects + radar_charts tables
       currentProject: null,
+
+      // Convenience getters for project metadata
+      currentProjectId: null,
+      currentProjectName: '',
+
       projectList: [],
       isLoading: true,
       lastSavedAt: null,

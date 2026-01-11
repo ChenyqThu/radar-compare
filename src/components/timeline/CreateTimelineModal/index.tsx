@@ -55,9 +55,9 @@ export function CreateTimelineModal({ open, onClose }: CreateTimelineModalProps)
     return validateTimelineConsistency(selectedKeys)
   }, [selectedKeys, validateTimelineConsistency])
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!validation.valid || !name.trim()) return
-    const result = createTimelineRadar(name.trim(), selectedKeys)
+    const result = await createTimelineRadar(name.trim(), selectedKeys)
     if (result.valid) {
       handleClose()
     }

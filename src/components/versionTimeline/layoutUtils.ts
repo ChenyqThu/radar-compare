@@ -4,13 +4,9 @@ import { VersionEvent, TimeSegment, TimeScaleConfig } from '@/types/versionTimel
 // Constants
 // ----------------------------------------------------------------------
 
-// ----------------------------------------------------------------------
-// Constants
-// ----------------------------------------------------------------------
-
-const MIN_GAP_PIXELS = 250 // Pixels. If visual gap > 250px, it's worth breaking.
-const BREAK_WIDTH = 40 // Pixels width for the break visual.
-const SEGMENT_PADDING = 1 // Years padding around connected events.
+const MIN_GAP_PIXELS = 400
+const BREAK_WIDTH = 48
+const MIN_GAP_YEARS = 1 // Minimum years required to trigger a break. Prevents breaking adjacent years at high zoom.
 
 interface LayoutEvent extends VersionEvent {
     position: 'top' | 'bottom'
@@ -43,9 +39,8 @@ function getActiveRanges(years: number[], pixelThresholdPerYear: number): { star
         const yearDiff = year - currentEnd
         const pixelGap = yearDiff * pixelThresholdPerYear
 
-        // If gap is visually small, merge into current range
-        // We compare against MIN_GAP_PIXELS
-        if (pixelGap < MIN_GAP_PIXELS) {
+        // If gap is visually small OR the time difference is too short, merge into current range
+        if (pixelGap < MIN_GAP_PIXELS || yearDiff < MIN_GAP_YEARS) {
             currentEnd = year
         } else {
             // Gap is large, finalize current range and start new one
@@ -58,14 +53,15 @@ function getActiveRanges(years: number[], pixelThresholdPerYear: number): { star
 
     // Add padding to ranges
     return ranges.map(r => ({
-        start: r.start - SEGMENT_PADDING,
-        end: r.end + SEGMENT_PADDING
+        start: r.start,
+        end: r.end
     }))
 }
 
 /**
  * 2. Generate Time Segments (The Coordinate System)
  * Maps years to pixels based on current zoom (pixels per year).
+ * NOW ELASTIC: Expands segments if event density requires it.
  */
 export function generateTimeSegments(
     events: VersionEvent[],
@@ -73,43 +69,61 @@ export function generateTimeSegments(
     enableBreaks: boolean = true
 ): TimeScaleConfig {
     const years = events.map(e => e.year)
-    // Pass zoomPixelsPerYear to detection logic
-    const ranges = enableBreaks ? getActiveRanges(years, zoomPixelsPerYear) : [{ start: Math.min(...years) - SEGMENT_PADDING, end: Math.max(...years) + SEGMENT_PADDING }]
+    const ranges = enableBreaks ? getActiveRanges(years, zoomPixelsPerYear) : [{ start: Math.min(...years), end: Math.max(...years) }]
 
     const segments: TimeSegment[] = []
     let currentPixel = 0
+    const MIN_EVENT_SPACING = 28 // Pixels needed per event in a cluster
 
     ranges.forEach((range, index) => {
         // Add Break Segment if not the first range
         if (index > 0) {
             const prevRange = ranges[index - 1]
-            // The gap is between prev.end and range.start
             segments.push({
                 startYear: prevRange.end,
                 endYear: range.start,
                 pixelStart: currentPixel,
                 pixelWidth: BREAK_WIDTH,
-                scale: 0, // No timeline scale in break
+                scale: 0,
                 type: 'break'
             })
             currentPixel += BREAK_WIDTH
         }
 
-        // Add Continuous Segment
+        // Add Continuous Segment (Elastic)
         const yearsSpan = range.end - range.start
-        // Ensure span is positive
-        const validSpan = Math.max(0, yearsSpan)
-        const segmentWidth = validSpan * zoomPixelsPerYear
+        const validSpan = Math.max(0.001, yearsSpan) // Avoid division by zero
+
+        // 1. Calculate ideal width based on global zoom
+        const naturalWidth = validSpan * zoomPixelsPerYear
+
+        // 2. Calculate required width based on event density
+        // Find events in this range
+        const eventsInRange = events.filter(e => e.year >= range.start && e.year <= range.end)
+        // Group by year (assume collisions happen mostly on same year)
+        // Actually, we just need enough total width to spread them out? 
+        // Simple heuristic: Total Events * Spacing
+        // Better heuristic: Max events in any single year * Spacing? No, we nudge laterally.
+        // Let's use (Count - 1) * Spacing + Padding
+        const requiredWidth = eventsInRange.length > 1
+            ? (eventsInRange.length - 0.5) * MIN_EVENT_SPACING
+            : MIN_EVENT_SPACING
+
+        // 3. Compare and expand
+        const finalWidth = Math.max(naturalWidth, requiredWidth)
+
+        // 4. Calculate effective scale for this segment
+        const segmentScale = finalWidth / validSpan
 
         segments.push({
             startYear: range.start,
             endYear: range.end,
             pixelStart: currentPixel,
-            pixelWidth: segmentWidth,
-            scale: zoomPixelsPerYear,
+            pixelWidth: finalWidth,
+            scale: segmentScale, // Localized elastic scale
             type: 'continuous'
         })
-        currentPixel += segmentWidth
+        currentPixel += finalWidth
     })
 
     return {
@@ -161,6 +175,28 @@ export function mapDateToPixel(
 // Layout Algorithm (Refactored)
 // ----------------------------------------------------------------------
 
+// ----------------------------------------------------------------------
+// Layout Algorithm (Refactored: Cost-Based Best-Fit)
+// ----------------------------------------------------------------------
+
+// Tuned coefficients based on "10% difference threshold"
+const COEFF_LAYER = 800
+const COEFF_ZIGZAG = 50
+const GAP_SAFE_PX = 10
+const COST_CROWD = 200
+
+const OVERLAP_BASE = 1000
+const OVERLAP_COEFF = 30000
+
+// Track definitions
+// 0: Top-L0, 1: Bot-L0, 2: Top-L1, 3: Bot-L1
+const TRACKS = [
+    { id: 0, position: 'top' as const, layer: 0 },
+    { id: 1, position: 'bottom' as const, layer: 0 },
+    { id: 2, position: 'top' as const, layer: 1 },
+    { id: 3, position: 'bottom' as const, layer: 1 },
+]
+
 export function calculateSmartLayout(
     events: VersionEvent[],
     colors: string[], // Pre-generated colors map
@@ -178,9 +214,7 @@ export function calculateSmartLayout(
     const eventsWithPosition = events.map(event => {
         const px = mapDateToPixel(event.year, event.month, timeScale)
 
-        // Find color based on year index (approximation for compatibility)
-        // In real scenario we might want a better color mapping strategy
-        // For now, we reuse the index-based color passed from parent
+        // Color logic
         const uniqueYears = Array.from(new Set(events.map(e => e.year))).sort((a, b) => a - b)
         const yearIndex = uniqueYears.indexOf(event.year)
         const color = colors[yearIndex % colors.length] || colors[0]
@@ -197,7 +231,7 @@ export function calculateSmartLayout(
     eventsWithPosition.sort((a, b) => a.pixelOriginal - b.pixelOriginal)
 
     // 3. Collision Avoidance (Nudging Dots)
-    const MIN_DOT_DIST_PX = 24 // Minimum pixels between dots
+    const MIN_DOT_DIST_PX = 12
 
     for (let i = 1; i < eventsWithPosition.length; i++) {
         const prev = eventsWithPosition[i - 1]
@@ -208,107 +242,122 @@ export function calculateSmartLayout(
         }
     }
 
-    // 4. Calculate Final Layout (Zig-Zag Stacking)
-    // We need to convert pixels back to % for the view if the view expects %, 
-    // BUT the view is now scrolling a fixed pixel width. 
-    // Let's use Pixels for `left` in the view to be precise.
-
-    // NOTE: The original component uses percentages. 
-    // To minimize Refactor Shock, let's keep `timelinePosition` as "Percentage of Total Width"
-    // But we must calculate it AFTER we know the Total Width (which might have expanded due to Nudging).
-
+    // 4. Calculate Final Layout (Cost-Based Best-Fit)
     const originalTotalWidth = timeScale.totalWidth
-    // Check if nudging expanded the width
     const lastEvent = eventsWithPosition[eventsWithPosition.length - 1]
     const nudgedTotalWidth = lastEvent ? Math.max(originalTotalWidth, lastEvent.pixelAdjusted + 50) : originalTotalWidth
-
     const finalTotalWidth = nudgedTotalWidth
 
     const layoutEvents: LayoutEvent[] = []
 
-    // Stacking Logic
-    let lastPlacedSide: 'top' | 'bottom' = 'bottom'
-    const topLayers: Array<{ start: number; end: number }[]> = [[], []]
-    const bottomLayers: Array<{ start: number; end: number }[]> = [[], []]
+    // Store occupied ranges for each track: { start, end }[]
+    const trackOccupancy: Array<{ start: number; end: number }[]> = [[], [], [], []]
 
-    const MIN_CARD_SPACING_PX = 216 // Approx card width + gap
+    // Using approx card width + gap. 
+    // Ideally this should match CSS. Let's assume ~180px visual + margin
+    const CARD_WIDTH_PX = 216
+
+    let lastPlacedPosition: 'top' | 'bottom' | null = null
 
     eventsWithPosition.forEach(event => {
         const centerPx = event.pixelAdjusted
-        const startPx = centerPx - MIN_CARD_SPACING_PX / 2
-        const endPx = centerPx + MIN_CARD_SPACING_PX / 2
+        const startPx = centerPx - CARD_WIDTH_PX / 2
+        const endPx = centerPx + CARD_WIDTH_PX / 2
 
-        let placed = false
-        let position: 'top' | 'bottom' = 'top'
-        let layerIndex = 0
+        let bestTrackId = 0
+        let minCost = Infinity
 
-        // Zig-Zag Logic
-        const preferTop = lastPlacedSide === 'bottom'
-        const sidesToTry: Array<'top' | 'bottom'> = preferTop ? ['top', 'bottom'] : ['bottom', 'top']
+        // Evaluate all 4 tracks
+        TRACKS.forEach((track, trackId) => {
+            const occupancy = trackOccupancy[trackId]
 
-        // Try Layer 0
-        for (const side of sidesToTry) {
-            const layers = side === 'top' ? topLayers : bottomLayers
-            const layer0 = layers[0]
-            const hasOverlap = layer0.some(occ => !(endPx < occ.start || startPx > occ.end))
+            // 1. Layer/Distance Penalty
+            let cost = track.layer * COEFF_LAYER
 
-            if (!hasOverlap) {
-                position = side
-                layerIndex = 0
-                layer0.push({ start: startPx, end: endPx })
-                placed = true
-                break
+            // 2. ZigZag Penalty
+            if (lastPlacedPosition && track.position === lastPlacedPosition) {
+                cost += COEFF_ZIGZAG
             }
-        }
 
-        // Try Layer 1
-        if (!placed) {
-            for (const side of sidesToTry) {
-                const layers = side === 'top' ? topLayers : bottomLayers
-                const layer1 = layers[1]
-                const hasOverlap = layer1.some(occ => !(endPx < occ.start || startPx > occ.end))
+            // 3. Overlap & Crowd Penalty
+            // Find the closest previous event in this track that might conflict
+            // Since events are sorted by time, we mainly check the last few items.
+            // But strict overlap check needs to be precise.
 
-                // Visual Safety Check (Connector cutting through layer 0)
-                let isVisuallySafe = true
-                const layer0 = layers[0]
-                const obstruct = layer0.find(occ => centerPx >= occ.start && centerPx <= occ.end)
+            let maxOverlapRatio = 0
+            let minGap = Infinity
 
+            occupancy.forEach(occ => {
+                // Check overlap
+                const overlapStart = Math.max(startPx, occ.start)
+                const overlapEnd = Math.min(endPx, occ.end)
+
+                if (overlapEnd > overlapStart) {
+                    const overlapWidth = overlapEnd - overlapStart
+                    const ratio = overlapWidth / CARD_WIDTH_PX // relative to this card
+                    if (ratio > maxOverlapRatio) maxOverlapRatio = ratio
+                } else {
+                    // No overlap, calculating gap
+                    // occ is strictly before or after. Since we iterate in time order,
+                    // occ is likely before 'startPx'.
+                    const gap = startPx - occ.end
+                    if (gap >= 0 && gap < minGap) minGap = gap
+                }
+            })
+
+            // Calculate Gap Cost
+            if (maxOverlapRatio === 0) {
+                if (minGap < gap_not_found_fallback(minGap)) {
+                    // Helper: if minGap is Infinity, it means track is empty or far away -> safe
+                }
+                if (minGap >= 0 && minGap <= GAP_SAFE_PX) {
+                    cost += COST_CROWD
+                }
+            }
+
+            // Calculate Overlap Cost (Quadratic)
+            // P = Base + Coeff * r^2
+            if (maxOverlapRatio > 0) {
+                cost += OVERLAP_BASE + OVERLAP_COEFF * Math.pow(maxOverlapRatio, 2)
+            }
+
+            // 4. Visual Safety Check for Layer 1 (Connector cutting through Layer 0)
+            if (track.layer === 1) {
+                const innerTrackId = track.position === 'top' ? 0 : 1
+                const innerOccupancy = trackOccupancy[innerTrackId]
+                const obstruct = innerOccupancy.find(occ => centerPx >= occ.start && centerPx <= occ.end)
+
+                // If the connector (vertical line at centerPx) hits a card in Layer 0
+                // We should penalize this to avoid "visual collision" of the line
                 if (obstruct) {
                     const obsCenter = (obstruct.start + obstruct.end) / 2
-                    if (Math.abs(centerPx - obsCenter) > 40) isVisuallySafe = false
-                }
-
-                if (!hasOverlap && isVisuallySafe) {
-                    position = side
-                    layerIndex = 1
-                    layers[1].push({ start: startPx, end: endPx })
-                    placed = true
-                    break
+                    // If it hits right in the middle of a card below/above it
+                    if (Math.abs(centerPx - obsCenter) < 40) {
+                        cost += 500 // Soft penalty, can be overridden if overlap cost is huge
+                    }
                 }
             }
-        }
 
-        // Fallback
-        if (!placed) {
-            const layers = preferTop ? topLayers : bottomLayers
-            // Simple heuristic: pick side with fewer items in layer 0/1
-            position = preferTop ? 'top' : 'bottom'
-            layerIndex = 1 // Force to outer layer or just overlap
-            layers[1].push({ start: startPx, end: endPx })
-        }
+            if (cost < minCost) {
+                minCost = cost
+                bestTrackId = trackId
+            }
+        })
 
-        lastPlacedSide = position
+        // Commit to best track
+        const chosenTrack = TRACKS[bestTrackId]
+        trackOccupancy[bestTrackId].push({ start: startPx, end: endPx })
+        lastPlacedPosition = chosenTrack.position
 
         layoutEvents.push({
             ...event,
-            position,
-            offset: layerIndex,
-            timelinePosition: (centerPx / finalTotalWidth) * 100, // Convert to % for CSS
+            position: chosenTrack.position,
+            offset: chosenTrack.layer,
+            timelinePosition: (centerPx / finalTotalWidth) * 100,
             color: event.color
         })
     })
 
-    // Update total width in config if it grew
     const finalConfig = {
         ...timeScale,
         totalWidth: finalTotalWidth
@@ -319,4 +368,9 @@ export function calculateSmartLayout(
         totalWidth: finalTotalWidth,
         timeScale: finalConfig
     }
+}
+
+// Helper to handle Infinity
+function gap_not_found_fallback(val: number) {
+    return val === Infinity ? Infinity : val
 }

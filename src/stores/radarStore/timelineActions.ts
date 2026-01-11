@@ -1,8 +1,15 @@
 import { nanoid } from 'nanoid'
 import type { RadarChart, TimeMarker, TimelineRadarChart } from '@/types'
 import { isTimelineRadar, isRegularRadar } from '@/types'
+import {
+  isSupabaseConfigured,
+  createChart,
+  deleteChart,
+  updateProjectMeta,
+} from '@/services/supabase'
+import { useAuthStore } from '@/stores/authStore'
 import type { StoreGetter, StoreSetter, ValidationResult } from './types'
-import { debouncedSave } from './utils'
+import { debouncedSaveChart } from './utils'
 
 export function createTimelineActions(set: StoreSetter, get: StoreGetter) {
   return {
@@ -15,35 +22,37 @@ export function createTimelineActions(set: StoreSetter, get: StoreGetter) {
     setRadarTimeMarker: (radarId: string, year: number, month?: number) => {
       const { currentProject } = get()
       if (!currentProject) return
+
+      const chart = currentProject.radarCharts.find((r) => r.id === radarId)
+      if (!chart || !isRegularRadar(chart)) return
+
       const timeMarker: TimeMarker = month !== undefined ? { year, month } : { year }
+      const updatedChart = { ...chart, timeMarker, updatedAt: Date.now() }
+
       const updated = {
         ...currentProject,
-        radarCharts: currentProject.radarCharts.map((r) => {
-          if (r.id === radarId && isRegularRadar(r)) {
-            return { ...r, timeMarker, updatedAt: Date.now() }
-          }
-          return r
-        }),
+        radarCharts: currentProject.radarCharts.map((r) => (r.id === radarId ? updatedChart : r)),
       }
       set({ currentProject: updated })
-      debouncedSave(updated)
+      debouncedSaveChart(updatedChart)
     },
 
     clearRadarTimeMarker: (radarId: string) => {
       const { currentProject } = get()
       if (!currentProject) return
+
+      const chart = currentProject.radarCharts.find((r) => r.id === radarId)
+      if (!chart || !isRegularRadar(chart)) return
+
+      const { timeMarker, ...rest } = chart
+      const updatedChart = { ...rest, updatedAt: Date.now() } as RadarChart
+
       const updated = {
         ...currentProject,
-        radarCharts: currentProject.radarCharts.map((r) => {
-          if (r.id === radarId && isRegularRadar(r)) {
-            const { timeMarker, ...rest } = r
-            return { ...rest, updatedAt: Date.now() } as RadarChart
-          }
-          return r
-        }),
+        radarCharts: currentProject.radarCharts.map((r) => (r.id === radarId ? updatedChart : r)),
       }
       set({ currentProject: updated })
-      debouncedSave(updated)
+      debouncedSaveChart(updatedChart)
     },
 
     validateTimelineConsistency: (sourceRadarIds: string[]): ValidationResult => {
@@ -111,10 +120,15 @@ export function createTimelineActions(set: StoreSetter, get: StoreGetter) {
       )
     },
 
-    createTimelineRadar: (name: string, sourceRadarIds: string[]): ValidationResult => {
-      const { currentProject, validateTimelineConsistency } = get()
-      if (!currentProject) {
+    createTimelineRadar: async (name: string, sourceRadarIds: string[]): Promise<ValidationResult> => {
+      const { currentProject, currentProjectId, validateTimelineConsistency } = get()
+      if (!currentProject || !currentProjectId) {
         return { valid: false, errors: ['timeline.noProject'] }
+      }
+
+      const user = useAuthStore.getState().user
+      if (!user || !isSupabaseConfigured) {
+        return { valid: false, errors: ['timeline.notAuthenticated'] }
       }
 
       const validation = validateTimelineConsistency(sourceRadarIds)
@@ -133,23 +147,38 @@ export function createTimelineActions(set: StoreSetter, get: StoreGetter) {
         updatedAt: now,
       }
 
+      // Create in database first
+      const success = await createChart(currentProjectId, newTimeline)
+      if (!success) {
+        return { valid: false, errors: ['timeline.createFailed'] }
+      }
+
       const updated = {
         ...currentProject,
         radarCharts: [...currentProject.radarCharts, newTimeline],
         activeRadarId: newTimeline.id,
       }
       set({ currentProject: updated })
-      debouncedSave(updated)
+
+      // Update active chart id
+      await updateProjectMeta(currentProjectId, { activeChartId: newTimeline.id })
 
       return { valid: true, errors: [] }
     },
 
-    deleteTimelineRadar: (timelineId: string) => {
-      const { currentProject } = get()
-      if (!currentProject) return
+    deleteTimelineRadar: async (timelineId: string) => {
+      const { currentProject, currentProjectId } = get()
+      if (!currentProject || !currentProjectId) return
 
       const timeline = currentProject.radarCharts.find((r) => r.id === timelineId)
       if (!timeline || !isTimelineRadar(timeline)) return
+
+      // Delete from database first
+      const success = await deleteChart(timelineId)
+      if (!success) {
+        console.error('[Timeline] Failed to delete timeline from database')
+        return
+      }
 
       const newRadars = currentProject.radarCharts.filter((r) => r.id !== timelineId)
       const newActiveId =
@@ -163,7 +192,11 @@ export function createTimelineActions(set: StoreSetter, get: StoreGetter) {
         activeRadarId: newActiveId,
       }
       set({ currentProject: updated })
-      debouncedSave(updated)
+
+      // Update active chart id if changed
+      if (newActiveId && newActiveId !== currentProject.activeRadarId) {
+        await updateProjectMeta(currentProjectId, { activeChartId: newActiveId })
+      }
     },
 
     updateTimelineSources: (timelineId: string, sourceRadarIds: string[]): ValidationResult => {
@@ -177,17 +210,19 @@ export function createTimelineActions(set: StoreSetter, get: StoreGetter) {
         return validation
       }
 
+      const timeline = currentProject.radarCharts.find((r) => r.id === timelineId)
+      if (!timeline || !isTimelineRadar(timeline)) {
+        return { valid: false, errors: ['timeline.notFound'] }
+      }
+
+      const updatedChart = { ...timeline, sourceRadarIds, updatedAt: Date.now() }
+
       const updated = {
         ...currentProject,
-        radarCharts: currentProject.radarCharts.map((r) => {
-          if (r.id === timelineId && isTimelineRadar(r)) {
-            return { ...r, sourceRadarIds, updatedAt: Date.now() }
-          }
-          return r
-        }),
+        radarCharts: currentProject.radarCharts.map((r) => (r.id === timelineId ? updatedChart : r)),
       }
       set({ currentProject: updated })
-      debouncedSave(updated)
+      debouncedSaveChart(updatedChart)
 
       return { valid: true, errors: [] }
     },

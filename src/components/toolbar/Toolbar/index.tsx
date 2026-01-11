@@ -15,7 +15,12 @@ import { exportToExcel, exportMultipleToExcel, exportToJson, downloadTemplate } 
 import { isRegularRadar } from '@/types'
 import styles from './Toolbar.module.css'
 
-export function Toolbar() {
+interface ToolbarProps {
+  hideTimeCompare?: boolean
+  hideImport?: boolean
+}
+
+export function Toolbar({ hideTimeCompare = false, hideImport = false }: ToolbarProps) {
   const { setImportModalVisible, setCreateTimelineModalVisible } = useUIStore()
   const { getActiveRadar, currentProject, getRegularRadars } = useRadarStore()
   const { t } = useI18n()
@@ -95,15 +100,19 @@ export function Toolbar() {
   return (
     <div className={styles.container}>
       <Space>
-        <Button icon={<HistoryOutlined />} onClick={handleCreateTimeline}>
-          {t.timeline.timeCompare}
-        </Button>
+        {!hideTimeCompare && (
+          <Button icon={<HistoryOutlined />} onClick={handleCreateTimeline}>
+            {t.timeline.timeCompare}
+          </Button>
+        )}
         <Dropdown menu={{ items: exportMenuItems }}>
           <Button icon={<DownloadOutlined />}>{t.toolbar.export}</Button>
         </Dropdown>
-        <Button icon={<UploadOutlined />} onClick={handleImport}>
-          {t.toolbar.import}
-        </Button>
+        {!hideImport && (
+          <Button icon={<UploadOutlined />} onClick={handleImport}>
+            {t.toolbar.import}
+          </Button>
+        )}
       </Space>
     </div>
   )

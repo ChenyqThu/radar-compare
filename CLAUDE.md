@@ -6,21 +6,30 @@
 
 竞品能力对比可视化工具，支持多雷达图 Tab 切换、维度/子维度管理、多 Vendor 对比、**时间轴雷达图对比**、数据导入导出，以及中英文切换和明暗主题切换。
 
-**云端功能**: 支持 Google/Notion OAuth 登录，登录后数据自动同步到云端，支持跨设备访问。未登录用户数据仅存储在本地。
+**纯云端架构**: 采用 Supabase 作为唯一数据源，用户必须登录后才能使用。支持 Google/Notion OAuth 登录，数据实时保存到云端，支持跨设备访问和多人协作。
 
 ## 技术栈
 
 | 类别 | 技术 |
 |------|------|
 | 框架 | React 18 + TypeScript + Vite |
+| 路由 | React Router v6 |
 | 图表 | ECharts 5 (echarts-for-react) |
 | UI 组件库 | Ant Design 5 |
 | 状态管理 | Zustand (with persist middleware) |
 | 拖拽 | @dnd-kit/core + @dnd-kit/sortable |
 | Excel | SheetJS (xlsx) |
-| 本地存储 | IndexedDB (Dexie.js) |
 | 云端后端 | Supabase (PostgreSQL + Auth + REST API) |
 | 国际化 | 自定义 i18n (Zustand store) |
+
+## 路由结构
+
+```
+/                 → LandingPage (产品介绍 + 登录入口)
+/app              → MainApp (需登录，主应用)
+/share/:token     → ShareView (只读不需登录，可编辑需登录)
+/auth/callback    → OAuth 回调处理
+```
 
 ## 目录结构
 
@@ -31,8 +40,9 @@ src/
 │   └── Omada_dark.png        # 深色主题 Logo
 ├── components/
 │   ├── auth/                  # 认证组件
+│   │   ├── AuthGuard/        # 路由认证守卫
 │   │   ├── LoginModal/       # 登录弹窗
-│   │   └── UserMenu/         # 用户头像菜单 + 同步状态
+│   │   └── UserMenu/         # 用户头像菜单
 │   ├── chart/
 │   │   ├── RadarChart/       # 主雷达图 + 子维度雷达图
 │   │   ├── SubRadarDrawer/   # 子维度雷达图抽屉(已整合到RadarChart)
@@ -40,10 +50,9 @@ src/
 │   ├── common/
 │   │   ├── Navbar/           # 顶部导航栏
 │   │   └── GlobalControls/   # 全局控制组件(备用)
-│   ├── sync/                  # 同步相关组件
-│   │   └── ConflictModal/    # 数据冲突解决弹窗
 │   ├── share/                 # 分享相关组件
-│   │   └── ShareModal/       # 分享设置弹窗
+│   │   ├── ShareModal/       # 分享设置弹窗
+│   │   └── CollaborationsModal/ # 我的协作弹窗
 │   ├── tabs/
 │   │   └── RadarTabs/        # Tab 切换管理
 │   ├── settings/
@@ -57,11 +66,16 @@ src/
 │   │   ├── TimelineSlider/   # 时间轴滑块控件
 │   │   └── VendorSwitcher/   # Vendor 快速切换器
 │   ├── toolbar/
-│   │   └── Toolbar/          # 工具栏(导入导出+分享)
+│   │   └── Toolbar/          # 工具栏(导入导出)
 │   └── io/
 │       └── ImportModal/      # 导入弹窗
 ├── pages/
-│   └── ShareView/            # 分享链接访问页面
+│   ├── LandingPage/          # 首页 (产品介绍 + 登录)
+│   ├── MainApp/              # 主应用 (需登录)
+│   ├── ShareView/            # 分享链接访问页面
+│   └── AuthCallback/         # OAuth 回调处理页面
+├── router/
+│   └── index.tsx             # 路由配置
 ├── locales/
 │   ├── index.ts              # i18n store
 │   ├── zh-CN.ts              # 中文语言包
@@ -69,14 +83,13 @@ src/
 ├── stores/
 │   ├── radarStore/           # 雷达图业务数据 (模块化)
 │   ├── uiStore.ts            # UI 状态 (主题、抽屉等)
-│   ├── authStore.ts          # 认证状态 (用户、会话)
-│   └── syncStore.ts          # 同步状态 (云端同步)
+│   └── authStore.ts          # 认证状态 (用户、会话)
 ├── services/
-│   ├── db/                   # IndexedDB 数据库
 │   ├── excel/                # Excel 导入导出
 │   └── supabase/             # Supabase 云端服务
 │       ├── client.ts         # Supabase 客户端初始化
-│       ├── projects.ts       # 项目 CRUD 操作
+│       ├── projects.ts       # 项目元数据 CRUD (不含图表数据)
+│       ├── radarCharts.ts    # 图表 CRUD 操作 (独立存储)
 │       ├── shares.ts         # 分享链接 CRUD 操作
 │       └── index.ts          # 服务导出
 ├── types/
@@ -89,8 +102,7 @@ src/
 │   └── calculation.ts        # 分数计算逻辑
 ├── styles/
 │   └── global.css            # 全局样式 + CSS 变量
-├── App.tsx                   # 应用入口
-└── main.tsx                  # 渲染入口
+└── main.tsx                  # 渲染入口 (RouterProvider)
 ```
 
 ## 核心数据模型
@@ -162,6 +174,29 @@ interface Project {
   activeRadarId: string | null
 }
 ```
+
+## 数据库存储架构
+
+**图表级独立存储**: 每个图表 (Tab) 独立存储在 `radar_charts` 表中，项目只存储元数据。
+
+```
+projects 表
+├── id, owner_id, name, description
+├── active_chart_id                    ← 当前激活的图表
+
+radar_charts 表
+├── id, project_id, name, chart_type
+├── order_index, data, time_marker     ← 每个图表独立存储
+```
+
+**优势**:
+- 细粒度更新：只更新修改的图表
+- 更好的协作支持
+- 精确的分享控制 (`shares.shared_tab_ids` 引用 `radar_charts.id`)
+
+**服务层**:
+- `projects.ts`: 仅管理项目元数据
+- `radarCharts.ts`: 图表 CRUD 操作
 
 ## 分数计算规则
 
@@ -238,16 +273,14 @@ interface Project {
 - **多 Tab 导出**: 支持一键导出所有 Tab 到多个 Excel 工作表
 - **多 Sheet 导入**: 支持导入多个 Excel 工作表为不同的 Tab
 
-### 9. 账号登录与云同步
+### 9. 账号登录与云端存储
 
 - **OAuth 登录**: 支持 Google 和 Notion 账号登录
-- **本地优先**: 未登录用户数据仅存储在 IndexedDB
-- **自动同步**: 登录后数据自动同步到云端 (500ms 防抖)
-- **首次登录**: 自动上传所有本地项目到云端
-- **同步状态**: 用户头像旁显示同步状态图标 (同步中/已同步/失败/离线)
+- **强制登录**: 必须登录才能访问主应用 (`/app`)
+- **Landing Page**: 首页展示产品介绍和登录入口
+- **纯云端存储**: 所有数据直接读写 Supabase，无本地存储
+- **自动保存**: 编辑后 500ms 防抖自动保存到云端
 - **跨设备**: 登录后可在多设备间访问相同数据
-- **离线支持**: 自动检测网络状态，离线时数据保存本地，恢复后自动同步
-- **冲突解决**: 当本地和云端数据冲突时，弹窗让用户选择保留哪个版本
 
 **技术实现**:
 - 后端: Supabase (PostgreSQL + REST API)
@@ -255,14 +288,29 @@ interface Project {
 - 数据隔离: 使用独立 schema (`radar_compare`)
 - RLS 策略: 用户只能访问自己的项目
 
-### 10. 项目分享
+### 10. 项目分享与协作
 
-- **分享链接**: 生成可分享的链接，支持只读或可编辑模式
+**分享功能**:
+- **分享范围**: 支持分享整个项目或选择特定 Tab
+- **分享类型**:
+  - **只读分享**: 任何人可通过链接查看，无需登录
+  - **可编辑分享**: 需要登录，修改会同步到原项目（真正的协作）
 - **密码保护**: 可选设置访问密码
 - **过期时间**: 可选设置链接过期时间
 - **访问限制**: 可选设置最大访问次数
 - **链接管理**: 查看、复制、删除已创建的分享链接
-- **分享视图**: 访客可通过链接直接查看项目
+
+**协作功能**:
+- **自动加入**: 访问可编辑分享链接并登录后，自动成为协作者
+- **协作者管理**: 项目所有者可在分享弹窗中查看和移除协作者（显示协作者名字/邮箱）
+- **离开协作**: 协作者可随时选择离开协作项目
+- **数据同步**: 所有协作者的修改实时同步到原项目
+- **复制到我的项目**: 协作者可将分享的 Tab 复制到自己的项目中（追加到现有项目，不创建新项目）
+- **我的协作列表**: 每个分享的 Tab 独立显示为一个条目，方便管理和访问
+
+**数据库设计**:
+- `shares` 表: 存储分享链接配置，支持 `share_scope` (project/tabs) 和 `shared_tab_ids`
+- `collaborators` 表: 存储协作关系，关联 `share_id` 记录加入来源
 
 ## 开发命令
 
@@ -287,20 +335,26 @@ npm run lint
 
 | 文件 | 用途 |
 |------|------|
+| `src/router/index.tsx` | 路由配置 (React Router v6) |
+| `src/pages/LandingPage/index.tsx` | 首页 (产品介绍 + 登录) |
+| `src/pages/MainApp/index.tsx` | 主应用入口 (需登录) |
+| `src/components/auth/AuthGuard/index.tsx` | 路由认证守卫 |
 | `src/stores/radarStore/index.ts` | 雷达图业务数据和所有操作方法 |
+| `src/stores/radarStore/utils.ts` | 图表级保存逻辑 (debouncedSaveChart) |
+| `src/stores/radarStore/projectActions.ts` | 项目加载和初始化 |
 | `src/stores/uiStore.ts` | UI 状态 (主题、抽屉、Tab) |
 | `src/stores/authStore.ts` | 认证状态 (用户、会话、OAuth) |
-| `src/stores/syncStore.ts` | 同步状态 (云端同步、离线检测、冲突解决) |
 | `src/services/supabase/client.ts` | Supabase 客户端初始化 |
-| `src/services/supabase/projects.ts` | 云端项目 CRUD 操作 |
+| `src/services/supabase/projects.ts` | 项目元数据 CRUD |
+| `src/services/supabase/radarCharts.ts` | 图表独立存储 CRUD |
 | `src/services/supabase/shares.ts` | 分享链接 CRUD 操作 |
 | `src/locales/index.ts` | i18n store 和语言切换 |
 | `src/components/chart/RadarChart/index.tsx` | 主雷达图渲染和交互 |
 | `src/components/chart/TimelineRadarChart/index.tsx` | 时间轴雷达图(双列布局) |
 | `src/components/auth/LoginModal/index.tsx` | 登录弹窗 (Google/Notion OAuth) |
-| `src/components/auth/UserMenu/index.tsx` | 用户头像菜单 + 同步状态 |
-| `src/components/sync/ConflictModal/index.tsx` | 数据冲突解决弹窗 |
+| `src/components/auth/UserMenu/index.tsx` | 用户头像菜单 |
 | `src/components/share/ShareModal/index.tsx` | 分享设置弹窗 |
+| `src/components/share/CollaborationsModal/index.tsx` | 我的协作弹窗 |
 | `src/pages/ShareView/index.tsx` | 分享链接访问页面 |
 | `src/components/timeline/TimelineSlider/index.tsx` | 时间轴滑块控件 |
 | `src/components/timeline/VendorSwitcher/index.tsx` | Vendor 快速切换器 |
@@ -308,7 +362,6 @@ npm run lint
 | `src/components/settings/VendorManager/index.tsx` | 系列管理表格 |
 | `src/components/settings/TimeMarkerPicker/index.tsx` | 时间标记选择器 |
 | `src/utils/calculation.ts` | 分数计算核心逻辑 |
-| `src/services/db/index.ts` | IndexedDB 初始化和 CRUD |
 | `src/services/excel/exporter.ts` | Excel 导出(单/多 Tab) |
 | `src/services/excel/importer.ts` | Excel 导入(单/多 Sheet) |
 | `src/components/versionTimeline/layoutUtils.ts` | 时间轴布局计算核心逻辑 (断轴/碰撞检测) |
@@ -324,7 +377,7 @@ npm run lint
 ### 1. 核心逻辑 (`src/components/versionTimeline/layoutUtils.ts`)
 
 - **布局计算分离**:所有布局逻辑（坐标映射、碰撞检测、断轴生成）已从 UI 组件移至 `layoutUtils.ts`。
-- **坐标系统**: 
+- **坐标系统**:
   - 旧: `年份 -> 像素` (线性映射)
   - 新: `年份 -> TimeSegment -> 像素` (分段映射)
   - `mapDateToPixel`: 负责处理这种非线性映射。
@@ -334,7 +387,7 @@ npm run lint
 - **基于视觉距离**: 不再基于固定的年份差。
 - **阈值**: `MIN_GAP_PIXELS = 250px`
 - **逻辑**: 如果两个连续事件之间的**屏幕像素距离** > 250px，则认为该空间浪费，自动折叠为断轴。
-- **优势**: 
+- **优势**:
   - 缩放无关性：无论缩放比例如何，只会折叠真正占据大量屏幕空间的区域。
   - 大缩放(Zoom In): 可能折叠较短的年份间隔（因为它们占据了很大屏幕）。
   - 小缩放(Zoom Out): 可能保留较长的年份间隔（因为它们占据屏幕很少）。
@@ -488,11 +541,11 @@ This may be caused by an accidental early return statement.
 
 ## 注意事项
 
-- 数据自动保存到 IndexedDB，防抖 500ms
-- 登录用户数据同时同步到 Supabase 云端
+- 数据自动保存到 Supabase 云端，防抖 500ms
 - 设置抽屉宽度保存到 localStorage
 - Tab 支持键盘快捷键: `S` 打开/关闭设置
 - 所有组件支持深色模式
+- 用户必须登录才能访问 `/app` 路由
 
 ## Supabase 后端配置
 
@@ -502,13 +555,16 @@ This may be caused by an accidental early return statement.
 
 **表结构**:
 - `profiles`: 用户信息 (扩展 auth.users)
-- `projects`: 项目数据 (id 使用 TEXT 类型兼容 nanoid)
-- `shares`: 分享链接 (预留)
-- `collaborators`: 协作者 (预留)
+- `projects`: 项目元数据 (id, name, description, active_chart_id)
+- `radar_charts`: 图表数据 (id, project_id, name, chart_type, data, time_marker)
+- `shares`: 分享链接配置
+- `collaborators`: 协作者关系
 
-**RLS 策略**: 用户只能访问自己的项目，采用简化策略避免循环依赖。
+**RLS 策略**:
+- 用户只能访问自己的项目和有权限的协作项目
+- 项目所有者可查看协作者的 profile 信息（name/email）
 
-详细 schema 见 `docs/database/schema.sql`。
+详细 schema 见 `docs/database/schema.sql` (版本 2.1.0)。
 
 ### 环境变量
 

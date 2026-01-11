@@ -135,3 +135,21 @@
 .toggleBtn:active {
   transform: scale(0.95);
 }
+
+/* Share mode indicator */
+.shareIndicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 8px;
+}
+
+.shareProjectName {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text);
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
