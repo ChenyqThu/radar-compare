@@ -40,6 +40,10 @@ src/
 │   ├── common/
 │   │   ├── Navbar/           # 顶部导航栏
 │   │   └── GlobalControls/   # 全局控制组件(备用)
+│   ├── sync/                  # 同步相关组件
+│   │   └── ConflictModal/    # 数据冲突解决弹窗
+│   ├── share/                 # 分享相关组件
+│   │   └── ShareModal/       # 分享设置弹窗
 │   ├── tabs/
 │   │   └── RadarTabs/        # Tab 切换管理
 │   ├── settings/
@@ -53,9 +57,11 @@ src/
 │   │   ├── TimelineSlider/   # 时间轴滑块控件
 │   │   └── VendorSwitcher/   # Vendor 快速切换器
 │   ├── toolbar/
-│   │   └── Toolbar/          # 工具栏(导入导出)
+│   │   └── Toolbar/          # 工具栏(导入导出+分享)
 │   └── io/
 │       └── ImportModal/      # 导入弹窗
+├── pages/
+│   └── ShareView/            # 分享链接访问页面
 ├── locales/
 │   ├── index.ts              # i18n store
 │   ├── zh-CN.ts              # 中文语言包
@@ -71,6 +77,7 @@ src/
 │   └── supabase/             # Supabase 云端服务
 │       ├── client.ts         # Supabase 客户端初始化
 │       ├── projects.ts       # 项目 CRUD 操作
+│       ├── shares.ts         # 分享链接 CRUD 操作
 │       └── index.ts          # 服务导出
 ├── types/
 │   ├── radar.ts              # 核心类型定义
@@ -237,14 +244,25 @@ interface Project {
 - **本地优先**: 未登录用户数据仅存储在 IndexedDB
 - **自动同步**: 登录后数据自动同步到云端 (500ms 防抖)
 - **首次登录**: 自动上传所有本地项目到云端
-- **同步状态**: 用户头像旁显示同步状态图标 (同步中/已同步/失败)
+- **同步状态**: 用户头像旁显示同步状态图标 (同步中/已同步/失败/离线)
 - **跨设备**: 登录后可在多设备间访问相同数据
+- **离线支持**: 自动检测网络状态，离线时数据保存本地，恢复后自动同步
+- **冲突解决**: 当本地和云端数据冲突时，弹窗让用户选择保留哪个版本
 
 **技术实现**:
 - 后端: Supabase (PostgreSQL + REST API)
 - 认证: Supabase Auth (OAuth 2.0)
 - 数据隔离: 使用独立 schema (`radar_compare`)
 - RLS 策略: 用户只能访问自己的项目
+
+### 10. 项目分享
+
+- **分享链接**: 生成可分享的链接，支持只读或可编辑模式
+- **密码保护**: 可选设置访问密码
+- **过期时间**: 可选设置链接过期时间
+- **访问限制**: 可选设置最大访问次数
+- **链接管理**: 查看、复制、删除已创建的分享链接
+- **分享视图**: 访客可通过链接直接查看项目
 
 ## 开发命令
 
@@ -272,14 +290,18 @@ npm run lint
 | `src/stores/radarStore/index.ts` | 雷达图业务数据和所有操作方法 |
 | `src/stores/uiStore.ts` | UI 状态 (主题、抽屉、Tab) |
 | `src/stores/authStore.ts` | 认证状态 (用户、会话、OAuth) |
-| `src/stores/syncStore.ts` | 同步状态 (云端同步、冲突检测) |
+| `src/stores/syncStore.ts` | 同步状态 (云端同步、离线检测、冲突解决) |
 | `src/services/supabase/client.ts` | Supabase 客户端初始化 |
 | `src/services/supabase/projects.ts` | 云端项目 CRUD 操作 |
+| `src/services/supabase/shares.ts` | 分享链接 CRUD 操作 |
 | `src/locales/index.ts` | i18n store 和语言切换 |
 | `src/components/chart/RadarChart/index.tsx` | 主雷达图渲染和交互 |
 | `src/components/chart/TimelineRadarChart/index.tsx` | 时间轴雷达图(双列布局) |
 | `src/components/auth/LoginModal/index.tsx` | 登录弹窗 (Google/Notion OAuth) |
 | `src/components/auth/UserMenu/index.tsx` | 用户头像菜单 + 同步状态 |
+| `src/components/sync/ConflictModal/index.tsx` | 数据冲突解决弹窗 |
+| `src/components/share/ShareModal/index.tsx` | 分享设置弹窗 |
+| `src/pages/ShareView/index.tsx` | 分享链接访问页面 |
 | `src/components/timeline/TimelineSlider/index.tsx` | 时间轴滑块控件 |
 | `src/components/timeline/VendorSwitcher/index.tsx` | Vendor 快速切换器 |
 | `src/components/settings/DimensionManager/index.tsx` | 维度表格和旭日图 |

@@ -45,6 +45,17 @@
   font-size: 14px;
 }
 
+.offlineIcon {
+  color: var(--warning-color, #faad14);
+  font-size: 14px;
+}
+
+.retryBtn {
+  padding: 0;
+  height: auto;
+  font-size: 12px;
+}
+
 .userInfo {
   display: flex;
   flex-direction: column;

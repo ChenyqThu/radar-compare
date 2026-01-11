@@ -1,0 +1,50 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.versionCard {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.versionCard:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.icon {
+  font-size: 20px;
+  color: var(--primary-color);
+}
+
+.time {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+.selectBtn {
+  margin-top: 8px;
+}
+
+.hint {
+  display: block;
+  text-align: center;
+  font-size: 12px;
+  margin-top: 8px;
+}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Layout, Spin, Empty } from 'antd'
 import { Navbar } from '@/components/common/Navbar'
 import { RadarTabs } from '@/components/tabs/RadarTabs'
@@ -11,9 +11,12 @@ import { Toolbar } from '@/components/toolbar/Toolbar'
 import { ImportModal } from '@/components/io/ImportModal'
 import { CreateTimelineModal } from '@/components/timeline/CreateTimelineModal'
 import { VersionTimelineView, VersionEventEditor, TimelineInfoEditor, TimelineToolbar, TimelineImportModal } from '@/components/versionTimeline'
+import { ConflictModal } from '@/components/sync'
+import { ShareView } from '@/pages/ShareView'
 import { useRadarStore } from '@/stores/radarStore'
 import { useUIStore } from '@/stores/uiStore'
 import { initializeAuth } from '@/stores/authStore'
+import { initializeNetworkListener } from '@/stores/syncStore'
 import { initializeDatabase } from '@/services/db'
 import { isTimelineRadar } from '@/types'
 import { isVersionTimeline } from '@/types/versionTimeline'
@@ -21,6 +24,16 @@ import type { VersionEvent } from '@/types/versionTimeline'
 import styles from './App.module.css'
 
 const { Content } = Layout
+
+/**
+ * Parse the current URL to detect share links
+ * Returns the share token if on a share page, null otherwise
+ */
+function getShareToken(): string | null {
+  const path = window.location.pathname
+  const match = path.match(/^\/share\/([A-Za-z0-9]+)$/)
+  return match ? match[1] : null
+}
 
 function App() {
   const { isLoading, loadProject, refreshProjectList, getActiveRadar, getActiveVersionTimeline } = useRadarStore()
@@ -32,6 +45,9 @@ function App() {
     setCreateTimelineModalVisible,
     appMode,
   } = useUIStore()
+
+  // Check if we're on a share page
+  const shareToken = useMemo(() => getShareToken(), [])
 
   // Version Timeline event editor state
   const [eventEditorOpen, setEventEditorOpen] = useState(false)
@@ -52,7 +68,19 @@ function App() {
     return () => unsubscribe()
   }, [])
 
+  // Initialize network status listener
   useEffect(() => {
+    const unsubscribe = initializeNetworkListener()
+    return () => unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    // Skip normal initialization for share pages
+    if (shareToken) {
+      useRadarStore.setState({ isLoading: false })
+      return
+    }
+
     const init = async () => {
       try {
         await initializeDatabase()
@@ -69,7 +97,7 @@ function App() {
       }
     }
     init()
-  }, [])
+  }, [shareToken])
 
   // Keyboard shortcuts
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -122,6 +150,11 @@ function App() {
         <Spin size="large" />
       </div>
     )
+  }
+
+  // Render share view for share links
+  if (shareToken) {
+    return <ShareView shareToken={shareToken} />
   }
 
   if (initError) {
@@ -222,6 +255,7 @@ function App() {
           </>
         )}
       </Content>
+      <ConflictModal />
     </Layout>
   )
 }

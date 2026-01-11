@@ -1,0 +1,83 @@
+.layout {
+  min-height: 100vh;
+  background: var(--bg-color);
+}
+
+.shareHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.projectName {
+  margin: 0 !important;
+}
+
+.content {
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 64px);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.shareInfo {
+  display: flex;
+  align-items: center;
+}
+
+.chartArea {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loadingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg-color);
+}
+
+.errorContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg-color);
+}
+
+.passwordContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg-color);
+}
+
+.passwordCard {
+  text-align: center;
+  padding: 48px;
+  background: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  max-width: 400px;
+  width: 100%;
+}
+
+.lockIcon {
+  font-size: 48px;
+  color: var(--primary-color);
+  margin-bottom: 24px;
+}
