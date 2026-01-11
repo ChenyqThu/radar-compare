@@ -1,0 +1,684 @@
+/* Version Timeline View Container */
+.container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 500px;
+  background-color: var(--bg-primary, #ffffff);
+  overflow: hidden;
+}
+
+/* Company badge - top right */
+.companyBadge {
+  position: absolute;
+  top: 16px;
+  right: 24px;
+  padding: 4px 12px;
+  background-color: var(--theme-color, var(--color-primary, #0A7171));
+  color: white;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 12px;
+  z-index: 30;
+}
+
+/* Controls container - top left */
+.controls {
+  position: absolute;
+  top: 16px;
+  left: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 30;
+}
+
+/* Navigation buttons */
+.navButtons {
+  display: flex;
+  gap: 6px;
+}
+
+.navButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-color, #d9d9d9);
+  border-radius: 4px;
+  background-color: var(--bg-secondary, #ffffff);
+  color: var(--text-secondary, #666666);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.navButton:hover:not(:disabled) {
+  border-color: var(--theme-color, var(--color-primary, #0A7171));
+  color: var(--theme-color, var(--color-primary, #0A7171));
+}
+
+.navButton:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Zoom control */
+.zoomControl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background-color: var(--bg-secondary, #ffffff);
+  border: 1px solid var(--border-color, #d9d9d9);
+  border-radius: 6px;
+}
+
+.zoomIcon {
+  font-size: 12px;
+  color: var(--text-secondary, #666666);
+}
+
+.zoomSlider {
+  width: 100px;
+  margin: 0;
+}
+
+.zoomSlider :global(.ant-slider-track) {
+  background-color: var(--theme-color, var(--color-primary, #0A7171));
+}
+
+.zoomSlider :global(.ant-slider-handle)::after {
+  box-shadow: 0 0 0 2px var(--theme-color, var(--color-primary, #0A7171));
+}
+
+/* Gradient scroll masks */
+.scrollMask {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 60px;
+  pointer-events: none;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.scrollMask.visible {
+  opacity: 1;
+}
+
+.scrollMaskLeft {
+  left: 0;
+  background: linear-gradient(to right,
+      var(--bg-primary, #ffffff) 0%,
+      var(--bg-primary, #ffffff) 30%,
+      transparent 100%);
+}
+
+.scrollMaskRight {
+  right: 0;
+  background: linear-gradient(to left,
+      var(--bg-primary, #ffffff) 0%,
+      var(--bg-primary, #ffffff) 30%,
+      transparent 100%);
+}
+
+/* Scroll container - full height */
+.scrollContainer {
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollContainer::-webkit-scrollbar {
+  display: none;
+}
+
+/* Timeline content wrapper */
+.timelineContent {
+  position: relative;
+  height: 100%;
+  min-height: 500px;
+  display: flex;
+  align-items: center;
+}
+
+/* Start section - logo and title at timeline start */
+.startSection {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  padding: 16px 8px;
+  gap: 8px;
+  z-index: 5;
+}
+
+/* Glowing orb effect - flat shine centered on timeline */
+.glowOrb {
+  position: absolute;
+  width: 180px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse 100% 100% at 50% 50%,
+      var(--theme-color, var(--color-primary, #0A7171)) 0%,
+      var(--theme-color, var(--color-primary, #0A7171)) 15%,
+      rgba(10, 113, 113, 0.7) 35%,
+      rgba(10, 113, 113, 0.3) 55%,
+      transparent 75%);
+  filter: blur(10px);
+  opacity: 1;
+  pointer-events: none;
+  z-index: 0;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.logo {
+  position: relative;
+  height: 36px;
+  width: auto;
+  max-width: 80px;
+  object-fit: contain;
+  z-index: 1;
+}
+
+.title {
+  position: relative;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #333333);
+  margin: 0;
+  text-align: center;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+/* Timeline axis - spans full height */
+.timelineAxis {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 0;
+}
+
+.timelineLine {
+  position: absolute;
+  top: 0;
+  height: 3px;
+  z-index: 0;
+  transform: translateY(-1.5px);
+}
+
+/* Timeline edge fade masks */
+.timelineEdgeFadeLeft {
+  position: absolute;
+  top: 0;
+  height: 3px;
+  width: 120px;
+  z-index: 1;
+  transform: translateY(-1.5px);
+  background: linear-gradient(to right,
+      var(--bg-primary, #ffffff) 0%,
+      var(--bg-primary, #ffffff) 40%,
+      transparent 100%);
+}
+
+.timelineEdgeFadeRight {
+  position: absolute;
+  top: 0;
+  height: 3px;
+  width: 100px;
+  z-index: 1;
+  transform: translateY(-1.5px);
+  background: linear-gradient(to left,
+      var(--bg-primary, #ffffff) 0%,
+      var(--bg-primary, #ffffff) 40%,
+      transparent 100%);
+}
+
+/* Events layer container */
+.eventsLayer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.eventsLayerTop.layer0 {
+  bottom: 0;
+  transform: translateY(-50px);
+}
+
+.eventsLayerTop.layer1 {
+  bottom: 0;
+  transform: translateY(-160px);
+}
+
+.eventsLayerBottom.layer0 {
+  top: 0;
+  transform: translateY(50px);
+}
+
+.eventsLayerBottom.layer1 {
+  top: 0;
+  transform: translateY(160px);
+}
+
+/* Event card */
+.eventCard {
+  position: absolute;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  animation: fadeInScale 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.eventCardTop {
+  bottom: 0;
+}
+
+.eventCardBottom {
+  top: 0;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.9) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1) translateY(0);
+  }
+}
+
+/* Event content - compact card */
+.eventContent {
+  padding: 12px 12px 14px 16px;
+  background-color: var(--bg-secondary, #ffffff);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  min-height: 50px;
+  max-height: 180px;
+  overflow: hidden;
+  position: relative;
+  width: 200px;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  clip-path: polygon(0 6px,
+      6px 0,
+      100% 0,
+      100% calc(100% - 6px),
+      calc(100% - 6px) 100%,
+      0 100%);
+}
+
+/* Layered cards have reduced max height */
+.eventContentLayered {
+  max-height: 100px;
+}
+
+.eventContent::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--border-color, #d9d9d9);
+  clip-path: polygon(0 6px,
+      6px 0,
+      100% 0,
+      100% calc(100% - 6px),
+      calc(100% - 6px) 100%,
+      0 100%);
+  z-index: -2;
+}
+
+.eventContent::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  background-color: var(--bg-secondary, #ffffff);
+  clip-path: polygon(0 5px,
+      5px 0,
+      100% 0,
+      100% calc(100% - 5px),
+      calc(100% - 5px) 100%,
+      0 100%);
+  z-index: -1;
+}
+
+.eventContent:hover {
+  box-shadow: 0 4px 16px rgba(10, 113, 113, 0.2);
+  transform: translateY(-2px);
+  max-height: 240px;
+  z-index: 10;
+}
+
+/* Layered cards have smaller max height on hover */
+.eventContentLayered:hover {
+  max-height: 180px;
+}
+
+/* Custom scrollbar for description - always reserve space, only show color on hover */
+.eventDescription::-webkit-scrollbar {
+  width: 4px;
+  background: transparent;
+}
+
+.eventDescription::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.eventDescription::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 2px;
+}
+
+.eventContent:hover .eventDescription::-webkit-scrollbar-thumb {
+  background-color: var(--border-color, #d9d9d9);
+}
+
+.eventContent:hover .eventDescription::-webkit-scrollbar-thumb:hover {
+  background-color: var(--theme-color, var(--color-primary, #0A7171));
+}
+
+.eventContent:hover::before {
+  background-color: var(--theme-color, var(--color-primary, #0A7171));
+}
+
+.eventTitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary, #333333);
+  line-height: 1.5;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eventContent:hover .eventTitle {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.eventDescription {
+  font-size: 11px;
+  color: var(--text-secondary, #666666);
+  line-height: 1.4;
+  flex: 1;
+  min-height: 0;
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+
+.eventContent:hover .eventDescription {
+  max-height: 160px;
+}
+
+/* Layered cards have smaller description max height on hover */
+.eventContentLayered:hover .eventDescription {
+  max-height: 110px;
+}
+
+/* Highlight text */
+.highlight {
+  color: var(--theme-color, var(--color-primary, #0A7171));
+  font-weight: 500;
+}
+
+/* Connector lines */
+.eventConnector {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  transition: width 0.3s ease;
+}
+
+.eventConnectorTop {
+  bottom: -50px;
+  height: 50px;
+  background: linear-gradient(to top,
+      var(--theme-color, var(--color-primary, #0A7171)) 0%,
+      rgba(10, 113, 113, 0.3) 70%,
+      transparent 100%);
+}
+
+.eventConnectorBottom {
+  top: -50px;
+  height: 50px;
+  background: linear-gradient(to bottom,
+      var(--theme-color, var(--color-primary, #0A7171)) 0%,
+      rgba(10, 113, 113, 0.3) 70%,
+      transparent 100%);
+}
+
+.eventConnectorTop.connectorLong {
+  bottom: -160px;
+  height: 160px;
+  background: linear-gradient(to top,
+      var(--theme-color, var(--color-primary, #0A7171)) 0%,
+      rgba(10, 113, 113, 0.3) 80%,
+      transparent 100%);
+}
+
+.eventConnectorBottom.connectorLong {
+  top: -160px;
+  height: 160px;
+  background: linear-gradient(to bottom,
+      var(--theme-color, var(--color-primary, #0A7171)) 0%,
+      rgba(10, 113, 113, 0.3) 80%,
+      transparent 100%);
+}
+
+.eventCard:hover .eventConnector {
+  width: 3px;
+}
+
+/* Event node markers */
+.eventNode {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.eventNodeBottom {
+  /* Same positioning */
+}
+
+.eventDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--color-primary, #0A7171);
+  border: 2px solid var(--bg-primary, #ffffff);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.eventNode:hover .eventDot {
+  transform: translate(-50%, -50%) scale(1.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.eventTimeLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary, #666666);
+  white-space: nowrap;
+  padding: 2px 6px;
+  background-color: var(--bg-primary, #ffffff);
+  border-radius: 3px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(50% + 12px);
+}
+
+.eventNodeBottom .eventTimeLabel {
+  bottom: auto;
+  top: calc(50% + 12px);
+}
+
+/* Empty state */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 400px;
+}
+
+.addButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 24px;
+  background-color: var(--theme-color, var(--color-primary, #0A7171));
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin: 16px auto 0;
+}
+
+.addButton:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+/* Dark theme */
+:global([data-theme='dark']) .container {
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #262626;
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0a0;
+  --border-color: #434343;
+  --color-primary: #12A1A1;
+}
+
+:global([data-theme='dark']) .glowOrb {
+  background: radial-gradient(ellipse 100% 100% at 50% 50%,
+      var(--theme-color, #12A1A1) 0%,
+      var(--theme-color, #12A1A1) 15%,
+      rgba(18, 161, 161, 0.7) 35%,
+      rgba(18, 161, 161, 0.3) 55%,
+      transparent 75%);
+}
+
+:global([data-theme='dark']) .eventContent::after {
+  background-color: #262626;
+}
+
+:global([data-theme='dark']) .eventContent:hover {
+  box-shadow: 0 4px 12px rgba(18, 161, 161, 0.2);
+}
+
+:global([data-theme='dark']) .eventDot {
+  border-color: #1a1a1a;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+:global([data-theme='dark']) .eventNode:hover .eventDot {
+  box-shadow: 0 4px 12px rgba(18, 161, 161, 0.4);
+}
+
+:global([data-theme='dark']) .eventTimeLabel {
+  background-color: #1a1a1a;
+}
+
+:global([data-theme='dark']) .scrollMaskLeft {
+  background: linear-gradient(to right,
+      #1a1a1a 0%,
+      #1a1a1a 30%,
+      transparent 100%);
+}
+
+:global([data-theme='dark']) .scrollMaskRight {
+  background: linear-gradient(to left,
+      #1a1a1a 0%,
+      #1a1a1a 30%,
+      transparent 100%);
+}
+
+:global([data-theme='dark']) .navButton {
+  background-color: #262626;
+  border-color: #434343;
+  color: #a0a0a0;
+}
+
+:global([data-theme='dark']) .navButton:hover:not(:disabled) {
+  border-color: #12A1A1;
+  color: #12A1A1;
+}
+
+:global([data-theme='dark']) .zoomControl {
+  background-color: #262626;
+  border-color: #434343;
+}
+
+:global([data-theme='dark']) .zoomIcon {
+  color: #a0a0a0;
+}
+
+:global([data-theme='dark']) .timelineEdgeFadeLeft {
+  background: linear-gradient(to right,
+      #1a1a1a 0%,
+      #1a1a1a 40%,
+      transparent 100%);
+}
+
+:global([data-theme='dark']) .timelineEdgeFadeRight {
+  background: linear-gradient(to left,
+      #1a1a1a 0%,
+      #1a1a1a 40%,
+      transparent 100%);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .startSection {
+    padding: 12px 8px;
+  }
+
+  .glowOrb {
+    width: 120px;
+    height: 35px;
+  }
+
+  .title {
+    font-size: 12px;
+  }
+
+  .logo {
+    height: 28px;
+  }
+}

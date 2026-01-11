@@ -256,6 +256,147 @@ npm run lint
 | `src/services/excel/importer.ts` | Excel 导入(单/多 Sheet) |
 | `src/styles/global.css` | CSS 变量和全局样式 |
 
+## ECharts 开发规范
+
+> ⚠️ **重要**: 以下规范基于实际踩坑经验，请严格遵守以避免运行时错误。
+
+### 1. React StrictMode 兼容性
+
+echarts-for-react 与 React StrictMode 存在兼容性问题。StrictMode 的双重渲染/卸载机制会导致 ResizeObserver 清理错误：
+
+```
+TypeError: Cannot read properties of undefined (reading 'disconnect')
+```
+
+**当前方案**: 项目已在 `main.tsx` 中禁用 StrictMode，这对生产环境无影响（StrictMode 仅在开发环境生效）。
+
+### 2. ECharts 配置禁止 undefined 值
+
+ECharts 配置对象中**不能传入 undefined 值**，否则会导致内部计算错误：
+
+```typescript
+// ❌ 错误 - 当条件为 false 时传入 undefined
+radar: {
+  radius: showDualLayout ? '55%' : undefined,  // 会导致 Radar.resize 崩溃
+}
+
+// ✅ 正确 - 不设置该属性，让 ECharts 使用默认值
+radar: {
+  ...(showDualLayout && { radius: '55%' }),
+}
+
+// ✅ 或者 - 始终提供有效值
+radar: {
+  radius: showDualLayout ? '55%' : '60%',
+}
+```
+
+### 3. 延迟渲染模式
+
+为避免组件挂载过程中的竞态条件，ECharts 组件应使用 `mounted` 状态延迟渲染：
+
+```typescript
+const [mounted, setMounted] = useState(false)
+
+useEffect(() => {
+  setMounted(true)
+  return () => setMounted(false)
+}, [])
+
+// 等待挂载完成
+if (!mounted) {
+  return <div className={styles.container} />
+}
+
+return <ReactECharts option={option} />
+```
+
+### 4. 雷达图数据校验
+
+雷达图至少需要 **3 个指标 (indicator)** 才能正常渲染：
+
+```typescript
+// 在生成 option 前校验
+if (dimensions.length < 3) {
+  return null  // 返回 null，不渲染图表
+}
+
+const visibleVendors = vendors.filter((v) => v.visible)
+if (visibleVendors.length === 0) {
+  return null
+}
+```
+
+### 5. option 返回类型
+
+`useMemo` 生成的 option 应使用 `EChartsOption | null` 类型，在数据无效时返回 `null` 而非空对象：
+
+```typescript
+const option = useMemo<EChartsOption | null>(() => {
+  if (!hasValidData) return null
+  // ...
+}, [deps])
+
+// 渲染时检查
+if (!option) {
+  return <Empty description="暂无数据" />
+}
+```
+
+## React Hooks 开发规范
+
+> ⚠️ **重要**: React Hooks 必须遵循调用规则，否则会导致运行时错误。
+
+### 1. Hooks 必须在 Early Return 之前调用
+
+React 要求每次渲染时 Hooks 的调用顺序和数量必须一致。如果组件有条件性的 early return，**所有 Hooks 必须在 early return 之前定义**：
+
+```typescript
+// ❌ 错误 - useCallback 在 early return 之后
+const MyComponent = () => {
+  const [data, setData] = useState(null)
+
+  // Early return
+  if (!data) {
+    return <Empty />
+  }
+
+  // 这个 hook 在 early return 之后，会导致 hooks 数量不一致
+  const handleClick = useCallback(() => {
+    // ...
+  }, [])
+
+  return <div onClick={handleClick}>...</div>
+}
+
+// ✅ 正确 - 所有 hooks 在 early return 之前
+const MyComponent = () => {
+  const [data, setData] = useState(null)
+
+  // 所有 hooks 先定义
+  const handleClick = useCallback(() => {
+    // ...
+  }, [])
+
+  // Early return 放在所有 hooks 之后
+  if (!data) {
+    return <Empty />
+  }
+
+  return <div onClick={handleClick}>...</div>
+}
+```
+
+**典型错误信息**:
+```
+Uncaught Error: Rendered fewer hooks than expected.
+This may be caused by an accidental early return statement.
+```
+
+### 2. 条件渲染时的 Hooks 顺序
+
+当组件根据不同条件渲染不同内容时（如切换 Tab、切换数据源），如果 hooks 数量不一致，会导致白屏崩溃。确保所有代码路径调用相同数量的 hooks。
+
 ## 注意事项
 
 - 数据自动保存到 IndexedDB，防抖 500ms
