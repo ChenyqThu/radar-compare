@@ -475,8 +475,13 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
         >
           {/* Start section - logo and title at left */}
           <div className={styles.startSection} style={{ left: `${EDGE_PADDING}px` }}>
-            {/* Glowing orb */}
-            <div className={styles.glowOrb} />
+            {/* Glowing orb - multi-layer breathing effect */}
+            <div className={styles.glowOrbContainer}>
+              <div className={styles.glowCore} />
+              <div className={styles.glowBreathing} />
+              <div className={styles.glowStreak} />
+              <div className={styles.glowVertical} />
+            </div>
 
             {/* Logo */}
             {timeline.info.logo && (

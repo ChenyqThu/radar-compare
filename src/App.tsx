@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Layout, Spin, message, Empty } from 'antd'
+import { Layout, Spin, Empty } from 'antd'
 import { Navbar } from '@/components/common/Navbar'
 import { RadarTabs } from '@/components/tabs/RadarTabs'
 import { RadarChart } from '@/components/chart/RadarChart'

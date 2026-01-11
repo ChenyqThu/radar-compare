@@ -10,7 +10,7 @@ export const VersionTimeline: React.FC<VersionTimelineProps> = ({ data }) => {
   const { info, events } = data
 
   // 计算年份范围
-  const { startYear, endYear, years } = useMemo(() => {
+  const { years } = useMemo(() => {
     const eventYears = events.map(e => e.year)
     const start = data.startYear || Math.min(...eventYears)
     const end = data.endYear || Math.max(...eventYears)
@@ -20,7 +20,7 @@ export const VersionTimeline: React.FC<VersionTimelineProps> = ({ data }) => {
       yearList.push(year)
     }
 
-    return { startYear: start, endYear: end, years: yearList }
+    return { years: yearList }
   }, [events, data.startYear, data.endYear])
 
   // 分组事件（按年份和位置）

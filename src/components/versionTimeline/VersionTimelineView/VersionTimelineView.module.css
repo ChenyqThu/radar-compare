@@ -163,25 +163,102 @@
   z-index: 5;
 }
 
-/* Glowing orb effect - flat shine centered on timeline */
-.glowOrb {
+/* Glowing orb container - flat breathing star effect */
+.glowOrbContainer {
   position: absolute;
-  width: 180px;
-  height: 20px;
-  border-radius: 50%;
-  background: radial-gradient(ellipse 100% 100% at 50% 50%,
-      var(--theme-color, var(--color-primary, #0A7171)) 0%,
-      var(--theme-color, var(--color-primary, #0A7171)) 15%,
-      rgba(10, 113, 113, 0.7) 35%,
-      rgba(10, 113, 113, 0.3) 55%,
-      transparent 75%);
-  filter: blur(10px);
-  opacity: 1;
-  pointer-events: none;
-  z-index: 0;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 1. Flat core layer (static) */
+.glowCore {
+  position: absolute;
+  width: 60px;
+  height: 8px;
+  background: radial-gradient(ellipse at 50% 50%,
+      #fff 0%,
+      rgba(220, 255, 255, 0.95) 40%,
+      var(--theme-color, var(--color-primary, #0A7171)) 80%,
+      transparent 100%);
+  border-radius: 50%;
+  filter: blur(4px);
+  z-index: 10;
+}
+
+/* 2. Breathing outer glow (large diffuse area) */
+.glowBreathing {
+  position: absolute;
+  width: 350px;
+  height: 50px;
+  background: radial-gradient(ellipse at 50% 50%,
+      var(--theme-color, var(--color-primary, #0A7171)) 0%,
+      rgba(10, 113, 113, 0.45) 35%,
+      transparent 75%);
+  filter: blur(35px);
+  z-index: 5;
+  animation: glowDeepBreathe 7s ease-in-out infinite;
+}
+
+/* 3. Horizontal light streak */
+.glowStreak {
+  position: absolute;
+  width: 240px;
+  height: 4px;
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.6) 50%,
+      transparent);
+  filter: blur(3px);
+  z-index: 6;
+  animation: glowStreakBreathe 7s ease-in-out infinite;
+}
+
+/* 4. Vertical soft pillar (heavily blurred) */
+.glowVertical {
+  position: absolute;
+  width: 70px;
+  height: 160px;
+  background: radial-gradient(ellipse at 50% 50%,
+      rgba(10, 113, 113, 0.25) 0%,
+      transparent 70%);
+  filter: blur(40px);
+  z-index: 4;
+  animation: glowDeepBreathe 7s ease-in-out infinite;
+}
+
+/* Breathing animation - slow rhythm */
+@keyframes glowDeepBreathe {
+
+  0%,
+  100% {
+    transform: scale(0.85);
+    opacity: 0.3;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 0.9;
+  }
+}
+
+@keyframes glowStreakBreathe {
+
+  0%,
+  100% {
+    transform: scaleX(0.9);
+    opacity: 0.3;
+  }
+
+  50% {
+    transform: scaleX(1.15);
+    opacity: 0.8;
+  }
 }
 
 .logo {
@@ -226,12 +303,11 @@
   position: absolute;
   top: 0;
   height: 3px;
-  width: 120px;
+  width: 60px;
   z-index: 1;
   transform: translateY(-1.5px);
   background: linear-gradient(to right,
       var(--bg-primary, #ffffff) 0%,
-      var(--bg-primary, #ffffff) 40%,
       transparent 100%);
 }
 
@@ -585,13 +661,25 @@
   --color-primary: #12A1A1;
 }
 
-:global([data-theme='dark']) .glowOrb {
-  background: radial-gradient(ellipse 100% 100% at 50% 50%,
+:global([data-theme='dark']) .glowCore {
+  background: radial-gradient(ellipse at 50% 50%,
+      #fff 0%,
+      rgba(200, 255, 255, 0.95) 40%,
+      var(--theme-color, #12A1A1) 80%,
+      transparent 100%);
+}
+
+:global([data-theme='dark']) .glowBreathing {
+  background: radial-gradient(ellipse at 50% 50%,
       var(--theme-color, #12A1A1) 0%,
-      var(--theme-color, #12A1A1) 15%,
-      rgba(18, 161, 161, 0.7) 35%,
-      rgba(18, 161, 161, 0.3) 55%,
+      rgba(18, 161, 161, 0.45) 35%,
       transparent 75%);
+}
+
+:global([data-theme='dark']) .glowVertical {
+  background: radial-gradient(ellipse at 50% 50%,
+      rgba(18, 161, 161, 0.25) 0%,
+      transparent 70%);
 }
 
 :global([data-theme='dark']) .eventContent::after {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Modal, Form, Input, InputNumber, Select, Button, Space, Tag, Row, Col } from 'antd'
+import { Modal, Form, Input, Select, Button, Space, Tag, Row, Col } from 'antd'
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useRadarStore } from '@/stores/radarStore'
 import { useI18n } from '@/locales'
@@ -28,7 +28,6 @@ const EVENT_TYPES: EventTypeConfig[] = [
 
 // 生成年份选项 (1900-2100)
 const generateYearOptions = () => {
-  const currentYear = new Date().getFullYear()
   return Array.from({ length: 201 }, (_, i) => ({
     value: 1900 + i,
     label: `${1900 + i}`,

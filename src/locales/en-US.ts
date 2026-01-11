@@ -9,6 +9,8 @@ export const enUS: Locale = {
     delete: 'Delete',
     edit: 'Edit',
     save: 'Save',
+    saveSuccess: 'Saved successfully',
+    upload: 'Upload',
     loading: 'Loading...',
     noData: 'No data',
     action: 'Action',

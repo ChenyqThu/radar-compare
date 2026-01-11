@@ -141,7 +141,7 @@ export const TimelineInfoEditor: React.FC<TimelineInfoEditorProps> = ({
           <Upload
             accept="image/*"
             showUploadList={false}
-            customRequest={({ file, onSuccess }) => {
+            customRequest={({ onSuccess }) => {
               setTimeout(() => {
                 onSuccess?.('ok')
               }, 0)

@@ -58,7 +58,7 @@ export const VersionTimelineEnhanced: React.FC<VersionTimelineEnhancedProps> = (
   const { info, events } = data
 
   // 计算年份范围
-  const { startYear, endYear, years } = useMemo(() => {
+  const { years } = useMemo(() => {
     const eventYears = events.map(e => e.year)
     const start = data.startYear || Math.min(...eventYears)
     const end = data.endYear || Math.max(...eventYears)
@@ -68,7 +68,7 @@ export const VersionTimelineEnhanced: React.FC<VersionTimelineEnhancedProps> = (
       yearList.push(year)
     }
 
-    return { startYear: start, endYear: end, years: yearList }
+    return { years: yearList }
   }, [events, data.startYear, data.endYear])
 
   // 智能布局

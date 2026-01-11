@@ -101,6 +101,7 @@ export interface RadarState {
 
   // 版本时间轴操作
   getActiveVersionTimeline: () => VersionTimeline | null
+  getVersionTimelineById: (id: UUID) => VersionTimeline | null
   addVersionTimeline: (name?: string) => void
   deleteVersionTimeline: (id: UUID) => void
   renameVersionTimeline: (id: UUID, name: string) => void

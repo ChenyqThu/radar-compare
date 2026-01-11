@@ -7,6 +7,8 @@ export const zhCN = {
     delete: '删除',
     edit: '编辑',
     save: '保存',
+    saveSuccess: '保存成功',
+    upload: '上传',
     loading: '加载中...',
     noData: '暂无数据',
     action: '操作',
