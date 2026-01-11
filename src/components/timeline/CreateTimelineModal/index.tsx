@@ -96,7 +96,7 @@ export function CreateTimelineModal({ open, onClose }: CreateTimelineModalProps)
       okText={t.common.confirm}
       cancelText={t.common.cancel}
       width={600}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form layout="vertical" className={styles.form}>
         <Form.Item label={t.timeline.name}>

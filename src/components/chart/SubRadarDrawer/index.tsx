@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Drawer, Empty, Table, Typography } from 'antd'
 import ReactECharts from 'echarts-for-react'
 import type { EChartsOption } from 'echarts'
@@ -13,6 +13,15 @@ export function SubRadarDrawer() {
   const { subRadarDrawer, closeSubRadarDrawer } = useUIStore()
   const { getActiveRadar } = useRadarStore()
   const activeRadar = getActiveRadar()
+  const [mounted, setMounted] = useState(false)
+
+  // 延迟渲染 ECharts 以避免 StrictMode 双重调用问题
+  useEffect(() => {
+    if (subRadarDrawer.visible) {
+      setMounted(true)
+    }
+    return () => setMounted(false)
+  }, [subRadarDrawer.visible])
 
   // 只有普通雷达图才有维度数据
   const regularRadar = activeRadar && isRegularRadar(activeRadar) ? activeRadar : null
@@ -22,12 +31,18 @@ export function SubRadarDrawer() {
     return regularRadar.dimensions.find((d) => d.id === subRadarDrawer.dimensionId)
   }, [regularRadar, subRadarDrawer.dimensionId])
 
-  const option = useMemo<EChartsOption>(() => {
-    if (!dimension || !regularRadar || dimension.subDimensions.length === 0) {
-      return {}
+  // 检查是否有足够的子维度来渲染雷达图 (至少需要3个)
+  const hasValidRadarData = dimension && regularRadar && dimension.subDimensions.length >= 3
+
+  const option = useMemo<EChartsOption | null>(() => {
+    if (!hasValidRadarData) {
+      return null
     }
 
-    const visibleVendors = regularRadar.vendors.filter((v) => v.visible)
+    const visibleVendors = regularRadar!.vendors.filter((v) => v.visible)
+    if (visibleVendors.length === 0) {
+      return null
+    }
 
     return {
       tooltip: { trigger: 'item' },
@@ -96,7 +111,11 @@ export function SubRadarDrawer() {
       ) : (
         <div className={styles.content}>
           <div className={styles.chart}>
-            <ReactECharts option={option} style={{ height: 300 }} />
+            {mounted && hasValidRadarData && option ? (
+              <ReactECharts option={option} style={{ height: 300 }} />
+            ) : (
+              <div style={{ height: 300 }} />
+            )}
           </div>
           <div className={styles.table}>
             <Title level={5}>分数明细</Title>

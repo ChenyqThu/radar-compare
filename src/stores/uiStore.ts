@@ -10,6 +10,11 @@ interface UIState {
   appMode: AppMode
   setAppMode: (mode: AppMode) => void
 
+  // 每个模式下上次选中的 Tab ID
+  lastRadarModeTabId: UUID | null
+  lastTimelineModeTabId: UUID | null
+  setLastTabForMode: (mode: AppMode, tabId: UUID | null) => void
+
   // 主题
   theme: ThemeMode
   setTheme: (theme: ThemeMode) => void
@@ -83,6 +88,14 @@ export const useUIStore = create<UIState>()(
       appMode: 'radar',
       setAppMode: (mode) => set({ appMode: mode }),
 
+      lastRadarModeTabId: null,
+      lastTimelineModeTabId: null,
+      setLastTabForMode: (mode, tabId) => set(
+        mode === 'radar'
+          ? { lastRadarModeTabId: tabId }
+          : { lastTimelineModeTabId: tabId }
+      ),
+
       theme: initialTheme,
       setTheme: (theme) => {
         applyTheme(theme)
@@ -119,7 +132,12 @@ export const useUIStore = create<UIState>()(
     }),
     {
       name: 'radar-ui',
-      partialize: (state) => ({ theme: state.theme, appMode: state.appMode }),
+      partialize: (state) => ({
+        theme: state.theme,
+        appMode: state.appMode,
+        lastRadarModeTabId: state.lastRadarModeTabId,
+        lastTimelineModeTabId: state.lastTimelineModeTabId,
+      }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           applyTheme(state.theme)

@@ -1,0 +1,29 @@
+/* Version Event Editor Modal */
+.form {
+  margin-top: 16px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.highlightsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.highlightTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.highlightTags:empty::before {
+  content: '-';
+  color: var(--text-tertiary, #999);
+  font-size: 12px;
+}

@@ -34,18 +34,31 @@ function SubDimensionRadar({ dimension, direction }: { dimension: Dimension; dir
   const { getActiveRadar } = useRadarStore()
   const { theme } = useUIStore()
   const activeRadar = getActiveRadar()
+  const [mounted, setMounted] = useState(false)
+
+  // 延迟渲染 ECharts 以避免 StrictMode 双重调用问题
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
 
   const isDark = theme === 'dark'
 
   // 只有普通雷达图才有 vendors
   const regularRadar = activeRadar && isRegularRadar(activeRadar) ? activeRadar : null
 
-  const option = useMemo<EChartsOption>(() => {
-    if (!dimension || !regularRadar || dimension.subDimensions.length === 0) {
-      return {}
+  // 确保有足够的子维度
+  const hasValidData = dimension && regularRadar && dimension.subDimensions.length >= 3
+
+  const option = useMemo<EChartsOption | null>(() => {
+    if (!hasValidData) {
+      return null
     }
 
-    const visibleVendors = regularRadar.vendors.filter((v) => v.visible)
+    const visibleVendors = regularRadar!.vendors.filter((v) => v.visible)
+    if (visibleVendors.length === 0) {
+      return null
+    }
 
     return {
       tooltip: {
@@ -122,9 +135,14 @@ function SubDimensionRadar({ dimension, direction }: { dimension: Dimension; dir
       animationDurationUpdate: 600,
       animationEasingUpdate: 'cubicInOut',
     }
-  }, [dimension, regularRadar, isDark])
+  }, [hasValidData, dimension, regularRadar, isDark])
 
   const animClass = direction === 'left' ? styles.slideFromLeft : direction === 'right' ? styles.slideFromRight : ''
+
+  // 不渲染无效数据或未挂载
+  if (!hasValidData || !option || !mounted) {
+    return <div className={styles.subRadarContainer} />
+  }
 
   return (
     <div className={`${styles.subRadarContainer} ${animClass}`}>
@@ -177,6 +195,13 @@ export function RadarChart() {
   const activeRadar = getActiveRadar()
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [direction, setDirection] = useState<'left' | 'right' | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  // 延迟渲染 ECharts 以避免 StrictMode 双重调用问题
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
 
   const isDark = theme === 'dark'
 
@@ -214,13 +239,45 @@ export function RadarChart() {
     setSelectedIndex((i) => (i + 1) % dimensionsWithSubRadar.length)
   }, [dimensionsWithSubRadar.length])
 
-  const mainOption = useMemo<EChartsOption>(() => {
-    if (dimensions.length === 0) {
-      return {}
+  // 检查是否有有效数据来渲染雷达图
+  const hasValidData = dimensions.length >= 3 && vendors.length > 0 && vendors.some((v) => v.visible)
+
+  const mainOption = useMemo<EChartsOption | null>(() => {
+    // Need at least 3 dimensions for a radar chart
+    if (dimensions.length < 3) {
+      return null
     }
 
     const visibleVendors = vendors.filter((v) => v.visible)
+    if (visibleVendors.length === 0) {
+      return null
+    }
+
     const scores = calculateAllDimensionScores(dimensions, vendors)
+
+    // 构建 series data
+    const seriesData = visibleVendors.map((vendor) => {
+      const values = scores.map((s) => {
+        const vendorScore = s.vendorScores.find((vs) => vs.vendorId === vendor.id)
+        return vendorScore?.rawScore ?? 0
+      })
+      return {
+        name: vendor.name,
+        value: values,
+        symbol: vendor.markerType,
+        symbolSize: 8,
+        lineStyle: {
+          color: vendor.color,
+          width: 2,
+        },
+        areaStyle: {
+          color: createRadialGradient(vendor.color),
+        },
+        itemStyle: {
+          color: vendor.color,
+        },
+      }
+    })
 
     return {
       tooltip: {
@@ -252,7 +309,6 @@ export function RadarChart() {
         })),
         shape: 'polygon',
         splitNumber: 5,
-        radius: showDualLayout ? '55%' : undefined,
         axisName: {
           color: isDark ? '#d0d0d0' : '#333',
           fontSize: 13,
@@ -279,25 +335,7 @@ export function RadarChart() {
       series: [
         {
           type: 'radar',
-          data: visibleVendors.map((vendor) => ({
-            name: vendor.name,
-            value: scores.map((s) => {
-              const vendorScore = s.vendorScores.find((vs) => vs.vendorId === vendor.id)
-              return vendorScore?.rawScore ?? 0
-            }),
-            symbol: vendor.markerType,
-            symbolSize: 8,
-            lineStyle: {
-              color: vendor.color,
-              width: 2,
-            },
-            areaStyle: {
-              color: createRadialGradient(vendor.color),
-            },
-            itemStyle: {
-              color: vendor.color,
-            },
-          })),
+          data: seriesData,
           emphasis: {
             lineStyle: {
               width: 3,
@@ -322,16 +360,26 @@ export function RadarChart() {
     )
   }
 
-  if (dimensions.length === 0 || vendors.length === 0) {
+  // ECharts radar requires at least 3 indicators and valid vendors
+  if (!hasValidData || !mainOption) {
     return (
       <div className={styles.empty}>
         <Empty
           description={
-            dimensions.length === 0
+            dimensions.length < 3
               ? t.chart.pleaseAddDimension
               : t.chart.pleaseAddVendor
           }
         />
+      </div>
+    )
+  }
+
+  // 等待组件挂载完成后再渲染 ECharts，避免 StrictMode 问题
+  if (!mounted) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.empty} />
       </div>
     )
   }

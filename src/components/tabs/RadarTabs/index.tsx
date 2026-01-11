@@ -28,8 +28,10 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useRadarStore } from '@/stores/radarStore'
+import { useUIStore } from '@/stores/uiStore'
 import { useI18n } from '@/locales'
 import { isTimelineRadar, isRegularRadar } from '@/types'
+import { isVersionTimeline } from '@/types/versionTimeline'
 import { TimeMarkerPicker, formatTimeMarker } from '@/components/settings/TimeMarkerPicker'
 import styles from './RadarTabs.module.css'
 
@@ -72,7 +74,12 @@ export function RadarTabs() {
     isRadarReferencedByTimeline,
     deleteTimelineRadar,
     reorderRadarCharts,
+    addVersionTimeline,
+    deleteVersionTimeline,
+    renameVersionTimeline,
+    duplicateVersionTimeline,
   } = useRadarStore()
+  const { appMode, lastRadarModeTabId, lastTimelineModeTabId, setLastTabForMode } = useUIStore()
   const { t, language } = useI18n()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -95,20 +102,77 @@ export function RadarTabs() {
     }
   }, [editingId])
 
+  // 确保当前模式有正确的 activeRadarId
+  useEffect(() => {
+    if (!currentProject) return
+
+    const { radarCharts, activeRadarId } = currentProject
+
+    // 获取当前模式的 tab 列表
+    const currentModeCharts = appMode === 'timeline'
+      ? radarCharts.filter(isVersionTimeline)
+      : radarCharts.filter(r => isRegularRadar(r) || isTimelineRadar(r))
+
+    // 如果当前模式没有任何 chart，不做处理
+    if (currentModeCharts.length === 0) return
+
+    // 检查当前 activeRadarId 是否属于当前模式
+    const isActiveInCurrentMode = activeRadarId &&
+      currentModeCharts.some(c => c.id === activeRadarId)
+
+    // 如果当前 activeRadarId 不属于当前模式（或为空），需要切换
+    if (!isActiveInCurrentMode) {
+      // 获取目标模式上次选中的 tab
+      const lastTabId = appMode === 'timeline' ? lastTimelineModeTabId : lastRadarModeTabId
+
+      // 检查上次的 tab 是否还在目标模式的列表中，否则用第一个
+      const targetTab = lastTabId && currentModeCharts.find(c => c.id === lastTabId)
+        ? lastTabId
+        : currentModeCharts[0].id
+
+      setActiveRadar(targetTab)
+    }
+  }, [appMode, currentProject, lastRadarModeTabId, lastTimelineModeTabId, setActiveRadar])
+
+  // 当 activeRadarId 变化时，保存到对应模式的记忆
+  useEffect(() => {
+    if (!currentProject?.activeRadarId) return
+
+    const { radarCharts, activeRadarId } = currentProject
+    const activeChart = radarCharts.find(c => c.id === activeRadarId)
+
+    if (activeChart) {
+      // 根据 tab 的实际类型来更新对应模式的记忆
+      if (isVersionTimeline(activeChart)) {
+        setLastTabForMode('timeline', activeRadarId)
+      } else {
+        setLastTabForMode('radar', activeRadarId)
+      }
+    }
+  }, [currentProject?.activeRadarId, currentProject?.radarCharts, setLastTabForMode])
+
   if (!currentProject) return null
 
   const { radarCharts, activeRadarId } = currentProject
+
+  // 根据 appMode 过滤显示的 Tab
+  const filteredCharts = appMode === 'timeline'
+    ? radarCharts.filter(isVersionTimeline)
+    : radarCharts.filter(r => isRegularRadar(r) || isTimelineRadar(r))
 
   // 处理拖拽结束
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
 
-    const oldIndex = radarCharts.findIndex((r) => r.id === active.id)
-    const newIndex = radarCharts.findIndex((r) => r.id === over.id)
+    const oldIndex = filteredCharts.findIndex((r) => r.id === active.id)
+    const newIndex = filteredCharts.findIndex((r) => r.id === over.id)
 
     if (oldIndex !== -1 && newIndex !== -1) {
-      reorderRadarCharts(oldIndex, newIndex)
+      // 需要在全局列表中找到实际位置
+      const globalOldIndex = radarCharts.findIndex((r) => r.id === active.id)
+      const globalNewIndex = radarCharts.findIndex((r) => r.id === over.id)
+      reorderRadarCharts(globalOldIndex, globalNewIndex)
     }
   }
 
@@ -119,7 +183,11 @@ export function RadarTabs() {
 
   const handleRenameConfirm = () => {
     if (editingId && editValue.trim()) {
-      renameRadarChart(editingId, editValue.trim())
+      if (appMode === 'timeline') {
+        renameVersionTimeline(editingId, editValue.trim())
+      } else {
+        renameRadarChart(editingId, editValue.trim())
+      }
     }
     setEditingId(null)
   }
@@ -130,11 +198,31 @@ export function RadarTabs() {
   }
 
   const handleDelete = (id: string) => {
-    const radar = radarCharts.find((r) => r.id === id)
-    if (!radar) return
+    const chart = radarCharts.find((r) => r.id === id)
+    if (!chart) return
+
+    // 版本时间轴模式
+    if (isVersionTimeline(chart)) {
+      const versionTimelines = radarCharts.filter(isVersionTimeline)
+      if (versionTimelines.length <= 1) {
+        Modal.warning({
+          title: t.common.delete,
+          content: t.tabs.confirmDelete,
+        })
+        return
+      }
+      Modal.confirm({
+        title: t.common.confirm,
+        content: t.tabs.confirmDelete,
+        okText: t.common.confirm,
+        cancelText: t.common.cancel,
+        onOk: () => deleteVersionTimeline(id),
+      })
+      return
+    }
 
     // 时间轴雷达图直接删除
-    if (isTimelineRadar(radar)) {
+    if (isTimelineRadar(chart)) {
       Modal.confirm({
         title: t.common.confirm,
         content: t.tabs.confirmDelete,
@@ -171,11 +259,12 @@ export function RadarTabs() {
   }
 
   const getMenuItems = (id: string, name: string) => {
-    const radar = radarCharts.find((r) => r.id === id)
-    if (!radar) return []
+    const chart = radarCharts.find((r) => r.id === id)
+    if (!chart) return []
 
-    const isTimeline = isTimelineRadar(radar)
-    const isReferenced = !isTimeline && isRadarReferencedByTimeline(id)
+    const isVersionTimelineChart = isVersionTimeline(chart)
+    const isTimeline = isTimelineRadar(chart)
+    const isReferenced = !isTimeline && !isVersionTimelineChart && isRadarReferencedByTimeline(id)
 
     const baseItems = [
       {
@@ -186,8 +275,16 @@ export function RadarTabs() {
       },
     ]
 
-    // 普通雷达图才有复制和时间标记选项
-    if (!isTimeline) {
+    // 版本时间轴只有复制和删除
+    if (isVersionTimelineChart) {
+      baseItems.push({
+        key: 'duplicate',
+        icon: <CopyOutlined />,
+        label: t.tabs.duplicate,
+        onClick: () => duplicateVersionTimeline(id),
+      })
+    } else if (!isTimeline) {
+      // 普通雷达图才有复制和时间标记选项
       baseItems.push({
         key: 'duplicate',
         icon: <CopyOutlined />,
@@ -217,16 +314,17 @@ export function RadarTabs() {
     return baseItems
   }
 
-  const items = radarCharts.map((radar) => {
-    const isTimeline = isTimelineRadar(radar)
-    const isReferenced = !isTimeline && isRadarReferencedByTimeline(radar.id)
-    const timeMarker = !isTimeline && isRegularRadar(radar) ? radar.timeMarker : undefined
+  const items = filteredCharts.map((chart) => {
+    const isTimeline = isTimelineRadar(chart)
+    const isVersionTimelineChart = isVersionTimeline(chart)
+    const isReferenced = !isTimeline && !isVersionTimelineChart && isRadarReferencedByTimeline(chart.id)
+    const timeMarker = !isTimeline && !isVersionTimelineChart && isRegularRadar(chart) ? chart.timeMarker : undefined
 
     return {
-      key: radar.id,
+      key: chart.id,
       label: (
         <div className={styles.tabLabel}>
-          {editingId === radar.id ? (
+          {editingId === chart.id ? (
             <div className={styles.editContainer}>
               <Input
                 ref={inputRef}
@@ -266,45 +364,47 @@ export function RadarTabs() {
               {isReferenced && <LockOutlined className={styles.lockIcon} />}
               <div className={styles.tabContent}>
                 <span className={styles.tabName}>
-                  {radar.name}
+                  {chart.name}
                 </span>
                 {timeMarker && (
                   <span className={styles.timeMarkerBadge}>
                     {formatTimeMarker(timeMarker, language)}
                   </span>
                 )}
-                <Dropdown menu={{ items: getMenuItems(radar.id, radar.name) }} trigger={['click']}>
+                <Dropdown menu={{ items: getMenuItems(chart.id, chart.name) }} trigger={['click']}>
                   <MoreOutlined
                     className={styles.moreIcon}
                     onClick={(e) => e.stopPropagation()}
                   />
                 </Dropdown>
               </div>
-              <Popover
-                open={timeMarkerPopoverId === radar.id}
-                onOpenChange={(open) => !open && setTimeMarkerPopoverId(null)}
-                trigger="click"
-                placement="bottom"
-                content={
-                  <div className={styles.timeMarkerPopover}>
-                    <TimeMarkerPicker
-                      value={timeMarker}
-                      onChange={(value) => {
-                        if (value === null) {
-                          // 取消或清除
-                          setTimeMarkerPopoverId(null)
-                        } else {
-                          // 确认选择
-                          setRadarTimeMarker(radar.id, value.year, value.month)
-                          setTimeMarkerPopoverId(null)
-                        }
-                      }}
-                    />
-                  </div>
-                }
-              >
-                <span />
-              </Popover>
+              {!isVersionTimelineChart && (
+                <Popover
+                  open={timeMarkerPopoverId === chart.id}
+                  onOpenChange={(open) => !open && setTimeMarkerPopoverId(null)}
+                  trigger="click"
+                  placement="bottom"
+                  content={
+                    <div className={styles.timeMarkerPopover}>
+                      <TimeMarkerPicker
+                        value={timeMarker}
+                        onChange={(value) => {
+                          if (value === null) {
+                            // 取消或清除
+                            setTimeMarkerPopoverId(null)
+                          } else {
+                            // 确认选择
+                            setRadarTimeMarker(chart.id, value.year, value.month)
+                            setTimeMarkerPopoverId(null)
+                          }
+                        }}
+                      />
+                    </div>
+                  }
+                >
+                  <span />
+                </Popover>
+              )}
             </>
           )}
         </div>
@@ -312,9 +412,21 @@ export function RadarTabs() {
     }
   })
 
+  // 处理添加按钮点击
+  const handleAdd = () => {
+    if (appMode === 'timeline') {
+      addVersionTimeline()
+    } else {
+      addRadarChart()
+    }
+  }
+
+  // 获取添加按钮文本
+  const addButtonText = appMode === 'timeline' ? t.versionTimeline.addTimeline : t.tabs.newTab
+
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={radarCharts.map((r) => r.id)} strategy={horizontalListSortingStrategy}>
+      <SortableContext items={filteredCharts.map((r) => r.id)} strategy={horizontalListSortingStrategy}>
         <div className={styles.container}>
           <Tabs
             activeKey={activeRadarId ?? undefined}
@@ -335,10 +447,10 @@ export function RadarTabs() {
           <Button
             type="text"
             icon={<PlusOutlined />}
-            onClick={() => addRadarChart()}
+            onClick={handleAdd}
             className={styles.addBtn}
           >
-            {t.tabs.newTab}
+            {addButtonText}
           </Button>
         </div>
       </SortableContext>

@@ -1,7 +1,9 @@
 import Dexie, { Table } from 'dexie'
 import type { Project } from '@/types'
+import type { VersionTimeline } from '@/types/versionTimeline'
 import { nanoid } from 'nanoid'
 import { PRESET_COLORS, PRESET_MARKERS } from '@/types'
+import { ubiquitiTimelineData } from '@/data/ubiquitiTimeline'
 
 export class RadarDatabase extends Dexie {
   projects!: Table<Project, string>
@@ -28,7 +30,21 @@ export async function initializeDatabase(): Promise<void> {
 export function createDefaultProject(): Project {
   const now = Date.now()
   const radarId = nanoid()
+  const timelineId = nanoid()
   const vendorIds = [nanoid(), nanoid(), nanoid()]
+
+  // 创建 Ubiquiti 时间轴副本并生成新 ID
+  const ubiquitiTimeline: VersionTimeline = {
+    ...ubiquitiTimelineData,
+    id: timelineId,
+    order: 1, // 放在雷达图后面
+    events: ubiquitiTimelineData.events.map(e => ({
+      ...e,
+      id: nanoid(), // 生成新的事件 ID
+    })),
+    createdAt: now,
+    updatedAt: now,
+  }
 
   return {
     id: nanoid(),
@@ -135,6 +151,8 @@ export function createDefaultProject(): Project {
         createdAt: now,
         updatedAt: now,
       },
+      // 添加 Ubiquiti 大事记作为默认时间轴样例
+      ubiquitiTimeline,
     ],
     activeRadarId: radarId,
     createdAt: now,

@@ -49,6 +49,13 @@ export function TimelineRadarChart({ timelineId }: TimelineRadarChartProps) {
   const [selectedDimIndex, setSelectedDimIndex] = useState(0)
   const [vendorDirection, setVendorDirection] = useState<'left' | 'right' | null>(null)
   const [vendorAnimKey, setVendorAnimKey] = useState(0)
+  const [mounted, setMounted] = useState(false)
+
+  // 延迟渲染 ECharts 以避免 StrictMode 双重调用问题
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
 
   const isDark = theme === 'dark'
   const timelineData = getTimelineData(timelineId)
@@ -132,8 +139,9 @@ export function TimelineRadarChart({ timelineId }: TimelineRadarChartProps) {
   )
 
   // 主雷达图配置 - 使用统一的数据结构以支持平滑过渡
-  const mainOption = useMemo<EChartsOption>(() => {
-    if (!timelineData || !currentVendor || sourceRadars.length === 0) return {}
+  const mainOption = useMemo<EChartsOption | null>(() => {
+    // Need at least 3 dimensions for radar chart
+    if (!timelineData || !currentVendor || sourceRadars.length === 0 || dimensions.length < 3) return null
 
     const baseConfig = {
       tooltip: {
@@ -194,7 +202,7 @@ export function TimelineRadarChart({ timelineId }: TimelineRadarChartProps) {
       }
     } else {
       const radar = sourceRadars[selectedTimeIndex]
-      if (!radar) return {}
+      if (!radar) return null
       return {
         ...baseConfig,
         legend: { show: false },
@@ -218,8 +226,9 @@ export function TimelineRadarChart({ timelineId }: TimelineRadarChartProps) {
   }, [timelineData, currentVendor, sourceRadars, selectedTimeIndex, isDark, language, dimensions, showDualLayout, getVendorDimScores])
 
   // 子维度雷达图配置
-  const subOption = useMemo<EChartsOption>(() => {
-    if (!selectedDimension || !currentVendor || sourceRadars.length === 0) return {}
+  const subOption = useMemo<EChartsOption | null>(() => {
+    // Need at least 3 sub-dimensions for radar chart
+    if (!selectedDimension || !currentVendor || sourceRadars.length === 0 || selectedDimension.subDimensions.length < 3) return null
 
     const subDims = selectedDimension.subDimensions
 
@@ -282,7 +291,7 @@ export function TimelineRadarChart({ timelineId }: TimelineRadarChartProps) {
       }
     } else {
       const radar = sourceRadars[selectedTimeIndex]
-      if (!radar) return {}
+      if (!radar) return null
       return {
         ...baseConfig,
         legend: { show: false },
@@ -305,10 +314,28 @@ export function TimelineRadarChart({ timelineId }: TimelineRadarChartProps) {
     }
   }, [selectedDimension, currentVendor, sourceRadars, selectedTimeIndex, isDark, language, getVendorSubScores])
 
-  if (!timelineData || vendors.length === 0) {
+  if (!timelineData || vendors.length === 0 || dimensions.length < 3) {
     return (
       <div className={styles.empty}>
         <Empty description={t.chart.noData} />
+      </div>
+    )
+  }
+
+  // Make sure we have valid option before rendering
+  if (!mainOption) {
+    return (
+      <div className={styles.empty}>
+        <Empty description={t.chart.noData} />
+      </div>
+    )
+  }
+
+  // 等待组件挂载完成后再渲染 ECharts，避免 StrictMode 问题
+  if (!mounted) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.empty} />
       </div>
     )
   }
@@ -330,7 +357,7 @@ export function TimelineRadarChart({ timelineId }: TimelineRadarChartProps) {
   )
 
   // 双列布局
-  if (showDualLayout && selectedDimension) {
+  if (showDualLayout && selectedDimension && subOption) {
     return (
       <div className={styles.container}>
         {/* Vendor 切换区域 */}

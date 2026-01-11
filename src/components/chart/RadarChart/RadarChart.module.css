@@ -2,6 +2,7 @@
   height: 100%;
   width: 100%;
   padding: 24px;
+  min-height: 400px; /* 确保 ECharts 有足够的初始化空间 */
 }
 
 .empty {

@@ -20,8 +20,8 @@ body {
 
 /* Light theme (default) */
 :root {
-  --color-primary: #1677ff;
-  --color-primary-hover: #4096ff;
+  --color-primary: #0A7171;
+  --color-primary-hover: #0E9090;
   --color-success: #52c41a;
   --color-warning: #faad14;
   --color-error: #ff4d4f;
@@ -42,8 +42,8 @@ body {
 
 /* Dark theme - improved contrast */
 [data-theme='dark'] {
-  --color-primary: #3b82f6;
-  --color-primary-hover: #60a5fa;
+  --color-primary: #12A1A1;
+  --color-primary-hover: #16C5C5;
   --color-success: #22c55e;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
@@ -131,7 +131,7 @@ body {
 
 [data-theme='dark'] .ant-input:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 0 2px rgba(18, 161, 161, 0.2);
 }
 
 [data-theme='dark'] .ant-input-number {
@@ -173,7 +173,7 @@ body {
 }
 
 [data-theme='dark'] .ant-select-item-option-selected {
-  background: rgba(59, 130, 246, 0.15);
+  background: rgba(18, 161, 161, 0.15);
   color: var(--color-primary);
 }
 
