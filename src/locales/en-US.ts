@@ -291,5 +291,7 @@ export const enUS: Locale = {
     theme_green: 'Green',
     theme_rainbow: 'Rainbow',
     theme_monochrome: 'Monochrome',
+    enableAxisBreak: 'Enable Axis Break',
+    disableAxisBreak: 'Disable Axis Break',
   },
 }

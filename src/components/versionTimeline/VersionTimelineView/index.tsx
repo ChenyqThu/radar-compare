@@ -1,15 +1,13 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react'
-import { Empty, Slider } from 'antd'
-import { PlusOutlined, LeftOutlined, RightOutlined, ZoomInOutlined, ZoomOutOutlined, CompressOutlined } from '@ant-design/icons'
+import { Empty, Slider, Tooltip } from 'antd'
+import { PlusOutlined, LeftOutlined, RightOutlined, ZoomInOutlined, ZoomOutOutlined, CompressOutlined, DisconnectOutlined, LinkOutlined } from '@ant-design/icons'
 import { useRadarStore } from '@/stores/radarStore'
 import { useI18n } from '@/locales'
-import type { VersionEvent, TimelineTheme } from '@/types/versionTimeline'
+import type { VersionEvent, TimelineTheme, TimeSegment } from '@/types/versionTimeline'
+import { calculateSmartLayout, generateTimeSegments } from '../layoutUtils'
 import styles from './VersionTimelineView.module.css'
 
 // Constants for layout calculation
-const CARD_WIDTH = 200 // px - card width
-const CARD_MIN_GAP = 16 // px - minimum gap between cards
-const MIN_CARD_SPACING = CARD_WIDTH + CARD_MIN_GAP // 216px per event minimum
 const DEFAULT_ZOOM = 100 // Default zoom percentage
 const MIN_ZOOM = 50 // Minimum zoom (will be adjusted dynamically)
 const MAX_ZOOM = 300 // Maximum zoom
@@ -66,218 +64,7 @@ function generateTimelineColors(count: number, theme: TimelineTheme = 'teal'): s
   return colors
 }
 
-// Calculate smart layout with zoom support
-function calculateSmartLayout(
-  events: VersionEvent[],
-  years: number[],
-  startYear: number,
-  endYear: number,
-  colors: string[],
-  baseWidth: number,
-  zoomPercent: number
-): { layoutEvents: LayoutEvent[]; requiredWidth: number; minZoom: number; perfectZoom: number } {
-  const totalYears = endYear - startYear
-  const yearRange = totalYears || 1
-
-  // Calculate positions based on time
-  const eventsWithPosition = events.map(event => {
-    const eventTime = event.year + (event.month ? (event.month - 1) / 12 : 0.5)
-    // Avoid division by zero if yearRange is 0 (should already be handled but safe check)
-    const effectiveRange = Math.max(yearRange, 0.1)
-    const timelinePosition = ((eventTime - startYear) / effectiveRange) * 100
-    const yearIndex = years.indexOf(event.year)
-    const color = colors[yearIndex] || colors[0]
-    return { ...event, timelinePosition, color }
-  })
-
-  eventsWithPosition.sort((a, b) => a.timelinePosition - b.timelinePosition)
-
-  // OPTIMIZATION 3: Axis Dot Collision Avoidance (Nudging)
-  // Ensure no two event dots are perfectly overlapping or too close on the axis.
-  // If they are too close, nudge the later one slightly to the right.
-  const MIN_DOT_DIST = 0.5 // % of total width (approx 5-10px depending on zoom)
-
-  for (let i = 1; i < eventsWithPosition.length; i++) {
-    const prev = eventsWithPosition[i - 1]
-    const curr = eventsWithPosition[i]
-
-    if (curr.timelinePosition - prev.timelinePosition < MIN_DOT_DIST) {
-      // Nudge current forward to maintain min distance
-      curr.timelinePosition = prev.timelinePosition + MIN_DOT_DIST
-    }
-  }
-
-  // Calcluate required width based on local density (sliding window)
-  let maxRequiredWidthForMin = 0
-  let maxRequiredWidthForPerfect = 0
-
-  // Basic volume constraint (global average)
-  const minWidthGlobal = Math.ceil(events.length / 4) * MIN_CARD_SPACING + 20
-  maxRequiredWidthForMin = minWidthGlobal
-  maxRequiredWidthForPerfect = minWidthGlobal
-
-  // B. Local density constraint: Sliding window of size 5 (indices i and i+4)
-  // We only run this if we have enough events to potentially overlap
-  if (eventsWithPosition.length >= 5) {
-    for (let i = 0; i < eventsWithPosition.length - 4; i++) {
-      const startEvent = eventsWithPosition[i]
-      const endEvent = eventsWithPosition[i + 4]
-
-      const timePercentDiff = endEvent.timelinePosition - startEvent.timelinePosition
-
-      // OPTIMIZATION: Relaxed constraints (Hybrid Strategy)
-      // Instead of forcing 100% gap (no overlap), we allow some overlap (e.g., 15% overlap / 0.85 factor).
-      // This creates a "stacked cards" look in high density areas instead of exploding the timeline width.
-
-      if (timePercentDiff > 0.05) {
-        // 1. Calculate for Hard Minimum (0.85 factor / 15% overlap)
-        const neededWidthMin = (MIN_CARD_SPACING * 0.85 * 100) / timePercentDiff
-        if (neededWidthMin > maxRequiredWidthForMin) {
-          maxRequiredWidthForMin = neededWidthMin
-        }
-
-        // 2. Calculate for Perfect View (1.05 factor / Clear separation)
-        const neededWidthPerfect = (MIN_CARD_SPACING * 1.05 * 100) / timePercentDiff
-        if (neededWidthPerfect > maxRequiredWidthForPerfect) {
-          maxRequiredWidthForPerfect = neededWidthPerfect
-        }
-      }
-    }
-  }
-
-  // Calculate zooms
-  let calculatedMinZoom = Math.ceil((maxRequiredWidthForMin / baseWidth) * 100)
-  let calculatedPerfectZoom = Math.ceil((maxRequiredWidthForPerfect / baseWidth) * 100)
-
-  // STRATEGY: Hybrid Density Cap
-  // We cap the algorithm's ability to stretch the timeline purely for density reasons.
-  // If a cluster is EXTREMELY dense, we stop stretching at 180% zoom and just let them overlap.
-  // This prevents one busy month from making the other 11 months look empty.
-  const MAX_DENSITY_INDUCED_ZOOM = 180
-
-  if (calculatedPerfectZoom > MAX_DENSITY_INDUCED_ZOOM) {
-    calculatedPerfectZoom = MAX_DENSITY_INDUCED_ZOOM
-    // Min zoom must be <= perfect zoom
-    if (calculatedMinZoom > calculatedPerfectZoom) {
-      calculatedMinZoom = calculatedPerfectZoom
-    }
-  }
-
-  // Clamp to reasonable bounds (min 50%)
-  const minZoom = Math.max(MIN_ZOOM, calculatedMinZoom)
-  const perfectZoom = Math.max(minZoom, calculatedPerfectZoom)
-
-  // Apply zoom to get actual width
-  const effectiveZoom = Math.max(zoomPercent, minZoom)
-  const requiredWidth = Math.max(baseWidth, (baseWidth * effectiveZoom) / 100)
-
-  const layoutEvents: LayoutEvent[] = []
-  // Track the side of the last placed event for Zig-Zag effect
-  let lastPlacedSide: 'top' | 'bottom' = 'bottom' // Start opposite to prefer 'top' first
-
-  const topLayers: Array<{ start: number; end: number }[]> = [[], []]
-  const bottomLayers: Array<{ start: number; end: number }[]> = [[], []]
-
-  // Add extra margin for collision detection (1.2x card spacing)
-  const minDistancePercent = (MIN_CARD_SPACING * 1.2 / requiredWidth) * 100
-
-  eventsWithPosition.forEach(event => {
-    const eventStart = event.timelinePosition - minDistancePercent / 2
-    const eventEnd = event.timelinePosition + minDistancePercent / 2
-
-    let placed = false
-    let position: 'top' | 'bottom' = 'top'
-    let layerIndex = 0
-
-    // OPTIMIZATION 1: Zig-Zag Strategy
-    // Instead of balancing total counts, we alternate sides to create a visual rhythm.
-    // This reduces "bunching" and makes the timeline look more dynamic.
-    const preferTop = lastPlacedSide === 'bottom'
-
-    const sidesToTry: Array<'top' | 'bottom'> = preferTop ? ['top', 'bottom'] : ['bottom', 'top']
-
-    // First try to place in layer 0 of preferred side, then layer 0 of other side
-    // Only use layer 1 when layer 0 on both sides are blocked
-    for (const side of sidesToTry) {
-      const layers = side === 'top' ? topLayers : bottomLayers
-      const layer = layers[0]
-      const hasOverlap = layer.some(occupied =>
-        !(eventEnd < occupied.start || eventStart > occupied.end)
-      )
-
-      if (!hasOverlap) {
-        position = side
-        layerIndex = 0
-        layers[0].push({ start: eventStart, end: eventEnd })
-        placed = true
-        break
-      }
-    }
-
-    // PHASE 2: Try Layer 1 (Preferred -> Other) with Visual Safety Check
-    if (!placed) {
-      for (const side of sidesToTry) {
-        const layers = side === 'top' ? topLayers : bottomLayers
-        // When placing in Layer 1, we must check:
-        // 1. Collision with other Layer 1 cards (Standard)
-        // 2. Visual interference with Layer 0 connector path (Optimization 2)
-
-        const layer1 = layers[1]
-        const hasLayer1Overlap = layer1.some(occupied =>
-          !(eventEnd < occupied.start || eventStart > occupied.end)
-        )
-
-        // OPTIMIZATION 2: Lead Line Safety
-        // If we place in Layer 1, our connector goes through Layer 0 space.
-        // We should avoid cases where the connector "cuts" a Layer 0 card near its edge.
-        // If it hits the center (stacking), it's fine. If it hits the edge, it's messy.
-        let isVisuallySafe = true
-        const layer0 = layers[0]
-
-        // check obstruction in layer 0
-        const obstructingLayer0Card = layer0.find(occupied =>
-          event.timelinePosition >= occupied.start && event.timelinePosition <= occupied.end
-        )
-
-        if (obstructingLayer0Card) {
-          // We are obstructed. Is it a "clean stack" or a "messy cut"?
-          const occupiedCenter = (obstructingLayer0Card.start + obstructingLayer0Card.end) / 2
-          const dist = Math.abs(event.timelinePosition - occupiedCenter)
-
-          // Convert percent distance back to pixels roughly to check alignment
-          const distPx = (dist / 100) * requiredWidth
-
-          // If distance is NOT small enough to be a stack, consider it a bad overlap
-          if (distPx > 40) {
-            isVisuallySafe = false
-          }
-        }
-
-        if (!hasLayer1Overlap && isVisuallySafe) {
-          position = side
-          layerIndex = 1
-          layers[1].push({ start: eventStart, end: eventEnd })
-          placed = true
-          break
-        }
-      }
-    }
-
-    // Fallback: force into least crowded layer
-    if (!placed) {
-      const layers = preferTop ? topLayers : bottomLayers
-      const leastCrowdedIndex = layers[0].length <= layers[1].length ? 0 : 1
-      layers[leastCrowdedIndex].push({ start: eventStart, end: eventEnd })
-      position = preferTop ? 'top' : 'bottom'
-      layerIndex = leastCrowdedIndex
-    }
-
-    lastPlacedSide = position
-    layoutEvents.push({ ...event, position, offset: layerIndex })
-  })
-
-  return { layoutEvents, requiredWidth, minZoom, perfectZoom }
-}
+// [Removed old calculateSmartLayout]
 
 interface VersionTimelineViewProps {
   onEventClick?: (event: VersionEvent) => void
@@ -384,7 +171,18 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [scrollTo])
 
-  const { layoutEvents, timelineGradient, themeColor, totalWidth, minZoom, perfectZoom } = useMemo(() => {
+  /* Axis Break Icon Component */
+  const AxisBreakIcon = () => (
+    <div className={styles.axisBreak}>
+      <div className={styles.breakLine} />
+      <div className={styles.breakLine} />
+    </div>
+  )
+
+  // Axis Break Toggle State
+  const [enableAxisBreak, setEnableAxisBreak] = useState(true)
+
+  const { layoutEvents, timelineGradient, themeColor, totalWidth, minZoom, perfectZoom, timeSegments, hasPossibleBreaks } = useMemo(() => {
     if (!timeline || timeline.events.length === 0) {
       return {
         layoutEvents: [] as LayoutEvent[],
@@ -392,22 +190,31 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
         themeColor: '#0A7171',
         totalWidth: containerWidth,
         minZoom: MIN_ZOOM,
-        perfectZoom: DEFAULT_ZOOM
+        perfectZoom: DEFAULT_ZOOM,
+        timeSegments: [] as TimeSegment[],
+        hasPossibleBreaks: false
       }
     }
 
     const eventYears = timeline.events.map(e => e.year)
-    const start = Math.min(...eventYears)
-    const end = Math.max(...eventYears)
 
-    const yearList: number[] = []
-    for (let year = start; year <= end; year++) {
-      yearList.push(year)
-    }
 
+
+    // Check if breaks are possible (for showing warning/button state)
+    // We check if the NEW layout logic detects any breaks at the CURRENT zoom level.
+    // If we disable breaks, we still want to know if we *could* enable them.
+    const potentialZoom = zoom || DEFAULT_ZOOM
+    const potentialPixelsPerYear = (potentialZoom / 100) * 100
+
+    // We can use the utility to check, but we need to force enableBreaks=true to see if it *would* generate breaks
+    // This is cheap to calculation.
+    const potentialScale = generateTimeSegments(timeline.events, potentialPixelsPerYear, true)
+    const hasPossibleBreaks = potentialScale.segments.some((s: TimeSegment) => s.type === 'break')
+
+    // Theme colors
     const theme = timeline.info.theme || 'teal'
     const customThemeColor = timeline.info.themeColor || '#0A7171'
-    const colors = generateTimelineColors(yearList.length, theme)
+    const colors = generateTimelineColors(eventYears.length, theme)
 
     let gradient: string
     if (colors.length === 1) {
@@ -420,15 +227,15 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
       gradient = `linear-gradient(to right, ${gradientStops})`
     }
 
-    // Calculate timeline width (the area where events are distributed)
-    // Use current zoom if set, otherwise use a temporary safe value
+    // Calculate layout with Non-Linear Axis support
     const currentZoom = zoom || DEFAULT_ZOOM
-    const baseEventsAreaWidth = containerWidth - EDGE_PADDING * 2 - TIMELINE_START_OFFSET - TIMELINE_END_OFFSET
-    const { layoutEvents: layout, requiredWidth: eventsWidth, minZoom: calculatedMinZoom, perfectZoom: calculatedPerfectZoom } = calculateSmartLayout(
-      timeline.events, yearList, start, end, colors, baseEventsAreaWidth, currentZoom
+    const pixelsPerYear = (currentZoom / 100) * 100
+
+    const { layoutEvents: layout, totalWidth: eventsWidth, timeScale } = calculateSmartLayout(
+      timeline.events, colors, pixelsPerYear, enableAxisBreak
     )
 
-    // Total width = edge padding + start offset + events area + end offset + edge padding
+    // Total width
     const totalWidth = EDGE_PADDING + TIMELINE_START_OFFSET + eventsWidth + TIMELINE_END_OFFSET + EDGE_PADDING
 
     return {
@@ -436,10 +243,12 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
       timelineGradient: gradient,
       themeColor: customThemeColor,
       totalWidth,
-      minZoom: calculatedMinZoom,
-      perfectZoom: calculatedPerfectZoom
+      minZoom: 50,
+      perfectZoom: 100,
+      timeSegments: timeScale.segments,
+      hasPossibleBreaks
     }
-  }, [timeline, containerWidth, zoom])
+  }, [timeline, containerWidth, zoom, enableAxisBreak])
 
   // Initialize zoom to perfectZoom once calculated, or load from storage
   useEffect(() => {
@@ -546,6 +355,23 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
 
         {/* Zoom slider */}
         <div className={styles.zoomControl}>
+          {hasPossibleBreaks && (
+            <Tooltip title={enableAxisBreak ? t.versionTimeline.disableAxisBreak : t.versionTimeline.enableAxisBreak}>
+              <button
+                className={styles.fitButton}
+                onClick={() => setEnableAxisBreak(!enableAxisBreak)}
+                style={{
+                  color: enableAxisBreak ? 'var(--theme-color)' : undefined,
+                  marginRight: 8,
+                  borderRight: '1px solid var(--border-color)',
+                  paddingRight: 8
+                }}
+              >
+                {enableAxisBreak ? <DisconnectOutlined /> : <LinkOutlined />}
+              </button>
+            </Tooltip>
+          )}
+
           <ZoomOutOutlined className={styles.zoomIcon} onClick={() => handleZoomChange(Math.max(minZoom, (zoom || minZoom) - 10))} />
           <Slider
             className={styles.zoomSlider}
@@ -620,14 +446,37 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
           {/* Timeline axis */}
           <div className={styles.timelineAxis}>
             {/* Timeline line - from logo area center to beyond last event */}
-            <div
-              className={styles.timelineLine}
-              style={{
-                left: `${EDGE_PADDING + 60}px`,
-                right: `${EDGE_PADDING}px`,
-                background: timelineGradient
-              }}
-            />
+            {/* Timeline Axis Segments */}
+            {timeSegments.map((segment, index) => {
+              // Calculate position relative to the timeline start (after padding + offset)
+              const startLeft = EDGE_PADDING + TIMELINE_START_OFFSET + segment.pixelStart
+
+              if (segment.type === 'break') {
+                return (
+                  <div
+                    key={`seg-${index}`}
+                    className={styles.axisBreak}
+                    style={{
+                      left: `${startLeft + segment.pixelWidth / 2}px`
+                    }}
+                  >
+                    <AxisBreakIcon />
+                  </div>
+                )
+              }
+
+              return (
+                <div
+                  key={`seg-${index}`}
+                  className={styles.timelineSegment}
+                  style={{
+                    left: `${startLeft}px`,
+                    width: `${segment.pixelWidth}px`,
+                    background: timelineGradient
+                  }}
+                />
+              )
+            })}
 
             {/* Timeline edge fades */}
             <div

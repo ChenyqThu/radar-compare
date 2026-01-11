@@ -289,6 +289,8 @@ export const zhCN = {
     theme_green: '绿色',
     theme_rainbow: '彩虹',
     theme_monochrome: '单色渐变',
+    enableAxisBreak: '启用断轴优化',
+    disableAxisBreak: '禁用断轴优化',
   },
 }
 

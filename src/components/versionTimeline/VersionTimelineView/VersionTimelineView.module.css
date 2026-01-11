@@ -914,3 +914,39 @@
 :global([data-theme='dark']) .fitButton {
   border-left-color: #434343;
 }
+
+/* Axis Break Styles */
+.timelineSegment {
+  position: absolute;
+  top: 0;
+  height: 3px;
+  z-index: 0;
+  transform: translateY(-1.5px);
+}
+
+.axisBreak {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--border-color, #d9d9d9);
+  z-index: 1;
+}
+
+.breakLine {
+  width: 2px;
+  height: 12px;
+  background-color: var(--border-color, #d9d9d9);
+  transform: rotate(15deg);
+  margin: 0 1px;
+}
+
+:global([data-theme='dark']) .axisBreak {
+  color: #434343;
+}
+
+:global([data-theme='dark']) .breakLine {
+  background-color: #434343;
+}

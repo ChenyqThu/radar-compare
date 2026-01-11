@@ -311,8 +311,39 @@ npm run lint
 | `src/services/db/index.ts` | IndexedDB 初始化和 CRUD |
 | `src/services/excel/exporter.ts` | Excel 导出(单/多 Tab) |
 | `src/services/excel/importer.ts` | Excel 导入(单/多 Sheet) |
+| `src/components/versionTimeline/layoutUtils.ts` | 时间轴布局计算核心逻辑 (断轴/碰撞检测) |
 | `src/styles/global.css` | CSS 变量和全局样式 |
 | `docs/database/schema.sql` | Supabase 数据库 schema |
+
+## 时间轴断轴功能 (Axis Break Implementation)
+
+> 新增于 2026-01
+
+为了解决时间轴跨度过大导致大量空白的问题，引入了**非线性时间轴 (Non-Linear Axis)** 系统。
+
+### 1. 核心逻辑 (`src/components/versionTimeline/layoutUtils.ts`)
+
+- **布局计算分离**:所有布局逻辑（坐标映射、碰撞检测、断轴生成）已从 UI 组件移至 `layoutUtils.ts`。
+- **坐标系统**: 
+  - 旧: `年份 -> 像素` (线性映射)
+  - 新: `年份 -> TimeSegment -> 像素` (分段映射)
+  - `mapDateToPixel`: 负责处理这种非线性映射。
+
+### 2. 断轴检测策略 (Gap Detection)
+
+- **基于视觉距离**: 不再基于固定的年份差。
+- **阈值**: `MIN_GAP_PIXELS = 250px`
+- **逻辑**: 如果两个连续事件之间的**屏幕像素距离** > 250px，则认为该空间浪费，自动折叠为断轴。
+- **优势**: 
+  - 缩放无关性：无论缩放比例如何，只会折叠真正占据大量屏幕空间的区域。
+  - 大缩放(Zoom In): 可能折叠较短的年份间隔（因为它们占据了很大屏幕）。
+  - 小缩放(Zoom Out): 可能保留较长的年份间隔（因为它们占据屏幕很少）。
+
+### 3. 可视化细节
+
+- **断轴宽度**: `BREAK_WIDTH = 40px` (视觉上更紧凑)
+- **开关逻辑**: 只有当当前视图**存在**可折叠的空白区域时，工具栏才会显示"启用/禁用断轴"的切换按钮。
+
 
 ## ECharts 开发规范
 

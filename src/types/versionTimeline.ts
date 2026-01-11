@@ -62,6 +62,23 @@ export interface VersionTimeline {
   updatedAt: number
 }
 
+
+// 时间轴分段类型
+export interface TimeSegment {
+  startYear: number
+  endYear: number
+  pixelStart: number
+  pixelWidth: number // 宽度
+  scale: number // pixels per year (density)
+  type: 'continuous' | 'compressed' | 'break'
+}
+
+// 时间轴分段配置
+export interface TimeScaleConfig {
+  segments: TimeSegment[]
+  totalWidth: number
+}
+
 // 类型守卫
 export function isVersionTimeline(chart: unknown): chart is VersionTimeline {
   return (

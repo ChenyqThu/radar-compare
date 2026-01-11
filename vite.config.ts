@@ -34,23 +34,15 @@ export default defineConfig({
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
-            // UI libraries (React + AntD) to avoid circular dependencies
-            if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/') ||
-              id.includes('/antd/') || id.includes('/@ant-design/') || id.includes('/rc-') || id.includes('/dayjs/')) {
-              return 'ui-libs'
-            }
-            // ECharts & dependencies
-            if (id.includes('/echarts/') || id.includes('/zrender/') || id.includes('/echarts-for-react/')) {
+            // ECharts - 大体积独立库，无 React 依赖
+            if (id.includes('/echarts/') || id.includes('/zrender/')) {
               return 'echarts'
             }
-            // Utilities
-            if (id.includes('/lodash/') || id.includes('/lodash-es/')) {
-              return 'lodash'
-            }
+            // xlsx - 大体积独立库，无 React 依赖
             if (id.includes('/xlsx/')) {
               return 'xlsx'
             }
-            // other vendors
+            // 其他所有 node_modules 放一起，避免循环依赖
             return 'vendor'
           }
         },
