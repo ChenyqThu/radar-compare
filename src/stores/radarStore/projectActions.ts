@@ -57,9 +57,7 @@ export function createProjectActions(set: StoreSetter, get: StoreGetter) {
       if (isSupabaseConfigured) {
         const user = useAuthStore.getState().user
         if (user) {
-          deleteCloudProject(projectId).catch(err =>
-            console.warn('[Cloud] Failed to delete project:', err)
-          )
+          deleteCloudProject(projectId).catch(() => {})
         }
       }
 

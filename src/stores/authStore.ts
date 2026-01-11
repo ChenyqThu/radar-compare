@@ -10,16 +10,13 @@ type ProfileInsert = Database['radar_compare']['Tables']['profiles']['Insert']
 
 // Ensure user profile exists in radar_compare schema
 async function ensureProfile(): Promise<void> {
-  console.log('[Auth] Ensuring profile...')
   try {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      console.log('[Auth] No user found, skipping profile check')
       return
     }
 
     // Check if profile exists
-    console.log('[Auth] Checking if profile exists...')
     const { data: existing, error: selectError } = await supabase
       .from('profiles')
       .select('id')
@@ -28,18 +25,15 @@ async function ensureProfile(): Promise<void> {
 
     if (selectError && selectError.code !== 'PGRST116') {
       // PGRST116 = "The result contains 0 rows" (not found, which is expected for new users)
-      console.warn('[Auth] Profile check error:', selectError)
       // Don't block on error, continue anyway
       return
     }
 
     if (existing) {
-      console.log('[Auth] Profile already exists')
       return
     }
 
     // Insert new profile
-    console.log('[Auth] Creating new profile...')
     const profileData: ProfileInsert = {
       id: user.id,
       email: user.email,
@@ -48,17 +42,11 @@ async function ensureProfile(): Promise<void> {
       provider: user.app_metadata?.provider,
     }
 
-    const { error } = await supabase
+    await supabase
       .from('profiles')
       .insert(profileData as never)
-
-    if (error && error.code !== '23505') { // Ignore duplicate key error
-      console.warn('[Auth] Profile insert error:', error)
-    } else {
-      console.log('[Auth] Profile created successfully')
-    }
-  } catch (error) {
-    console.warn('[Auth] Failed to ensure profile:', error)
+  } catch {
+    // Silently fail - profile creation is not critical
   }
 }
 
@@ -185,30 +173,25 @@ export function initializeAuth(): () => void {
   // Listen for auth state changes - this handles all events including initial session
   const { data: { subscription } } = supabase.auth.onAuthStateChange(
     async (event, session) => {
-      console.log('[Auth] Event:', event, session?.user?.email)
-
       if (session?.user) {
         // User is signed in (handles INITIAL_SESSION, SIGNED_IN, TOKEN_REFRESHED)
         // Set user state first, then ensure profile in background
-        console.log('[Auth] Setting user state...')
         useAuthStore.setState({
           user: toAuthUser(session.user),
           session,
           isLoading: false,
           isInitialized: true,
         })
-        console.log('[Auth] User state set:', useAuthStore.getState().user?.email)
 
         // Ensure profile exists (don't block UI on this)
         if (event === 'SIGNED_IN') {
-          ensureProfile().catch(err => console.warn('[Auth] ensureProfile failed:', err))
+          ensureProfile().catch(() => {})
 
           // Trigger data sync after sign in
-          console.log('[Auth] Triggering data sync...')
           useSyncStore.getState().checkAndSync().then(() => {
             // Refresh project list after sync
             useRadarStore.getState().refreshProjectList()
-          }).catch(err => console.warn('[Auth] Sync failed:', err))
+          }).catch(() => {})
         }
       } else if (event === 'SIGNED_OUT') {
         // User signed out

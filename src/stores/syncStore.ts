@@ -95,12 +95,9 @@ export const useSyncStore = create<SyncState>((set, get) => ({
 
     if (!hasCloud) {
       // First-time login: upload local projects
-      console.log('[Sync] First-time login, uploading local projects...')
-      const count = await get().uploadAllLocal()
-      console.log(`[Sync] Uploaded ${count} projects to cloud`)
+      await get().uploadAllLocal()
     } else {
       // User has cloud data, merge with local
-      console.log('[Sync] User has cloud projects, merging...')
       await mergeCloudAndLocal()
     }
   },
@@ -120,7 +117,6 @@ async function mergeCloudAndLocal(): Promise<void> {
   // 1. Download cloud projects that don't exist locally
   for (const meta of cloudMetas) {
     if (!localMap.has(meta.id)) {
-      console.log(`[Sync] Downloading cloud project: ${meta.name}`)
       const cloudProject = await getCloudProject(meta.id)
       if (cloudProject) {
         await db.projects.put(cloudProject)
@@ -133,14 +129,12 @@ async function mergeCloudAndLocal(): Promise<void> {
 
       if (cloudUpdated > localUpdated) {
         // Cloud is newer, download it
-        console.log(`[Sync] Cloud version newer, updating: ${meta.name}`)
         const cloudProject = await getCloudProject(meta.id)
         if (cloudProject) {
           await db.projects.put(cloudProject)
         }
       } else if (localUpdated > cloudUpdated) {
         // Local is newer, upload it
-        console.log(`[Sync] Local version newer, uploading: ${meta.name}`)
         await saveCloudProject(local)
       }
     }
@@ -149,11 +143,9 @@ async function mergeCloudAndLocal(): Promise<void> {
   // 2. Upload local projects that don't exist in cloud
   for (const local of localProjects) {
     if (!cloudIds.has(local.id)) {
-      console.log(`[Sync] Uploading local project: ${local.name}`)
       await saveCloudProject(local)
     }
   }
 
-  console.log('[Sync] Merge complete')
   useSyncStore.setState({ status: 'success', lastSyncAt: Date.now() })
 }

@@ -96,7 +96,6 @@ export async function saveCloudProject(project: Project): Promise<boolean> {
     return false
   }
 
-  console.log('[Cloud] Project saved:', project.name)
   return true
 }
 
@@ -116,7 +115,6 @@ export async function deleteCloudProject(id: string): Promise<boolean> {
     return false
   }
 
-  console.log('[Cloud] Project deleted:', id)
   return true
 }
 
@@ -136,7 +134,6 @@ export async function uploadLocalProjects(projects: Project[]): Promise<number> 
     if (success) successCount++
   }
 
-  console.log(`[Cloud] Uploaded ${successCount}/${projects.length} projects`)
   return successCount
 }
 
