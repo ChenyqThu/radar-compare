@@ -1,6 +1,8 @@
 import { nanoid } from 'nanoid'
 import type { Project } from '@/types'
 import { db, getAllProjects, getProject } from '@/services/db'
+import { isSupabaseConfigured, deleteCloudProject } from '@/services/supabase'
+import { useAuthStore } from '@/stores/authStore'
 import type { StoreGetter, StoreSetter } from './types'
 import { debouncedSave } from './utils'
 
@@ -40,11 +42,27 @@ export function createProjectActions(set: StoreSetter, get: StoreGetter) {
       }
       await db.projects.add(newProject)
       await get().refreshProjectList()
+
+      // Sync to cloud if logged in
+      debouncedSave(newProject)
+
       return newProject.id
     },
 
     deleteProject: async (projectId: string) => {
+      // Delete from local
       await db.projects.delete(projectId)
+
+      // Delete from cloud if logged in
+      if (isSupabaseConfigured) {
+        const user = useAuthStore.getState().user
+        if (user) {
+          deleteCloudProject(projectId).catch(err =>
+            console.warn('[Cloud] Failed to delete project:', err)
+          )
+        }
+      }
+
       const { currentProject } = get()
       if (currentProject?.id === projectId) {
         const list = await getAllProjects()

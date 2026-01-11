@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { Button, Space } from 'antd'
 import { SunOutlined, MoonOutlined, RadarChartOutlined, HistoryOutlined } from '@ant-design/icons'
 import { useUIStore } from '@/stores/uiStore'
 import { useI18n } from '@/locales'
+import { LoginModal, UserMenu } from '@/components/auth'
 import omadaLight from '@/assets/omada_light.png'
 import omadaDark from '@/assets/Omada_dark.png'
 import styles from './Navbar.module.css'
@@ -10,6 +12,7 @@ import type { AppMode } from '@/stores/uiStore'
 export function Navbar() {
   const { theme, setTheme, appMode, setAppMode } = useUIStore()
   const { language, setLanguage, t } = useI18n()
+  const [loginModalOpen, setLoginModalOpen] = useState(false)
 
   const toggleLanguage = () => {
     setLanguage(language === 'zh-CN' ? 'en-US' : 'zh-CN')
@@ -59,8 +62,11 @@ export function Navbar() {
             onClick={toggleTheme}
             className={styles.toggleBtn}
           />
+          <UserMenu onLoginClick={() => setLoginModalOpen(true)} />
         </Space>
       </div>
+
+      <LoginModal open={loginModalOpen} onClose={() => setLoginModalOpen(false)} />
     </div>
   )
 }

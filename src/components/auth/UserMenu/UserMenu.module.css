@@ -1,0 +1,56 @@
+.loginBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-color);
+}
+
+.avatarBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.avatarBtn:hover {
+  background: var(--hover-bg);
+}
+
+.avatar {
+  border: 2px solid var(--primary-color);
+}
+
+.syncIcon {
+  color: var(--text-color-secondary, #888);
+  font-size: 14px;
+}
+
+.syncingIcon {
+  color: var(--primary-color, #1890ff);
+  font-size: 14px;
+}
+
+.successIcon {
+  color: var(--success-color, #52c41a);
+  font-size: 14px;
+}
+
+.errorIcon {
+  color: var(--error-color, #ff4d4f);
+  font-size: 14px;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+
+.email {
+  font-size: 12px;
+}

@@ -13,6 +13,7 @@ import { CreateTimelineModal } from '@/components/timeline/CreateTimelineModal'
 import { VersionTimelineView, VersionEventEditor, TimelineInfoEditor, TimelineToolbar, TimelineImportModal } from '@/components/versionTimeline'
 import { useRadarStore } from '@/stores/radarStore'
 import { useUIStore } from '@/stores/uiStore'
+import { initializeAuth } from '@/stores/authStore'
 import { initializeDatabase } from '@/services/db'
 import { isTimelineRadar } from '@/types'
 import { isVersionTimeline } from '@/types/versionTimeline'
@@ -44,6 +45,12 @@ function App() {
   const isVersionTimelineMode = activeRadar && isVersionTimeline(activeRadar)
 
   const [initError, setInitError] = useState<string | null>(null)
+
+  // Initialize auth listener
+  useEffect(() => {
+    const unsubscribe = initializeAuth()
+    return () => unsubscribe()
+  }, [])
 
   useEffect(() => {
     const init = async () => {

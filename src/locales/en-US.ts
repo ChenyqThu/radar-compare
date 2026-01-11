@@ -152,6 +152,34 @@ export const enUS: Locale = {
     selectAtLeast2: 'Please select at least 2 sources',
   },
 
+  // Auth
+  auth: {
+    login: 'Login',
+    logout: 'Logout',
+    signUp: 'Sign Up',
+    loginTitle: 'Login to Radar Compare',
+    continueWithGoogle: 'Continue with Google',
+    continueWithNotion: 'Continue with Notion',
+    orContinueWith: 'or',
+    emailPlaceholder: 'Email',
+    passwordPlaceholder: 'Password',
+    emailRequired: 'Please enter email',
+    emailInvalid: 'Invalid email format',
+    passwordRequired: 'Please enter password',
+    passwordMinLength: 'Password must be at least 6 characters',
+    loginSuccess: 'Login successful',
+    signUpSuccess: 'Sign up successful, please check your email',
+    logoutSuccess: 'Logged out',
+    offlineHint: 'Data is stored locally when not logged in',
+    syncStatus: 'Sync Status',
+    synced: 'Synced',
+    syncing: 'Syncing...',
+    syncError: 'Sync failed',
+    lastSync: 'Last sync',
+    cloudReady: 'Cloud ready',
+    offline: 'Offline',
+  },
+
   // Version Timeline
   versionTimeline: {
     title: 'Milestones',

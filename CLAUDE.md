@@ -4,7 +4,9 @@
 
 ## 项目概述
 
-纯前端竞品能力对比可视化工具，支持多雷达图 Tab 切换、维度/子维度管理、多 Vendor 对比、**时间轴雷达图对比**、数据导入导出，以及中英文切换和明暗主题切换。
+竞品能力对比可视化工具，支持多雷达图 Tab 切换、维度/子维度管理、多 Vendor 对比、**时间轴雷达图对比**、数据导入导出，以及中英文切换和明暗主题切换。
+
+**云端功能**: 支持 Google/Notion OAuth 登录，登录后数据自动同步到云端，支持跨设备访问。未登录用户数据仅存储在本地。
 
 ## 技术栈
 
@@ -17,6 +19,7 @@
 | 拖拽 | @dnd-kit/core + @dnd-kit/sortable |
 | Excel | SheetJS (xlsx) |
 | 本地存储 | IndexedDB (Dexie.js) |
+| 云端后端 | Supabase (PostgreSQL + Auth + REST API) |
 | 国际化 | 自定义 i18n (Zustand store) |
 
 ## 目录结构
@@ -27,6 +30,9 @@ src/
 │   ├── omada_light.png       # 浅色主题 Logo
 │   └── Omada_dark.png        # 深色主题 Logo
 ├── components/
+│   ├── auth/                  # 认证组件
+│   │   ├── LoginModal/       # 登录弹窗
+│   │   └── UserMenu/         # 用户头像菜单 + 同步状态
 │   ├── chart/
 │   │   ├── RadarChart/       # 主雷达图 + 子维度雷达图
 │   │   ├── SubRadarDrawer/   # 子维度雷达图抽屉(已整合到RadarChart)
@@ -55,14 +61,22 @@ src/
 │   ├── zh-CN.ts              # 中文语言包
 │   └── en-US.ts              # 英文语言包
 ├── stores/
-│   ├── radarStore.ts         # 雷达图业务数据
-│   └── uiStore.ts            # UI 状态 (主题、抽屉等)
+│   ├── radarStore/           # 雷达图业务数据 (模块化)
+│   ├── uiStore.ts            # UI 状态 (主题、抽屉等)
+│   ├── authStore.ts          # 认证状态 (用户、会话)
+│   └── syncStore.ts          # 同步状态 (云端同步)
 ├── services/
 │   ├── db/                   # IndexedDB 数据库
-│   └── excel/                # Excel 导入导出
+│   ├── excel/                # Excel 导入导出
+│   └── supabase/             # Supabase 云端服务
+│       ├── client.ts         # Supabase 客户端初始化
+│       ├── projects.ts       # 项目 CRUD 操作
+│       └── index.ts          # 服务导出
 ├── types/
 │   ├── radar.ts              # 核心类型定义
 │   ├── io.ts                 # 导入导出类型
+│   ├── auth.ts               # 认证类型
+│   ├── supabase.ts           # Supabase 数据库类型
 │   └── index.ts              # 类型导出
 ├── utils/
 │   └── calculation.ts        # 分数计算逻辑
@@ -217,6 +231,21 @@ interface Project {
 - **多 Tab 导出**: 支持一键导出所有 Tab 到多个 Excel 工作表
 - **多 Sheet 导入**: 支持导入多个 Excel 工作表为不同的 Tab
 
+### 9. 账号登录与云同步
+
+- **OAuth 登录**: 支持 Google 和 Notion 账号登录
+- **本地优先**: 未登录用户数据仅存储在 IndexedDB
+- **自动同步**: 登录后数据自动同步到云端 (500ms 防抖)
+- **首次登录**: 自动上传所有本地项目到云端
+- **同步状态**: 用户头像旁显示同步状态图标 (同步中/已同步/失败)
+- **跨设备**: 登录后可在多设备间访问相同数据
+
+**技术实现**:
+- 后端: Supabase (PostgreSQL + REST API)
+- 认证: Supabase Auth (OAuth 2.0)
+- 数据隔离: 使用独立 schema (`radar_compare`)
+- RLS 策略: 用户只能访问自己的项目
+
 ## 开发命令
 
 ```bash
@@ -240,11 +269,17 @@ npm run lint
 
 | 文件 | 用途 |
 |------|------|
-| `src/stores/radarStore.ts` | 业务数据和所有操作方法 |
+| `src/stores/radarStore/index.ts` | 雷达图业务数据和所有操作方法 |
 | `src/stores/uiStore.ts` | UI 状态 (主题、抽屉、Tab) |
+| `src/stores/authStore.ts` | 认证状态 (用户、会话、OAuth) |
+| `src/stores/syncStore.ts` | 同步状态 (云端同步、冲突检测) |
+| `src/services/supabase/client.ts` | Supabase 客户端初始化 |
+| `src/services/supabase/projects.ts` | 云端项目 CRUD 操作 |
 | `src/locales/index.ts` | i18n store 和语言切换 |
 | `src/components/chart/RadarChart/index.tsx` | 主雷达图渲染和交互 |
 | `src/components/chart/TimelineRadarChart/index.tsx` | 时间轴雷达图(双列布局) |
+| `src/components/auth/LoginModal/index.tsx` | 登录弹窗 (Google/Notion OAuth) |
+| `src/components/auth/UserMenu/index.tsx` | 用户头像菜单 + 同步状态 |
 | `src/components/timeline/TimelineSlider/index.tsx` | 时间轴滑块控件 |
 | `src/components/timeline/VendorSwitcher/index.tsx` | Vendor 快速切换器 |
 | `src/components/settings/DimensionManager/index.tsx` | 维度表格和旭日图 |
@@ -255,6 +290,7 @@ npm run lint
 | `src/services/excel/exporter.ts` | Excel 导出(单/多 Tab) |
 | `src/services/excel/importer.ts` | Excel 导入(单/多 Sheet) |
 | `src/styles/global.css` | CSS 变量和全局样式 |
+| `docs/database/schema.sql` | Supabase 数据库 schema |
 
 ## ECharts 开发规范
 
@@ -400,9 +436,42 @@ This may be caused by an accidental early return statement.
 ## 注意事项
 
 - 数据自动保存到 IndexedDB，防抖 500ms
+- 登录用户数据同时同步到 Supabase 云端
 - 设置抽屉宽度保存到 localStorage
 - Tab 支持键盘快捷键: `S` 打开/关闭设置
 - 所有组件支持深色模式
+
+## Supabase 后端配置
+
+### 数据库 Schema
+
+使用独立 schema `radar_compare`，与其他项目数据隔离。
+
+**表结构**:
+- `profiles`: 用户信息 (扩展 auth.users)
+- `projects`: 项目数据 (id 使用 TEXT 类型兼容 nanoid)
+- `shares`: 分享链接 (预留)
+- `collaborators`: 协作者 (预留)
+
+**RLS 策略**: 用户只能访问自己的项目，采用简化策略避免循环依赖。
+
+详细 schema 见 `docs/database/schema.sql`。
+
+### 环境变量
+
+```env
+# .env.local
+VITE_SUPABASE_URL=https://xxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...
+```
+
+### Supabase Dashboard 配置
+
+1. **Authentication → Providers**: 启用 Google 和 Notion
+2. **Authentication → URL Configuration**: 添加回调 URL
+   - 开发: `http://localhost:3000/auth/callback`
+   - 生产: `https://tools.chenge.ink/auth/callback`
+3. **Database → Settings → Exposed schemas**: 添加 `radar_compare`
 
 ## 浏览器兼容性
 

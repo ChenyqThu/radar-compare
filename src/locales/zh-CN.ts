@@ -150,6 +150,34 @@ export const zhCN = {
     selectAtLeast2: '请至少选择 2 个数据源',
   },
 
+  // Auth
+  auth: {
+    login: '登录',
+    logout: '退出登录',
+    signUp: '注册',
+    loginTitle: '登录到 Radar Compare',
+    continueWithGoogle: '使用 Google 登录',
+    continueWithNotion: '使用 Notion 登录',
+    orContinueWith: '或',
+    emailPlaceholder: '邮箱',
+    passwordPlaceholder: '密码',
+    emailRequired: '请输入邮箱',
+    emailInvalid: '邮箱格式不正确',
+    passwordRequired: '请输入密码',
+    passwordMinLength: '密码至少 6 位',
+    loginSuccess: '登录成功',
+    signUpSuccess: '注册成功，请查收验证邮件',
+    logoutSuccess: '已退出登录',
+    offlineHint: '未登录时数据仅保存在本地',
+    syncStatus: '同步状态',
+    synced: '已同步',
+    syncing: '同步中...',
+    syncError: '同步失败',
+    lastSync: '上次同步',
+    cloudReady: '云端就绪',
+    offline: '离线',
+  },
+
   // Version Timeline
   versionTimeline: {
     title: '大事记',
