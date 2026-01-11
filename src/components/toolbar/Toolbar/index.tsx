@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Button, Space, Dropdown, message } from 'antd'
 import {
   DownloadOutlined,
@@ -7,25 +6,20 @@ import {
   FileTextOutlined,
   HistoryOutlined,
   FolderOutlined,
-  ShareAltOutlined,
 } from '@ant-design/icons'
 import type { MenuProps } from 'antd'
 import { useUIStore } from '@/stores/uiStore'
 import { useRadarStore } from '@/stores/radarStore'
-import { useAuthStore } from '@/stores/authStore'
 import { useI18n } from '@/locales'
 import { exportToExcel, exportMultipleToExcel, exportToJson, downloadTemplate } from '@/services/excel/exporter'
 import { isRegularRadar } from '@/types'
-import { ShareModal } from '@/components/share'
 import styles from './Toolbar.module.css'
 
 export function Toolbar() {
   const { setImportModalVisible, setCreateTimelineModalVisible } = useUIStore()
   const { getActiveRadar, currentProject, getRegularRadars } = useRadarStore()
-  const { user } = useAuthStore()
   const { t } = useI18n()
   const activeRadar = getActiveRadar()
-  const [shareModalOpen, setShareModalOpen] = useState(false)
 
   const handleExportExcel = () => {
     if (!activeRadar || !isRegularRadar(activeRadar)) {
@@ -98,10 +92,6 @@ export function Toolbar() {
     setCreateTimelineModalVisible(true)
   }
 
-  const handleShare = () => {
-    setShareModalOpen(true)
-  }
-
   return (
     <div className={styles.container}>
       <Space>
@@ -114,23 +104,7 @@ export function Toolbar() {
         <Button icon={<UploadOutlined />} onClick={handleImport}>
           {t.toolbar.import}
         </Button>
-        <Button
-          icon={<ShareAltOutlined />}
-          onClick={handleShare}
-          type={user ? 'default' : 'dashed'}
-        >
-          {t.share?.title || '分享'}
-        </Button>
       </Space>
-
-      {currentProject && (
-        <ShareModal
-          open={shareModalOpen}
-          onClose={() => setShareModalOpen(false)}
-          projectId={currentProject.id}
-          projectName={currentProject.name}
-        />
-      )}
     </div>
   )
 }

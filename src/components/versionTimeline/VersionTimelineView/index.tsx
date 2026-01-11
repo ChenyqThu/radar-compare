@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react'
 import { Empty, Slider } from 'antd'
-import { PlusOutlined, LeftOutlined, RightOutlined, VerticalLeftOutlined, VerticalRightOutlined, ZoomInOutlined, ZoomOutOutlined } from '@ant-design/icons'
+import { PlusOutlined, LeftOutlined, RightOutlined, ZoomInOutlined, ZoomOutOutlined, CompressOutlined } from '@ant-design/icons'
 import { useRadarStore } from '@/stores/radarStore'
 import { useI18n } from '@/locales'
 import type { VersionEvent, TimelineTheme } from '@/types/versionTimeline'
@@ -75,26 +75,16 @@ function calculateSmartLayout(
   colors: string[],
   baseWidth: number,
   zoomPercent: number
-): { layoutEvents: LayoutEvent[]; requiredWidth: number; minZoom: number } {
+): { layoutEvents: LayoutEvent[]; requiredWidth: number; minZoom: number; perfectZoom: number } {
   const totalYears = endYear - startYear
   const yearRange = totalYears || 1
-  const eventCount = events.length
-
-  // Calculate minimum width needed for 2-layer layout without overlap
-  // With 2 layers (top + bottom), we need half the spacing per layer
-  const minWidthFor2Layers = Math.ceil(eventCount / 3) * MIN_CARD_SPACING + 20
-
-  // Calculate minimum zoom that prevents overlap
-  const minZoom = Math.max(MIN_ZOOM, Math.ceil((minWidthFor2Layers / baseWidth) * 100))
-
-  // Apply zoom to get actual width
-  const effectiveZoom = Math.max(zoomPercent, minZoom)
-  const requiredWidth = Math.max(baseWidth, (baseWidth * effectiveZoom) / 100)
 
   // Calculate positions based on time
   const eventsWithPosition = events.map(event => {
     const eventTime = event.year + (event.month ? (event.month - 1) / 12 : 0.5)
-    const timelinePosition = ((eventTime - startYear) / yearRange) * 100
+    // Avoid division by zero if yearRange is 0 (should already be handled but safe check)
+    const effectiveRange = Math.max(yearRange, 0.1)
+    const timelinePosition = ((eventTime - startYear) / effectiveRange) * 100
     const yearIndex = years.indexOf(event.year)
     const color = colors[yearIndex] || colors[0]
     return { ...event, timelinePosition, color }
@@ -102,7 +92,89 @@ function calculateSmartLayout(
 
   eventsWithPosition.sort((a, b) => a.timelinePosition - b.timelinePosition)
 
+  // OPTIMIZATION 3: Axis Dot Collision Avoidance (Nudging)
+  // Ensure no two event dots are perfectly overlapping or too close on the axis.
+  // If they are too close, nudge the later one slightly to the right.
+  const MIN_DOT_DIST = 0.5 // % of total width (approx 5-10px depending on zoom)
+
+  for (let i = 1; i < eventsWithPosition.length; i++) {
+    const prev = eventsWithPosition[i - 1]
+    const curr = eventsWithPosition[i]
+
+    if (curr.timelinePosition - prev.timelinePosition < MIN_DOT_DIST) {
+      // Nudge current forward to maintain min distance
+      curr.timelinePosition = prev.timelinePosition + MIN_DOT_DIST
+    }
+  }
+
+  // Calcluate required width based on local density (sliding window)
+  let maxRequiredWidthForMin = 0
+  let maxRequiredWidthForPerfect = 0
+
+  // Basic volume constraint (global average)
+  const minWidthGlobal = Math.ceil(events.length / 4) * MIN_CARD_SPACING + 20
+  maxRequiredWidthForMin = minWidthGlobal
+  maxRequiredWidthForPerfect = minWidthGlobal
+
+  // B. Local density constraint: Sliding window of size 5 (indices i and i+4)
+  // We only run this if we have enough events to potentially overlap
+  if (eventsWithPosition.length >= 5) {
+    for (let i = 0; i < eventsWithPosition.length - 4; i++) {
+      const startEvent = eventsWithPosition[i]
+      const endEvent = eventsWithPosition[i + 4]
+
+      const timePercentDiff = endEvent.timelinePosition - startEvent.timelinePosition
+
+      // OPTIMIZATION: Relaxed constraints (Hybrid Strategy)
+      // Instead of forcing 100% gap (no overlap), we allow some overlap (e.g., 15% overlap / 0.85 factor).
+      // This creates a "stacked cards" look in high density areas instead of exploding the timeline width.
+
+      if (timePercentDiff > 0.05) {
+        // 1. Calculate for Hard Minimum (0.85 factor / 15% overlap)
+        const neededWidthMin = (MIN_CARD_SPACING * 0.85 * 100) / timePercentDiff
+        if (neededWidthMin > maxRequiredWidthForMin) {
+          maxRequiredWidthForMin = neededWidthMin
+        }
+
+        // 2. Calculate for Perfect View (1.05 factor / Clear separation)
+        const neededWidthPerfect = (MIN_CARD_SPACING * 1.05 * 100) / timePercentDiff
+        if (neededWidthPerfect > maxRequiredWidthForPerfect) {
+          maxRequiredWidthForPerfect = neededWidthPerfect
+        }
+      }
+    }
+  }
+
+  // Calculate zooms
+  let calculatedMinZoom = Math.ceil((maxRequiredWidthForMin / baseWidth) * 100)
+  let calculatedPerfectZoom = Math.ceil((maxRequiredWidthForPerfect / baseWidth) * 100)
+
+  // STRATEGY: Hybrid Density Cap
+  // We cap the algorithm's ability to stretch the timeline purely for density reasons.
+  // If a cluster is EXTREMELY dense, we stop stretching at 180% zoom and just let them overlap.
+  // This prevents one busy month from making the other 11 months look empty.
+  const MAX_DENSITY_INDUCED_ZOOM = 180
+
+  if (calculatedPerfectZoom > MAX_DENSITY_INDUCED_ZOOM) {
+    calculatedPerfectZoom = MAX_DENSITY_INDUCED_ZOOM
+    // Min zoom must be <= perfect zoom
+    if (calculatedMinZoom > calculatedPerfectZoom) {
+      calculatedMinZoom = calculatedPerfectZoom
+    }
+  }
+
+  // Clamp to reasonable bounds (min 50%)
+  const minZoom = Math.max(MIN_ZOOM, calculatedMinZoom)
+  const perfectZoom = Math.max(minZoom, calculatedPerfectZoom)
+
+  // Apply zoom to get actual width
+  const effectiveZoom = Math.max(zoomPercent, minZoom)
+  const requiredWidth = Math.max(baseWidth, (baseWidth * effectiveZoom) / 100)
+
   const layoutEvents: LayoutEvent[] = []
+  // Track the side of the last placed event for Zig-Zag effect
+  let lastPlacedSide: 'top' | 'bottom' = 'bottom' // Start opposite to prefer 'top' first
+
   const topLayers: Array<{ start: number; end: number }[]> = [[], []]
   const bottomLayers: Array<{ start: number; end: number }[]> = [[], []]
 
@@ -117,9 +189,10 @@ function calculateSmartLayout(
     let position: 'top' | 'bottom' = 'top'
     let layerIndex = 0
 
-    const topCount = topLayers.reduce((sum, layer) => sum + layer.length, 0)
-    const bottomCount = bottomLayers.reduce((sum, layer) => sum + layer.length, 0)
-    const preferTop = topCount <= bottomCount
+    // OPTIMIZATION 1: Zig-Zag Strategy
+    // Instead of balancing total counts, we alternate sides to create a visual rhythm.
+    // This reduces "bunching" and makes the timeline look more dynamic.
+    const preferTop = lastPlacedSide === 'bottom'
 
     const sidesToTry: Array<'top' | 'bottom'> = preferTop ? ['top', 'bottom'] : ['bottom', 'top']
 
@@ -141,16 +214,46 @@ function calculateSmartLayout(
       }
     }
 
-    // If layer 0 on both sides have overlap, try layer 1
+    // PHASE 2: Try Layer 1 (Preferred -> Other) with Visual Safety Check
     if (!placed) {
       for (const side of sidesToTry) {
         const layers = side === 'top' ? topLayers : bottomLayers
-        const layer = layers[1]
-        const hasOverlap = layer.some(occupied =>
+        // When placing in Layer 1, we must check:
+        // 1. Collision with other Layer 1 cards (Standard)
+        // 2. Visual interference with Layer 0 connector path (Optimization 2)
+
+        const layer1 = layers[1]
+        const hasLayer1Overlap = layer1.some(occupied =>
           !(eventEnd < occupied.start || eventStart > occupied.end)
         )
 
-        if (!hasOverlap) {
+        // OPTIMIZATION 2: Lead Line Safety
+        // If we place in Layer 1, our connector goes through Layer 0 space.
+        // We should avoid cases where the connector "cuts" a Layer 0 card near its edge.
+        // If it hits the center (stacking), it's fine. If it hits the edge, it's messy.
+        let isVisuallySafe = true
+        const layer0 = layers[0]
+
+        // check obstruction in layer 0
+        const obstructingLayer0Card = layer0.find(occupied =>
+          event.timelinePosition >= occupied.start && event.timelinePosition <= occupied.end
+        )
+
+        if (obstructingLayer0Card) {
+          // We are obstructed. Is it a "clean stack" or a "messy cut"?
+          const occupiedCenter = (obstructingLayer0Card.start + obstructingLayer0Card.end) / 2
+          const dist = Math.abs(event.timelinePosition - occupiedCenter)
+
+          // Convert percent distance back to pixels roughly to check alignment
+          const distPx = (dist / 100) * requiredWidth
+
+          // If distance is NOT small enough to be a stack, consider it a bad overlap
+          if (distPx > 40) {
+            isVisuallySafe = false
+          }
+        }
+
+        if (!hasLayer1Overlap && isVisuallySafe) {
           position = side
           layerIndex = 1
           layers[1].push({ start: eventStart, end: eventEnd })
@@ -169,10 +272,11 @@ function calculateSmartLayout(
       layerIndex = leastCrowdedIndex
     }
 
+    lastPlacedSide = position
     layoutEvents.push({ ...event, position, offset: layerIndex })
   })
 
-  return { layoutEvents, requiredWidth, minZoom }
+  return { layoutEvents, requiredWidth, minZoom, perfectZoom }
 }
 
 interface VersionTimelineViewProps {
@@ -196,7 +300,9 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
   const [containerWidth, setContainerWidth] = useState(1000)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
-  const [zoom, setZoom] = useState(DEFAULT_ZOOM)
+
+  // Initialize with null to detect first load
+  const [zoom, setZoom] = useState<number | null>(null)
 
   // Observe container width
   useEffect(() => {
@@ -278,14 +384,15 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [scrollTo])
 
-  const { layoutEvents, timelineGradient, themeColor, totalWidth, minZoom } = useMemo(() => {
+  const { layoutEvents, timelineGradient, themeColor, totalWidth, minZoom, perfectZoom } = useMemo(() => {
     if (!timeline || timeline.events.length === 0) {
       return {
         layoutEvents: [] as LayoutEvent[],
         timelineGradient: '',
         themeColor: '#0A7171',
         totalWidth: containerWidth,
-        minZoom: MIN_ZOOM
+        minZoom: MIN_ZOOM,
+        perfectZoom: DEFAULT_ZOOM
       }
     }
 
@@ -314,9 +421,11 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
     }
 
     // Calculate timeline width (the area where events are distributed)
+    // Use current zoom if set, otherwise use a temporary safe value
+    const currentZoom = zoom || DEFAULT_ZOOM
     const baseEventsAreaWidth = containerWidth - EDGE_PADDING * 2 - TIMELINE_START_OFFSET - TIMELINE_END_OFFSET
-    const { layoutEvents: layout, requiredWidth: eventsWidth, minZoom: calculatedMinZoom } = calculateSmartLayout(
-      timeline.events, yearList, start, end, colors, baseEventsAreaWidth, zoom
+    const { layoutEvents: layout, requiredWidth: eventsWidth, minZoom: calculatedMinZoom, perfectZoom: calculatedPerfectZoom } = calculateSmartLayout(
+      timeline.events, yearList, start, end, colors, baseEventsAreaWidth, currentZoom
     )
 
     // Total width = edge padding + start offset + events area + end offset + edge padding
@@ -327,9 +436,30 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
       timelineGradient: gradient,
       themeColor: customThemeColor,
       totalWidth,
-      minZoom: calculatedMinZoom
+      minZoom: calculatedMinZoom,
+      perfectZoom: calculatedPerfectZoom
     }
   }, [timeline, containerWidth, zoom])
+
+  // Initialize zoom to perfectZoom once calculated, or load from storage
+  useEffect(() => {
+    if (zoom === null && perfectZoom > 0) {
+      // Check for saved preference
+      if (timeline && timeline.id) {
+        const savedZoom = localStorage.getItem(`timeline_zoom_${timeline.id}`)
+        if (savedZoom) {
+          const parsed = parseInt(savedZoom, 10)
+          if (!isNaN(parsed)) {
+            // Respect user's saved choice but ensure it meets hard minimum
+            setZoom(Math.max(parsed, minZoom))
+            return
+          }
+        }
+      }
+      // Fallback to perfect default if no preference
+      setZoom(perfectZoom)
+    }
+  }, [perfectZoom, zoom, timeline, minZoom])
 
   useEffect(() => {
     updateScrollState()
@@ -353,8 +483,12 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
 
   // Handle zoom change - must be before early return to maintain hooks order
   const handleZoomChange = useCallback((value: number) => {
+    // Save user preference
+    if (timeline && timeline.id) {
+      localStorage.setItem(`timeline_zoom_${timeline.id}`, String(value))
+    }
     setZoom(Math.max(value, minZoom))
-  }, [minZoom])
+  }, [minZoom, timeline])
 
   // Empty state
   if (!timeline || timeline.events.length === 0) {
@@ -384,7 +518,7 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
   // Check if we have multiple layers (need to use reduced card height)
   const hasMultipleLayers = topLayer1.length > 0 || bottomLayer1.length > 0
 
-  const needsScroll = totalWidth > containerWidth
+
 
   // Calculate pixel position for events
   const getEventPosition = (timelinePercent: number) => {
@@ -408,57 +542,48 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
       {/* Controls - top left */}
       <div className={styles.controls}>
         {/* Navigation buttons */}
-        {needsScroll && (
-          <div className={styles.navButtons}>
-            <button
-              className={styles.navButton}
-              onClick={() => scrollTo('start')}
-              disabled={!canScrollLeft}
-              title="Go to start"
-            >
-              <VerticalRightOutlined />
-            </button>
-            <button
-              className={styles.navButton}
-              onClick={() => scrollTo('left')}
-              disabled={!canScrollLeft}
-              title="← Left"
-            >
-              <LeftOutlined />
-            </button>
-            <button
-              className={styles.navButton}
-              onClick={() => scrollTo('right')}
-              disabled={!canScrollRight}
-              title="Right →"
-            >
-              <RightOutlined />
-            </button>
-            <button
-              className={styles.navButton}
-              onClick={() => scrollTo('end')}
-              disabled={!canScrollRight}
-              title="Go to end"
-            >
-              <VerticalLeftOutlined />
-            </button>
-          </div>
-        )}
+
 
         {/* Zoom slider */}
         <div className={styles.zoomControl}>
-          <ZoomOutOutlined className={styles.zoomIcon} />
+          <ZoomOutOutlined className={styles.zoomIcon} onClick={() => handleZoomChange(Math.max(minZoom, (zoom || minZoom) - 10))} />
           <Slider
             className={styles.zoomSlider}
             min={minZoom}
             max={MAX_ZOOM}
-            value={zoom}
+            value={zoom || minZoom}
             onChange={handleZoomChange}
             tooltip={{ formatter: (v) => `${v}%` }}
           />
-          <ZoomInOutlined className={styles.zoomIcon} />
+          <ZoomInOutlined className={styles.zoomIcon} onClick={() => handleZoomChange(Math.min(MAX_ZOOM, (zoom || minZoom) + 10))} />
+
+          {/* Fit Button */}
+          <button
+            className={styles.fitButton}
+            onClick={() => setZoom(perfectZoom)}
+            title="Fit to view (Perfect Zoom)"
+          >
+            <CompressOutlined />
+          </button>
         </div>
       </div>
+
+      {/* Floating Navigation Buttons */}
+      <button
+        className={`${styles.floatingNavBtn} ${styles.floatingNavBtnLeft} ${canScrollLeft ? styles.visible : ''}`}
+        onClick={() => scrollTo('left')}
+        title="Scroll Left"
+      >
+        <LeftOutlined />
+      </button>
+
+      <button
+        className={`${styles.floatingNavBtn} ${styles.floatingNavBtnRight} ${canScrollRight ? styles.visible : ''}`}
+        onClick={() => scrollTo('right')}
+        title="Scroll Right"
+      >
+        <RightOutlined />
+      </button>
 
       {/* Left gradient mask */}
       <div className={`${styles.scrollMask} ${styles.scrollMaskLeft} ${canScrollLeft ? styles.visible : ''}`} />
