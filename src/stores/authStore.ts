@@ -126,7 +126,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     }
   },
 
-  signUpWithEmail: async (email: string, password: string) => {
+  signUpWithEmail: async (email: string, password: string, name?: string) => {
     if (!isSupabaseConfigured) {
       set({ error: 'Supabase is not configured' })
       return
@@ -139,6 +139,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: name ? { full_name: name } : undefined,
       },
     })
 
@@ -172,7 +173,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 export function initializeAuth(): () => void {
   if (!isSupabaseConfigured) {
     useAuthStore.setState({ isLoading: false, isInitialized: true })
-    return () => {}
+    return () => { }
   }
 
   // Listen for auth state changes - this handles all events including initial session
@@ -190,10 +191,10 @@ export function initializeAuth(): () => void {
 
         // Ensure profile exists (don't block UI on this)
         if (event === 'SIGNED_IN') {
-          ensureProfile().catch(() => {})
+          ensureProfile().catch(() => { })
 
           // Refresh project list after sign in (cloud-only mode)
-          useRadarStore.getState().refreshProjectList().catch(() => {})
+          useRadarStore.getState().refreshProjectList().catch(() => { })
         }
       } else if (event === 'SIGNED_OUT') {
         // User signed out

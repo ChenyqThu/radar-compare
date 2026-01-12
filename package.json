@@ -18,6 +18,7 @@
     "dexie-react-hooks": "^1.1.7",
     "echarts": "^5.5.1",
     "echarts-for-react": "^3.0.2",
+    "framer-motion": "^12.25.0",
     "github": "^14.0.0",
     "lodash-es": "^4.17.21",
     "nanoid": "^5.0.9",

@@ -1,110 +1,468 @@
+/* Global Variables & Reset for Landing Page Context */
 .container {
   min-height: 100vh;
   background: var(--color-bg-layout);
-  display: flex;
-  flex-direction: column;
+  color: var(--color-text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  position: relative;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
-.header {
+/* Navbar */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 32px;
+  padding: 20px 40px;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.1);
   border-bottom: 1px solid var(--color-border);
 }
 
-.logo {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--color-text);
-  display: flex;
-  align-items: center;
-  gap: 8px;
+[data-theme='dark'] .navbar {
+  background: rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.5px;
+}
+
+.logoIcon {
+  font-size: 24px;
+  color: var(--color-primary);
+  filter: drop-shadow(0 0 8px rgba(var(--color-primary-rgb), 0.4));
+}
+
+.navActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.navBtn {
+  min-width: 36px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary) !important;
+  border-radius: 6px;
+  border: none !important;
+  background: transparent !important;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.navBtn:hover {
+  background: var(--color-fill-secondary) !important;
+  color: var(--color-primary) !important;
+  transform: scale(1.05);
+}
+
+.navBtn:active {
+  transform: scale(0.95);
+}
+
+.loginBtn {
+  background: var(--color-primary);
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+}
+
+.loginBtn:hover {
+  background: var(--color-primary-hover);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Hero Section */
 .hero {
-  flex: 1;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: center;
-  padding: 64px 32px;
-  max-width: 800px;
-  margin: 0 auto;
+  padding: 120px 20px 60px;
+  position: relative;
+  /* Theme-aware gradient */
+  background: radial-gradient(circle at 50% 0%, var(--color-bg-elevated) 0%, var(--color-bg-layout) 70%);
 }
 
-.heroTitle {
-  font-size: 48px !important;
-  margin-bottom: 16px !important;
-  background: linear-gradient(135deg, var(--color-primary) 0%, #1890ff 100%);
+.heroContent {
+  max-width: 900px;
+  z-index: 10;
+  width: 100%;
+}
+
+.accentBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: var(--color-fill);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 32px;
+}
+
+.gradTitle {
+  font-size: 72px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -2px;
+  margin-bottom: 24px;
+  /* Gradient text */
+  background: linear-gradient(180deg, var(--color-text) 0%, var(--color-text-secondary) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .heroSubtitle {
-  font-size: 18px !important;
-  color: var(--text-secondary) !important;
-  margin-bottom: 32px !important;
+  font-size: 20px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  margin-bottom: 48px;
+  max-width: 680px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.heroButtons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
 }
 
 .ctaButton {
-  height: 48px !important;
-  padding: 0 32px !important;
+  height: 52px !important;
+  padding: 0 40px !important;
   font-size: 16px !important;
-  margin-bottom: 16px;
+  border-radius: 8px !important;
+  background: var(--color-text) !important;
+  color: var(--color-bg-layout) !important;
+  font-weight: 600 !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
 }
 
-.hint {
-  font-size: 14px;
+.ctaButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  opacity: 0.9;
 }
 
-.features {
-  padding: 64px 32px;
+.secondaryButton {
+  height: 52px !important;
+  padding: 0 40px !important;
+  font-size: 16px !important;
+  border-radius: 8px !important;
+  color: var(--color-text) !important;
+  border: 1px solid var(--color-border) !important;
+  background: transparent !important;
+}
+
+.secondaryButton:hover {
+  border-color: var(--color-text) !important;
+  background: var(--color-fill) !important;
+}
+
+/* Background Effects */
+.bgGlow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle, var(--color-primary) 0%, transparent 70%);
+  opacity: 0.1;
+  /* Subtle global glow */
+  pointer-events: none;
+  z-index: 1;
+}
+
+.gridOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    linear-gradient(var(--color-border-secondary) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-border-secondary) 1px, transparent 1px);
+  background-size: 40px 40px;
+  /* Fade out the grid at edges */
+  mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.3;
+}
+
+/* Showcase Section */
+.showcaseSection {
+  padding: 100px 20px;
+  position: relative;
+  overflow: hidden;
+  background: var(--color-bg-layout);
+}
+
+.maxWidthWrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.altSection {
+  background: var(--color-bg-elevated);
+}
+
+.heroTextContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.showcaseText {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+}
+
+.sectionTitle {
+  color: var(--color-text) !important;
+  font-size: 40px !important;
+  font-weight: 700 !important;
+  margin-bottom: 24px !important;
+  text-align: left;
+}
+
+.sectionDesc {
+  color: var(--color-text-secondary) !important;
+  font-size: 18px !important;
+  line-height: 1.6 !important;
+  margin-bottom: 32px !important;
+  text-align: left;
+}
+
+.featureList {
+  list-style: none;
+  padding: 0;
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.featureList li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.featureList svg {
+  color: var(--color-primary);
+}
+
+.mockupWrapper {
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.glassMockup {
+  background: var(--color-bg-container);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 12px;
+  position: relative;
+  box-shadow: var(--shadow-elevated);
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 100%;
+}
+
+.mockupImage {
+  width: 100%;
+  border-radius: 8px;
+  display: block;
+  object-fit: contain;
+}
+
+.glowEffect {
+  position: absolute;
+  inset: -20px;
+  background: radial-gradient(circle at 50% 50%, var(--color-primary), transparent 70%);
+  z-index: -1;
+  filter: blur(40px);
+  opacity: 0.2;
+}
+
+/* Cards Grid */
+.gridSection {
+  padding: 100px 20px;
+  background: var(--color-bg-layout);
+}
+
+.centerText {
+  text-align: center;
+  margin-bottom: 60px !important;
+}
+
+.cardGrid {
+  justify-content: center;
+}
+
+.glassCard {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 40px 32px;
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Centered Text inside card */
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.glassCard:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-elevated);
+  border-color: var(--color-primary);
+}
+
+.glassCardIcon {
+  font-size: 32px;
+  color: var(--color-primary);
+  margin-bottom: 24px;
+  width: 64px;
+  height: 64px;
+  background: var(--color-fill);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.glassCardTitle {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--color-text);
+  margin-top: 0;
+}
+
+.glassCardDesc {
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Footer */
+.footer {
+  border-top: 1px solid var(--color-border);
+  padding: 60px 20px;
   background: var(--color-bg-container);
 }
 
-.featureCard {
+.footerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.footerLogo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.footerLinks {
+  display: flex;
+  gap: 32px;
+}
+
+.footerLinks a {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footerLinks a:hover {
+  color: var(--color-text);
+}
+
+.copyright {
+  color: var(--color-text-tertiary);
   text-align: center;
-  padding: 32px 24px;
-  background: var(--color-bg-elevated);
-  border-radius: 12px;
-  height: 100%;
-  transition: transform 0.2s, box-shadow 0.2s;
+  font-size: 14px;
+  margin-top: 32px;
 }
 
-.featureCard:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-}
-
-.featureIcon {
-  font-size: 48px;
-  color: var(--color-primary);
-  margin-bottom: 16px;
-}
-
-.footer {
-  padding: 24px 32px;
-  text-align: center;
-  border-top: 1px solid var(--color-border);
-}
-
+/* Responsive */
 @media (max-width: 768px) {
-  .heroTitle {
-    font-size: 32px !important;
+  .gradTitle {
+    font-size: 48px;
   }
 
   .heroSubtitle {
-    font-size: 16px !important;
+    font-size: 16px;
   }
 
-  .hero {
-    padding: 32px 16px;
+  .navbar {
+    padding: 16px;
   }
 
-  .features {
-    padding: 32px 16px;
+  .heroButtons {
+    flex-direction: column;
+  }
+
+  .footerContent {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .sectionTitle,
+  .sectionDesc {
+    text-align: center;
+  }
+
+  .showcaseText {
+    text-align: center;
+  }
+
+  .featureList {
+    align-items: center;
   }
 }

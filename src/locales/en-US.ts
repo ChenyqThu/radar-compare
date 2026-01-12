@@ -25,6 +25,8 @@ export const enUS: Locale = {
     overview: 'Overview',
     radarMode: 'Radar',
     timelineMode: 'Timeline',
+    productName: 'Prism',
+    subtitle: 'Multi-Dimensional Insights for Product Evolution',
   },
 
   // Project
@@ -191,12 +193,21 @@ export const enUS: Locale = {
     pendingChanges: 'pending changes',
     retry: 'Retry',
     retryingSync: 'Retrying sync...',
+    fullName: 'Full Name',
+    confirmPassword: 'Confirm Password',
+    backToLogin: 'Back to Login',
+    createAccount: 'Create Account',
+    passwordMatchError: 'Passwords do not match',
+    nameRequired: 'Please enter your name',
+    noAccount: "Don't have an account?",
   },
 
   // Landing Page
   landing: {
     title: 'Competitive Comparison Visualization Tool',
     subtitle: 'Compare product capabilities through radar charts with team collaboration and timeline tracking',
+    signIn: 'Sign In',
+    getStarted: 'Get Started Now',
     signInWithGoogle: 'Sign in with Google',
     cloudHint: 'Data securely stored in the cloud, accessible across devices',
     feature1Title: 'Radar Chart Comparison',

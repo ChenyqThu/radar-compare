@@ -22,7 +22,7 @@ export interface AuthActions {
   signInWithGoogle: () => Promise<void>
   signInWithNotion: () => Promise<void>
   signInWithEmail: (email: string, password: string) => Promise<void>
-  signUpWithEmail: (email: string, password: string) => Promise<void>
+  signUpWithEmail: (email: string, password: string, name?: string) => Promise<void>
   signOut: () => Promise<void>
   clearError: () => void
 }
@@ -37,12 +37,12 @@ export function toAuthUser(user: User): AuthUser {
     id: user.id,
     email: user.email || '',
     name: user.user_metadata?.full_name ||
-          user.user_metadata?.name ||
-          user.email?.split('@')[0] ||
-          'User',
+      user.user_metadata?.name ||
+      user.email?.split('@')[0] ||
+      'User',
     avatarUrl: user.user_metadata?.avatar_url ||
-               user.user_metadata?.picture ||
-               null,
+      user.user_metadata?.picture ||
+      null,
     provider,
   }
 }

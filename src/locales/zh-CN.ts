@@ -23,6 +23,8 @@ export const zhCN = {
     overview: '总览',
     radarMode: '雷达图',
     timelineMode: '时间轴',
+    productName: 'Prism',
+    subtitle: '多维洞察，见证产品演进',
   },
 
   // Project
@@ -189,12 +191,21 @@ export const zhCN = {
     pendingChanges: '个待同步更改',
     retry: '重试',
     retryingSync: '正在重试同步...',
+    fullName: '姓名',
+    confirmPassword: '确认密码',
+    backToLogin: '返回登录',
+    createAccount: '创建账户',
+    passwordMatchError: '两次输入的密码不一致',
+    nameRequired: '请输入姓名',
+    noAccount: '还没有账号？',
   },
 
   // Landing Page
   landing: {
     title: '竞品能力对比可视化工具',
     subtitle: '通过雷达图直观对比产品能力，支持团队协作与时间轴追踪',
+    signIn: '登录',
+    getStarted: '立即开始',
     signInWithGoogle: '使用 Google 账号登录',
     cloudHint: '数据安全存储在云端，支持跨设备访问',
     feature1Title: '雷达图对比',

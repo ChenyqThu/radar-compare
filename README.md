@@ -1,6 +1,6 @@
-# Radar Compare
+# Prism (formerly Radar Compare)
 
-**竞品能力对比可视化工具** - A visual comparison tool for competitive capability analysis
+**The Ultimate Competitive Analysis & Product Evolution Visualization Tool**
 
 [English](#english) | [中文](#中文)
 
@@ -10,86 +10,60 @@
 
 ### Overview
 
-Radar Compare is a pure frontend visualization tool that helps you compare multiple products/vendors across different capability dimensions using radar charts. It's designed for product managers, market analysts, and technical reviewers who need to create clear, intuitive competitive analysis reports.
+Radar Compare is a powerful visualization platform designed for product managers, market analysts, and strategic planners. It goes beyond simple comparison by combining **multi-dimensional capability analysis (Radar)** with **chronological evolution tracking (Timeline)**.
 
-### Features
+With cloud synchronization and team collaboration features, it serves as a central hub for your competitive intelligence.
 
-- **Multi-dimensional Comparison**: Compare multiple vendors across customizable dimensions
-- **Hierarchical Dimensions**: Support for sub-dimensions with weighted scoring
-- **Multiple Radar Charts**: Create and manage multiple comparison scenarios via tabs
-- **Drag & Drop**: Reorder dimensions, sub-dimensions, and vendors with intuitive drag-and-drop
-- **Data Import/Export**: Import from Excel/JSON, export to Excel/JSON
-- **Dual Radar Layout**: Automatic dual-chart layout when dimensions have sub-dimensions
-- **Sunburst Visualization**: View dimension weight distribution as a sunburst chart
-- **Dark Mode**: Full support for light and dark themes
-- **Internationalization**: Available in English and Chinese
-- **Local Storage**: All data stored locally in IndexedDB - no server required
+### Key Features
 
-### Screenshots
+#### 🕸️ Radar Capability Analysis
+-   **Deep Customization**: Define arbitrary comparison dimensions and sub-dimensions with adjustable weights.
+-   **Smart Layout**: Automatic dual-chart layouts for complex hierarchical data.
+-   **Visual Scoring**: Intuitive drag-and-drop interactions for ranking and scoring.
+-   **Sunburst View**: visualize the weight distribution of your evaluation model.
 
-*Coming soon*
+#### ⏳ Version Timeline (New!)
+-   **Product Evolution**: Track how products or vendors change over time.
+-   **Smart Layout Algorithm**: Custom "Best-Fit" algorithm ensures events are packed densely without overlapping, even on crowded timelines.
+-   **Perfect Zoom**: Infinitely zoomable timeline with "Perfect Zoom" technology that preserves readability at any scale.
+-   **Axis Breaks**: Intelligent handling of long gaps in history to keep the view focused on relevant data.
+
+#### ☁️ Cloud & Collaboration
+-   **Cloud Sync**: Sign in with Google to save your data to the cloud automatically.
+-   **Multi-Device Access**: Access your analysis from anywhere.
+-   **Secure Sharing**: Share analysis reports via unique links (Active Development).
+
+### Tech Stack
+
+-   **Frontend**: React 18, Vite, TypeScript
+-   **UI/UX**: Ant Design 5, CSS Modules
+-   **Visualization**: ECharts 5 (Radar), Custom SVG/Canvas (Timeline)
+-   **State Management**: Zustand
+-   **Interactions**: @dnd-kit (Sortable/Draggable)
+-   **Backend/Auth**: Supabase (PostgreSQL, Auth)
+-   **Routing**: React Router 6
 
 ### Getting Started
 
 #### Prerequisites
-
-- Node.js 18+
-- npm or yarn
+-   Node.js 18+
+-   npm or yarn
 
 #### Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/your-username/radar-compare.git
 cd radar-compare
-
-# Install dependencies
 npm install
+```
 
-# Start development server
+#### Running Locally
+```bash
 npm run dev
 ```
-
-The application will be available at `http://localhost:3000`
-
-#### Build for Production
-
-```bash
-npm run build
-npm run preview  # Preview the build
-```
-
-### Tech Stack
-
-| Technology | Purpose |
-|------------|---------|
-| React 18 | UI Framework |
-| TypeScript | Type Safety |
-| Vite | Build Tool |
-| Ant Design 5 | UI Components |
-| ECharts 5 | Chart Rendering |
-| Zustand | State Management |
-| @dnd-kit | Drag and Drop |
-| Dexie.js | IndexedDB Wrapper |
-| SheetJS | Excel Import/Export |
-
-### Usage
-
-1. **Create a Radar Chart**: Click the "+" button to create a new comparison tab
-2. **Add Vendors**: Open settings (click the gear icon or press `S`) and add comparison targets
-3. **Define Dimensions**: Add dimensions and optional sub-dimensions with weights
-4. **Score Each Vendor**: Enter scores (0-10) for each dimension/vendor combination
-5. **Analyze Results**: View the radar chart to compare vendor capabilities
-6. **Export Data**: Export your analysis to Excel or JSON for sharing
-
-### Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| `S` | Toggle settings drawer |
+Visit `http://localhost:3000`. You will need to configure Supabase credentials in `.env.local` for full functionality.
 
 ### License
-
 MIT License
 
 ---
@@ -98,95 +72,53 @@ MIT License
 
 ### 概述
 
-Radar Compare 是一款纯前端的竞品能力对比可视化工具，通过雷达图直观展示多个对比对象在各个维度上的评分对比。适用于产品经理、市场分析师和技术评审人员进行竞争力分析。
+Radar Compare 是一个专业的竞品分析与产品演进可视化平台。它不仅提供强大的**雷达图可视化**来分析当前能力差异，还引入了**时间轴（Timeline）**功能来追踪产品的历史演进路线。
 
-### 功能特性
+支持云端同步与团队协作，是产品经理和行业分析师的得力助手。
 
-- **多维度对比**: 支持自定义多个对比维度
-- **层级维度**: 支持子维度，带权重计算
-- **多雷达图**: 通过 Tab 管理多个对比场景
-- **拖拽排序**: 维度、子维度、系列均支持拖拽排序
-- **数据导入导出**: 支持 Excel/JSON 格式导入导出
-- **双雷达图布局**: 有子维度时自动启用左右双图布局
-- **旭日图可视化**: 直观展示维度权重分布
-- **深色模式**: 支持明暗主题切换
-- **国际化**: 支持中英文切换
-- **本地存储**: 数据存储在浏览器 IndexedDB，无需服务器
+### 核心功能
+
+#### 🕸️ 雷达能力对比
+-   **深度定制**: 支持自定义多级维度、子维度及权重体系。
+-   **智能布局**: 针对复杂层级数据，自动适配双雷达图布局。
+-   **直观交互**: 支持拖拽排序、权重调整和实时评分。
+-   **权重可视化**: 旭日图（Sunburst）直观展示评价体系的权重分布。
+
+#### ⏳ 版本时间轴 (全新!)
+-   **演进追踪**: 清晰展示竞品或自身产品的版本迭代历史。
+-   **智能排布算法**: 采用 "Best-Fit" 算法，在事件密集时自动寻找最优空位，避免重叠且保持紧凑。
+-   **完美缩放 (Perfect Zoom)**: 支持无级缩放，无论查看十年跨度还是单月细节，都能保持最佳阅读体验。
+-   **智能轴中断**: 自动隐藏无事件的长跨度时间段，聚焦关键信息。
+
+#### ☁️ 云端协作
+-   **云端同步**: 支持 Google 账号登录，通过 Supabase 实时保存数据。
+-   **跨设备访问**: 随时随地访问您的分析报告。
+-   **安全分享**: (开发中) 通过链接快速分享分析结果。
+
+### 技术栈
+
+-   **前端框架**: React 18, Vite, TypeScript
+-   **UI 组件**: Ant Design 5
+-   **可视化**: ECharts 5 (雷达图), 自研 SVG/Canvas 渲染 (时间轴)
+-   **状态管理**: Zustand
+-   **交互库**: @dnd-kit
+-   **后端/Auth**: Supabase
+-   **路由**: React Router 6
 
 ### 快速开始
 
 #### 环境要求
+-   Node.js 18+
 
-- Node.js 18+
-- npm 或 yarn
-
-#### 安装运行
+#### 安装与运行
 
 ```bash
-# 克隆仓库
 git clone https://github.com/your-username/radar-compare.git
 cd radar-compare
-
-# 安装依赖
 npm install
-
-# 启动开发服务器
 npm run dev
 ```
-
-访问 `http://localhost:3000` 即可使用
-
-#### 生产构建
-
-```bash
-npm run build
-npm run preview  # 预览构建结果
-```
-
-### 技术栈
-
-| 技术 | 用途 |
-|------|------|
-| React 18 | UI 框架 |
-| TypeScript | 类型安全 |
-| Vite | 构建工具 |
-| Ant Design 5 | UI 组件库 |
-| ECharts 5 | 图表渲染 |
-| Zustand | 状态管理 |
-| @dnd-kit | 拖拽功能 |
-| Dexie.js | IndexedDB 封装 |
-| SheetJS | Excel 读写 |
-
-### 使用说明
-
-1. **创建雷达图**: 点击 "+" 按钮创建新的对比 Tab
-2. **添加系列**: 打开设置（点击齿轮图标或按 `S`），添加对比对象
-3. **定义维度**: 添加维度，可选添加子维度并设置权重
-4. **评分**: 为每个维度/系列组合输入评分（0-10）
-5. **分析结果**: 通过雷达图直观对比各系列能力
-6. **导出数据**: 导出为 Excel 或 JSON 便于分享
-
-### 快捷键
-
-| 按键 | 功能 |
-|------|------|
-| `S` | 打开/关闭设置抽屉 |
+访问 `http://localhost:3000`。需配置 `.env.local` 中的 Supabase 环境变量以使用完整功能。
 
 ### 开源协议
-
 MIT License
-
----
-
-## Documentation
-
-- [产品需求文档 (PRD)](./docs/PRD.md)
-- [技术设计文档](./docs/DESIGN.md)
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Author
-
-Built with Claude Code
