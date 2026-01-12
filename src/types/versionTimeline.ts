@@ -6,7 +6,7 @@
 export interface EventTypeConfig {
   label: string       // 显示名称（如 "关键节点"）
   color: string       // 颜色（HEX 格式，如 #ff4d4f）
-  order: number       // 排序权重（用于图例排序）
+  order?: number      // 排序权重（用于图例排序，可选）
 }
 
 // 版本事件类型（保留用于向后兼容）
@@ -24,7 +24,7 @@ export interface VersionEvent {
   title: string                    // 事件标题
   description?: string             // 详细描述
   type: string                     // 事件类型（支持自定义类型）
-  position: 'top' | 'bottom'       // 显示位置（上层或下层，由算法自动分配）
+  position?: 'top' | 'bottom'      // 显示位置（上层或下层，由算法自动分配，可选）
   highlight?: string[]             // 需要高亮的关键词
   icon?: string                    // 图标（可选）
   order?: number                   // 同年内排序（可选，由布局算法自动计算）

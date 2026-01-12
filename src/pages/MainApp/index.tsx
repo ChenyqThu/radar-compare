@@ -67,33 +67,63 @@ export function MainApp() {
 
   // Initialize: load projects from cloud
   useEffect(() => {
-    // Skip initialization if in share mode (ShareView handles its own loading)
-    if (shareMode) {
-      setInitializing(false)
-      return
-    }
-
     const init = async () => {
+      // Skip initialization if in share mode (ShareView handles its own loading)
+      if (shareMode) {
+        setInitializing(false)
+        return
+      }
+
+      // Skip initialization if we already have a valid project loaded
+      const { currentProject, currentProjectId } = useRadarStore.getState()
+
+      if (currentProject && currentProjectId && currentProject.radarCharts.length > 0) {
+        setInitializing(false)
+        return
+      }
+
       try {
         setInitializing(true)
 
         // 从云端获取项目列表
-        console.log('[MainApp] Fetching cloud projects...')
         const cloudProjects = await getCloudProjects()
-        console.log('[MainApp] Cloud projects:', cloudProjects)
 
         if (cloudProjects.length > 0) {
           // 加载第一个项目
-          console.log('[MainApp] Loading first project:', cloudProjects[0].id)
           await refreshProjectList()
           await loadProject(cloudProjects[0].id)
-          console.log('[MainApp] Project loaded successfully')
         } else {
           // 新用户：创建默认项目
-          console.log('[MainApp] No projects found, creating default project')
           const newProjectId = await createProject(t.project?.defaultName || '我的项目')
           if (newProjectId) {
             await loadProject(newProjectId)
+          }
+        }
+
+        // App Mode Correction: Ensure we are in a valid mode for the loaded project
+        const project = useRadarStore.getState().currentProject
+        if (project) {
+          const { isVersionTimeline } = await import('@/types/versionTimeline')
+          const { isRegularRadar, isTimelineRadar } = await import('@/types')
+          const currentAppMode = useUIStore.getState().appMode
+
+          if (currentAppMode === 'timeline') {
+            // Check if project has VersionTimeline
+            const hasVersionTimeline = project.radarCharts.some(chart => isVersionTimeline(chart))
+            if (!hasVersionTimeline) {
+              // No VersionTimeline, switch back to radar mode
+              useUIStore.getState().setAppMode('radar')
+            }
+          } else {
+            // If in radar mode, check if we have regular radar charts
+            const hasRadarChart = project.radarCharts.some(chart => isRegularRadar(chart) || isTimelineRadar(chart))
+            if (!hasRadarChart) {
+              // No regular radar charts, try switching to timeline mode if available
+              const hasVersionTimeline = project.radarCharts.some(chart => isVersionTimeline(chart))
+              if (hasVersionTimeline) {
+                useUIStore.getState().setAppMode('timeline')
+              }
+            }
           }
         }
 
@@ -106,7 +136,7 @@ export function MainApp() {
     }
 
     init()
-  }, [shareMode]) // Re-run when exiting share mode
+  }, []) // Empty deps - only run once on mount
 
   // Keyboard shortcuts (disabled in readonly mode)
   const handleKeyDown = useCallback(

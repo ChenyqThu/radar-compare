@@ -59,7 +59,8 @@ export interface RadarState {
   deleteProject: (projectId: UUID) => Promise<void>
   renameProject: (projectId: UUID, name: string) => void
   refreshProjectList: () => Promise<void>
-  copySharedTabsToMyProject: (tabIds: string[], targetProjectId?: string) => Promise<string | null>
+  copySharedTabsToMyProject: (tabIds: string[], targetProjectId?: string) => Promise<{ projectId: string; copiedTabIds: string[] } | null>
+  clearCurrentProject: () => void  // 清空当前项目状态
 
   // 雷达图操作
   setActiveRadar: (radarId: UUID) => void

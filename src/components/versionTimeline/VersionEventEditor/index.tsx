@@ -47,7 +47,7 @@ export const VersionEventEditor: React.FC<VersionEventEditorProps> = ({
 
   // Generate type options sorted by order
   const typeOptions = Object.entries(eventTypes)
-    .sort((a, b) => a[1].order - b[1].order)
+    .sort((a, b) => (a[1].order || 0) - (b[1].order || 0))
     .map(([typeId, config]) => ({
       value: typeId,
       label: config.label,

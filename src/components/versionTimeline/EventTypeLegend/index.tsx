@@ -31,7 +31,7 @@ export const EventTypeLegend: React.FC<EventTypeLegendProps> = ({
   // Get all types sorted by order, only show types with events
   const types = useMemo(() => {
     return Object.entries(timeline.info.eventTypes || {})
-      .sort((a, b) => a[1].order - b[1].order)
+      .sort((a, b) => (a[1].order || 0) - (b[1].order || 0))
       .filter(([typeId]) => typeCounts[typeId] > 0)
   }, [timeline.info.eventTypes, typeCounts])
 

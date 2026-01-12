@@ -875,8 +875,8 @@
   color: var(--text-primary, #333333);
   font-size: 16px;
   cursor: pointer;
-  z-index: 50;
-  /* Above scroll masks (20) and badge (30) */
+  z-index: 500;
+  /* Above all event nodes (max 300) but below modal (1000) */
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   opacity: 0;
   pointer-events: none;

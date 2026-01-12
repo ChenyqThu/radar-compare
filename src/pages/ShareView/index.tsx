@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Layout, Spin, Empty, Typography, Input, Button, message } from 'antd'
 import { LockOutlined, LoginOutlined } from '@ant-design/icons'
@@ -51,7 +51,7 @@ export function ShareView() {
   const navigate = useNavigate()
   const { t } = useI18n()
   const { user } = useAuthStore()
-  const { getActiveRadar, getActiveVersionTimeline } = useRadarStore()
+  const { getActiveRadar, getActiveVersionTimeline, isLoading: globalLoading } = useRadarStore()
   const {
     settingsDrawerVisible,
     openSettingsDrawer,
@@ -69,6 +69,9 @@ export function ShareView() {
   const [password, setPassword] = useState('')
   const [loginRequired, setLoginRequired] = useState(false)
   const [pendingShareData, setPendingShareData] = useState<PendingShareData | null>(null)
+
+  // Track previous shareMode to detect "leaving" scenario
+  const prevShareModeRef = useRef(shareMode)
 
   // Version Timeline event editor state
   const [eventEditorOpen, setEventEditorOpen] = useState(false)
@@ -171,13 +174,22 @@ export function ShareView() {
 
   // Load share data on mount
   useEffect(() => {
+    // Capture previous shareMode before updating ref
+    const wasInShareMode = prevShareModeRef.current
+    prevShareModeRef.current = shareMode
+
     if (!shareToken) {
       navigate('/', { replace: true })
       return
     }
 
     const loadShare = async () => {
-      if (shareMode) return // Already loaded
+      // Already in share mode with this token - skip reload
+      if (shareMode && shareInfo?.token === shareToken) return
+
+      // User just left share mode (was true, now false) - don't reload
+      // This happens when handleBackToHome calls setShareMode(false)
+      if (wasInShareMode && !shareMode) return
 
       setLoading(true)
       setError(null)
@@ -228,7 +240,7 @@ export function ShareView() {
     }
 
     loadShare()
-  }, [shareToken, loadSharedProject, t, shareMode, navigate])
+  }, [shareToken, loadSharedProject, t, shareMode, shareInfo, navigate])
 
   // Auto-load project after login for editable shares
   useEffect(() => {
@@ -296,24 +308,6 @@ export function ShareView() {
     setTimelineImportOpen(true)
   }, [isReadonly])
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className={styles.loadingContainer}>
-        <Spin size="large" />
-      </div>
-    )
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className={styles.loadingContainer}>
-        <Empty description={error} image={Empty.PRESENTED_IMAGE_SIMPLE} />
-      </div>
-    )
-  }
-
   // Password prompt
   if (passwordRequired) {
     return (
@@ -341,19 +335,43 @@ export function ShareView() {
 
   // Login prompt for editable shares
   if (loginRequired) {
+    // Save current path for redirect after login
+    const currentPath = window.location.pathname
+    sessionStorage.setItem('auth_redirect_path', currentPath)
+
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.promptCard}>
           <LoginOutlined className={styles.promptIcon} />
-          <Typography.Title level={4}>
+          <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 8 }}>
             {t.share?.loginToCollaborate || '请登录以加入协作'}
           </Typography.Title>
-          <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 20, fontSize: '13px' }}>
             {t.share?.editableHint ||
               '可编辑分享需要协作者登录后才能访问，修改会同步到原项目'}
           </Typography.Paragraph>
-          <LoginModal open={true} onClose={() => {}} embedded={true} />
+          <LoginModal open={true} onClose={() => { }} embedded={true} />
         </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className={styles.loadingContainer}>
+        <Empty description={error} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+      </div>
+    )
+  }
+
+  // Loading state
+  // Check both local loading and global loading (triggered by Navbar when returning home)
+  // Put this LAST so it doesn't block Password/Login prompts if globalLoading is true
+  if (loading || globalLoading) {
+    return (
+      <div className={styles.loadingContainer}>
+        <Spin size="large" />
       </div>
     )
   }

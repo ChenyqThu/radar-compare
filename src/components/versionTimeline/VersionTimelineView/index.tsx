@@ -656,329 +656,329 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
           <span className={styles.companyBadge}>{timeline.info.company}</span>
         )}
 
-      {/* Controls - top left */}
-      <div className={styles.controls}>
-        {/* Navigation buttons */}
+        {/* Controls - top left */}
+        <div className={styles.controls}>
+          {/* Navigation buttons */}
 
 
-        {/* Zoom slider */}
-        {/* Zoom slider */}
-        <div className={styles.zoomControl}>
-          <ZoomOutOutlined className={styles.zoomIcon} onClick={() => handleZoomChange(Math.max(minZoom, (zoom ?? minZoom) - 10))} />
-          <Slider
-            className={styles.zoomSlider}
-            min={minZoom}
-            max={maxZoom}
-            value={zoom ?? minZoom}
-            onChange={handleZoomChange}
-            tooltip={{ formatter: (v) => v != null ? `${v}%` : `${minZoom}%` }}
-          />
-          <ZoomInOutlined className={styles.zoomIcon} onClick={() => handleZoomChange(Math.min(maxZoom, (zoom ?? minZoom) + 10))} />
+          {/* Zoom slider */}
+          {/* Zoom slider */}
+          <div className={styles.zoomControl}>
+            <ZoomOutOutlined className={styles.zoomIcon} onClick={() => handleZoomChange(Math.max(minZoom, (zoom ?? minZoom) - 10))} />
+            <Slider
+              className={styles.zoomSlider}
+              min={minZoom}
+              max={maxZoom}
+              value={zoom ?? minZoom}
+              onChange={handleZoomChange}
+              tooltip={{ formatter: (v) => v != null ? `${v}%` : `${minZoom}%` }}
+            />
+            <ZoomInOutlined className={styles.zoomIcon} onClick={() => handleZoomChange(Math.min(maxZoom, (zoom ?? minZoom) + 10))} />
 
-          {/* Fit Button - Reset to perfect zoom */}
-          <button
-            className={styles.fitButton}
-            onClick={() => setZoom(perfectZoom)}
-            title={`Reset to perfect zoom (${perfectZoom}%)`}
-          >
-            <CompressOutlined />
-          </button>
-        </div>
-
-        {/* Axis Break Toggle - Independent Button */}
-        {hasPossibleBreaks && (
-          <Tooltip title={enableAxisBreak ? t.versionTimeline.disableAxisBreak : t.versionTimeline.enableAxisBreak}>
+            {/* Fit Button - Reset to perfect zoom */}
             <button
-              className={`${styles.toggleButton} ${enableAxisBreak ? styles.active : ''}`}
-              onClick={() => setEnableAxisBreak(!enableAxisBreak)}
-              style={{ marginLeft: 8 }}
+              className={styles.fitButton}
+              onClick={() => setZoom(perfectZoom)}
+              title={`Reset to perfect zoom (${perfectZoom}%)`}
             >
-              {enableAxisBreak ? <DisconnectOutlined /> : <LinkOutlined />}
+              <CompressOutlined />
             </button>
-          </Tooltip>
-        )}
-      </div>
-
-      {/* Floating Navigation Buttons */}
-      <button
-        className={`${styles.floatingNavBtn} ${styles.floatingNavBtnLeft} ${canScrollLeft ? styles.visible : ''}`}
-        onClick={() => scrollTo('left')}
-        title="Scroll Left"
-      >
-        <LeftOutlined />
-      </button>
-
-      <button
-        className={`${styles.floatingNavBtn} ${styles.floatingNavBtnRight} ${canScrollRight ? styles.visible : ''}`}
-        onClick={() => scrollTo('right')}
-        title="Scroll Right"
-      >
-        <RightOutlined />
-      </button>
-
-      {/* Left gradient mask */}
-      <div className={`${styles.scrollMask} ${styles.scrollMaskLeft} ${canScrollLeft ? styles.visible : ''}`} />
-
-      {/* Scroll container */}
-      <div
-        ref={scrollContainerRef}
-        className={styles.scrollContainer}
-      >
-        {/* Timeline content with fixed width */}
-        <div
-          className={styles.timelineContent}
-          style={{ width: `${totalWidth}px` }}
-        >
-          {/* Start section - logo and title at left */}
-          <div className={styles.startSection} style={{ left: `${EDGE_PADDING}px` }}>
-            {/* Glowing orb - multi-layer breathing effect */}
-            <div className={styles.glowOrbContainer}>
-              <div className={styles.glowCore} />
-              <div className={styles.glowBreathing} />
-              <div className={styles.glowStreak} />
-              <div className={styles.glowVertical} />
-            </div>
-
-            {/* Logo */}
-            {timeline.info?.logo && (
-              <img src={timeline.info.logo} alt={timeline.info?.title || ''} className={styles.logo} />
-            )}
-
-            {/* Title */}
-            <h2 className={styles.title}>{timeline.info?.title || '大事记'}</h2>
           </div>
 
-          {/* Timeline axis */}
-          <div className={styles.timelineAxis}>
-            {/* Timeline line - from logo area center to beyond last event */}
-            {/* Timeline Axis - Single Continuous Line */}
-            <div
-              className={styles.timelineLine}
-              style={{
-                left: `${EDGE_PADDING + 60}px`,
-                width: `${totalWidth - (EDGE_PADDING + 60) - EDGE_PADDING}px`,
-                background: timelineGradient,
-                backgroundRepeat: 'no-repeat',
-                borderRadius: '2px'
-              }}
-            />
+          {/* Axis Break Toggle - Independent Button */}
+          {hasPossibleBreaks && (
+            <Tooltip title={enableAxisBreak ? t.versionTimeline.disableAxisBreak : t.versionTimeline.enableAxisBreak}>
+              <button
+                className={`${styles.toggleButton} ${enableAxisBreak ? styles.active : ''}`}
+                onClick={() => setEnableAxisBreak(!enableAxisBreak)}
+                style={{ marginLeft: 8 }}
+              >
+                {enableAxisBreak ? <DisconnectOutlined /> : <LinkOutlined />}
+              </button>
+            </Tooltip>
+          )}
+        </div>
 
-            {/* Render Break Icons as overlays */}
-            {timeSegments.map((segment, index) => {
-              if (segment.type !== 'break') return null
+        {/* Floating Navigation Buttons */}
+        <button
+          className={`${styles.floatingNavBtn} ${styles.floatingNavBtnLeft} ${canScrollLeft ? styles.visible : ''}`}
+          onClick={() => scrollTo('left')}
+          title="Scroll Left"
+        >
+          <LeftOutlined />
+        </button>
 
-              const startLeft = EDGE_PADDING + TIMELINE_START_OFFSET + segment.pixelStart
-              return (
-                <div
-                  key={`break-${index}`}
-                  className={styles.axisBreak}
-                  style={{
-                    left: `${startLeft + segment.pixelWidth}px`
-                  }}
-                >
-                  <AxisBreakIcon />
-                </div>
-              )
-            })}
+        <button
+          className={`${styles.floatingNavBtn} ${styles.floatingNavBtnRight} ${canScrollRight ? styles.visible : ''}`}
+          onClick={() => scrollTo('right')}
+          title="Scroll Right"
+        >
+          <RightOutlined />
+        </button>
 
-            {/* Timeline edge fades */}
-            <div
-              className={styles.timelineEdgeFadeLeft}
-              style={{ left: `${EDGE_PADDING + 60}px` }}
-            />
-            <div
-              className={styles.timelineEdgeFadeRight}
-              style={{ right: `${EDGE_PADDING}px` }}
-            />
+        {/* Left gradient mask */}
+        <div className={`${styles.scrollMask} ${styles.scrollMaskLeft} ${canScrollLeft ? styles.visible : ''}`} />
 
-            {/* Event node markers */}
-            {layoutEvents.map(event => {
-              const zIndex = getEventZIndex(event.id, true) // isNode = true
-              const isHovered = hoveredEventId === event.id
-              return (
-                <div
-                  key={`node-${event.id}`}
-                  className={`${styles.eventNode} ${event.position === 'bottom' ? styles.eventNodeBottom : ''} ${isHovered ? styles.hovered : ''}`}
-                  style={{
+        {/* Scroll container */}
+        <div
+          ref={scrollContainerRef}
+          className={styles.scrollContainer}
+        >
+          {/* Timeline content with fixed width */}
+          <div
+            className={styles.timelineContent}
+            style={{ width: `${totalWidth}px` }}
+          >
+            {/* Start section - logo and title at left */}
+            <div className={styles.startSection} style={{ left: `${EDGE_PADDING}px` }}>
+              {/* Glowing orb - multi-layer breathing effect */}
+              <div className={styles.glowOrbContainer}>
+                <div className={styles.glowCore} />
+                <div className={styles.glowBreathing} />
+                <div className={styles.glowStreak} />
+                <div className={styles.glowVertical} />
+              </div>
+
+              {/* Logo */}
+              {timeline.info?.logo && (
+                <img src={timeline.info.logo} alt={timeline.info?.title || ''} className={styles.logo} />
+              )}
+
+              {/* Title */}
+              <h2 className={styles.title}>{timeline.info?.title || '大事记'}</h2>
+            </div>
+
+            {/* Timeline axis */}
+            <div className={styles.timelineAxis}>
+              {/* Timeline line - from logo area center to beyond last event */}
+              {/* Timeline Axis - Single Continuous Line */}
+              <div
+                className={styles.timelineLine}
+                style={{
+                  left: `${EDGE_PADDING + 60}px`,
+                  width: `${totalWidth - (EDGE_PADDING + 60) - EDGE_PADDING}px`,
+                  background: timelineGradient,
+                  backgroundRepeat: 'no-repeat',
+                  borderRadius: '2px'
+                }}
+              />
+
+              {/* Render Break Icons as overlays */}
+              {timeSegments.map((segment, index) => {
+                if (segment.type !== 'break') return null
+
+                const startLeft = EDGE_PADDING + TIMELINE_START_OFFSET + segment.pixelStart
+                return (
+                  <div
+                    key={`break-${index}`}
+                    className={styles.axisBreak}
+                    style={{
+                      left: `${startLeft + segment.pixelWidth}px`
+                    }}
+                  >
+                    <AxisBreakIcon />
+                  </div>
+                )
+              })}
+
+              {/* Timeline edge fades */}
+              <div
+                className={styles.timelineEdgeFadeLeft}
+                style={{ left: `${EDGE_PADDING + 60}px` }}
+              />
+              <div
+                className={styles.timelineEdgeFadeRight}
+                style={{ right: `${EDGE_PADDING}px` }}
+              />
+
+              {/* Event node markers */}
+              {layoutEvents.map(event => {
+                const zIndex = getEventZIndex(event.id, true) // isNode = true
+                const isHovered = hoveredEventId === event.id
+                return (
+                  <div
+                    key={`node-${event.id}`}
+                    className={`${styles.eventNode} ${event.position === 'bottom' ? styles.eventNodeBottom : ''} ${isHovered ? styles.hovered : ''}`}
+                    style={{
+                      left: `${getEventPosition(event.timelinePosition)}px`,
+                      zIndex,
+                    } as React.CSSProperties}
+                  >
+                    <div className={styles.eventDot} style={{ backgroundColor: event.nodeColor || event.color }} />
+                    <div className={styles.eventTimeLabel}>
+                      {formatEventTime(event.year, event.month)}
+                    </div>
+                  </div>
+                )
+              })}
+
+              {/* Top events layer 1 */}
+              <div className={`${styles.eventsLayer} ${styles.eventsLayerTop} ${styles.layer1}`}>
+                {topLayer1.map(event => {
+                  const zIndex = getEventZIndex(event.id)
+                  const isHovered = hoveredEventId === event.id
+                  // Use event.styleColor if present, otherwise CSS will use fallback
+                  const style: React.CSSProperties & { '--event-color'?: string } = {
                     left: `${getEventPosition(event.timelinePosition)}px`,
                     zIndex,
-                  } as React.CSSProperties}
-                >
-                  <div className={styles.eventDot} style={{ backgroundColor: event.nodeColor || event.color }} />
-                  <div className={styles.eventTimeLabel}>
-                    {formatEventTime(event.year, event.month)}
-                  </div>
-                </div>
-              )
-            })}
+                  }
+                  if (event.styleColor) {
+                    style['--event-color'] = event.styleColor
+                  }
 
-            {/* Top events layer 1 */}
-            <div className={`${styles.eventsLayer} ${styles.eventsLayerTop} ${styles.layer1}`}>
-              {topLayer1.map(event => {
-                const zIndex = getEventZIndex(event.id)
-                const isHovered = hoveredEventId === event.id
-                // Use event.styleColor if present, otherwise CSS will use fallback
-                const style: React.CSSProperties & { '--event-color'?: string } = {
-                  left: `${getEventPosition(event.timelinePosition)}px`,
-                  zIndex,
-                }
-                if (event.styleColor) {
-                  style['--event-color'] = event.styleColor
-                }
-
-                return (
-                  <div
-                    key={event.id}
-                    className={`${styles.eventCard} ${styles.eventCardTop} ${isHovered ? styles.hovered : ''}`}
-                    style={style as React.CSSProperties}
-                    onClick={() => handleEventCardClick(event)}
-                    onDoubleClick={() => handleEventCardDoubleClick(event)}
-                    onMouseEnter={() => setHoveredEventId(event.id)}
-                    onMouseLeave={() => setHoveredEventId(null)}
-                    title={t.versionTimeline.doubleClickToReorder}
-                  >
-                    <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
-                      <div className={styles.eventTitle}>
-                        {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
-                      </div>
-                      {event.description && (
-                        <div className={styles.eventDescription}>
-                          {highlightText(event.description, event.highlight, event.styleColor || themeColor)}
+                  return (
+                    <div
+                      key={event.id}
+                      className={`${styles.eventCard} ${styles.eventCardTop} ${isHovered ? styles.hovered : ''}`}
+                      style={style as React.CSSProperties}
+                      onClick={() => handleEventCardClick(event)}
+                      onDoubleClick={() => handleEventCardDoubleClick(event)}
+                      onMouseEnter={() => setHoveredEventId(event.id)}
+                      onMouseLeave={() => setHoveredEventId(null)}
+                      title={t.versionTimeline.doubleClickToReorder}
+                    >
+                      <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
+                        <div className={styles.eventTitle}>
+                          {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
                         </div>
-                      )}
-                    </div>
-                    <div className={`${styles.eventConnector} ${styles.eventConnectorTop} ${styles.connectorLong}`} />
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Top events layer 0 */}
-            <div className={`${styles.eventsLayer} ${styles.eventsLayerTop} ${styles.layer0}`}>
-              {topLayer0.map(event => {
-                const zIndex = getEventZIndex(event.id)
-                const isHovered = hoveredEventId === event.id
-                // Use event.styleColor if present, otherwise CSS will use fallback
-                const style: React.CSSProperties & { '--event-color'?: string } = {
-                  left: `${getEventPosition(event.timelinePosition)}px`,
-                  zIndex,
-                }
-                if (event.styleColor) {
-                  style['--event-color'] = event.styleColor
-                }
-
-                return (
-                  <div
-                    key={event.id}
-                    className={`${styles.eventCard} ${styles.eventCardTop} ${isHovered ? styles.hovered : ''}`}
-                    style={style as React.CSSProperties}
-                    onClick={() => handleEventCardClick(event)}
-                    onDoubleClick={() => handleEventCardDoubleClick(event)}
-                    onMouseEnter={() => setHoveredEventId(event.id)}
-                    onMouseLeave={() => setHoveredEventId(null)}
-                    title={t.versionTimeline.doubleClickToReorder}
-                  >
-                    <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
-                      <div className={styles.eventTitle}>
-                        {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
+                        {event.description && (
+                          <div className={styles.eventDescription}>
+                            {highlightText(event.description, event.highlight, event.styleColor || themeColor)}
+                          </div>
+                        )}
                       </div>
-                      {event.description && (
-                        <div className={styles.eventDescription}>
-                          {highlightText(event.description, event.highlight, event.styleColor || themeColor)}
-                        </div>
-                      )}
+                      <div className={`${styles.eventConnector} ${styles.eventConnectorTop} ${styles.connectorLong}`} />
                     </div>
-                    <div className={`${styles.eventConnector} ${styles.eventConnectorTop}`} />
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
 
-            {/* Bottom events layer 0 */}
-            <div className={`${styles.eventsLayer} ${styles.eventsLayerBottom} ${styles.layer0}`}>
-              {bottomLayer0.map(event => {
-                const zIndex = getEventZIndex(event.id)
-                const isHovered = hoveredEventId === event.id
-                // Use event.styleColor if present, otherwise CSS will use fallback
-                const style: React.CSSProperties & { '--event-color'?: string } = {
-                  left: `${getEventPosition(event.timelinePosition)}px`,
-                  zIndex,
-                }
-                if (event.styleColor) {
-                  style['--event-color'] = event.styleColor
-                }
+              {/* Top events layer 0 */}
+              <div className={`${styles.eventsLayer} ${styles.eventsLayerTop} ${styles.layer0}`}>
+                {topLayer0.map(event => {
+                  const zIndex = getEventZIndex(event.id)
+                  const isHovered = hoveredEventId === event.id
+                  // Use event.styleColor if present, otherwise CSS will use fallback
+                  const style: React.CSSProperties & { '--event-color'?: string } = {
+                    left: `${getEventPosition(event.timelinePosition)}px`,
+                    zIndex,
+                  }
+                  if (event.styleColor) {
+                    style['--event-color'] = event.styleColor
+                  }
 
-                return (
-                  <div
-                    key={event.id}
-                    className={`${styles.eventCard} ${styles.eventCardBottom} ${isHovered ? styles.hovered : ''}`}
-                    style={style as React.CSSProperties}
-                    onClick={() => handleEventCardClick(event)}
-                    onDoubleClick={() => handleEventCardDoubleClick(event)}
-                    onMouseEnter={() => setHoveredEventId(event.id)}
-                    onMouseLeave={() => setHoveredEventId(null)}
-                  >
-                    <div className={`${styles.eventConnector} ${styles.eventConnectorBottom}`} />
-                    <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
-                      <div className={styles.eventTitle}>
-                        {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
+                  return (
+                    <div
+                      key={event.id}
+                      className={`${styles.eventCard} ${styles.eventCardTop} ${isHovered ? styles.hovered : ''}`}
+                      style={style as React.CSSProperties}
+                      onClick={() => handleEventCardClick(event)}
+                      onDoubleClick={() => handleEventCardDoubleClick(event)}
+                      onMouseEnter={() => setHoveredEventId(event.id)}
+                      onMouseLeave={() => setHoveredEventId(null)}
+                      title={t.versionTimeline.doubleClickToReorder}
+                    >
+                      <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
+                        <div className={styles.eventTitle}>
+                          {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
+                        </div>
+                        {event.description && (
+                          <div className={styles.eventDescription}>
+                            {highlightText(event.description, event.highlight, event.styleColor || themeColor)}
+                          </div>
+                        )}
                       </div>
-                      {event.description && (
-                        <div className={styles.eventDescription}>
-                          {highlightText(event.description, event.highlight, event.styleColor || themeColor)}
-                        </div>
-                      )}
+                      <div className={`${styles.eventConnector} ${styles.eventConnectorTop}`} />
                     </div>
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
 
-            {/* Bottom events layer 1 */}
-            <div className={`${styles.eventsLayer} ${styles.eventsLayerBottom} ${styles.layer1}`}>
-              {bottomLayer1.map(event => {
-                const zIndex = getEventZIndex(event.id)
-                const isHovered = hoveredEventId === event.id
-                // Use event.styleColor if present, otherwise CSS will use fallback
-                const style: React.CSSProperties & { '--event-color'?: string } = {
-                  left: `${getEventPosition(event.timelinePosition)}px`,
-                  zIndex,
-                }
-                if (event.styleColor) {
-                  style['--event-color'] = event.styleColor
-                }
+              {/* Bottom events layer 0 */}
+              <div className={`${styles.eventsLayer} ${styles.eventsLayerBottom} ${styles.layer0}`}>
+                {bottomLayer0.map(event => {
+                  const zIndex = getEventZIndex(event.id)
+                  const isHovered = hoveredEventId === event.id
+                  // Use event.styleColor if present, otherwise CSS will use fallback
+                  const style: React.CSSProperties & { '--event-color'?: string } = {
+                    left: `${getEventPosition(event.timelinePosition)}px`,
+                    zIndex,
+                  }
+                  if (event.styleColor) {
+                    style['--event-color'] = event.styleColor
+                  }
 
-                return (
-                  <div
-                    key={event.id}
-                    className={`${styles.eventCard} ${styles.eventCardBottom} ${isHovered ? styles.hovered : ''}`}
-                    style={style as React.CSSProperties}
-                    onClick={() => handleEventCardClick(event)}
-                    onDoubleClick={() => handleEventCardDoubleClick(event)}
-                    onMouseEnter={() => setHoveredEventId(event.id)}
-                    onMouseLeave={() => setHoveredEventId(null)}
-                  >
-                    <div className={`${styles.eventConnector} ${styles.eventConnectorBottom} ${styles.connectorLong}`} />
-                    <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
-                      <div className={styles.eventTitle}>
-                        {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
+                  return (
+                    <div
+                      key={event.id}
+                      className={`${styles.eventCard} ${styles.eventCardBottom} ${isHovered ? styles.hovered : ''}`}
+                      style={style as React.CSSProperties}
+                      onClick={() => handleEventCardClick(event)}
+                      onDoubleClick={() => handleEventCardDoubleClick(event)}
+                      onMouseEnter={() => setHoveredEventId(event.id)}
+                      onMouseLeave={() => setHoveredEventId(null)}
+                    >
+                      <div className={`${styles.eventConnector} ${styles.eventConnectorBottom}`} />
+                      <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
+                        <div className={styles.eventTitle}>
+                          {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
+                        </div>
+                        {event.description && (
+                          <div className={styles.eventDescription}>
+                            {highlightText(event.description, event.highlight, event.styleColor || themeColor)}
+                          </div>
+                        )}
                       </div>
-                      {event.description && (
-                        <div className={styles.eventDescription}>
-                          {highlightText(event.description, event.highlight, event.styleColor || themeColor)}
-                        </div>
-                      )}
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
+
+              {/* Bottom events layer 1 */}
+              <div className={`${styles.eventsLayer} ${styles.eventsLayerBottom} ${styles.layer1}`}>
+                {bottomLayer1.map(event => {
+                  const zIndex = getEventZIndex(event.id)
+                  const isHovered = hoveredEventId === event.id
+                  // Use event.styleColor if present, otherwise CSS will use fallback
+                  const style: React.CSSProperties & { '--event-color'?: string } = {
+                    left: `${getEventPosition(event.timelinePosition)}px`,
+                    zIndex,
+                  }
+                  if (event.styleColor) {
+                    style['--event-color'] = event.styleColor
+                  }
+
+                  return (
+                    <div
+                      key={event.id}
+                      className={`${styles.eventCard} ${styles.eventCardBottom} ${isHovered ? styles.hovered : ''}`}
+                      style={style as React.CSSProperties}
+                      onClick={() => handleEventCardClick(event)}
+                      onDoubleClick={() => handleEventCardDoubleClick(event)}
+                      onMouseEnter={() => setHoveredEventId(event.id)}
+                      onMouseLeave={() => setHoveredEventId(null)}
+                    >
+                      <div className={`${styles.eventConnector} ${styles.eventConnectorBottom} ${styles.connectorLong}`} />
+                      <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
+                        <div className={styles.eventTitle}>
+                          {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
+                        </div>
+                        {event.description && (
+                          <div className={styles.eventDescription}>
+                            {highlightText(event.description, event.highlight, event.styleColor || themeColor)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Right gradient mask */}
-      <div className={`${styles.scrollMask} ${styles.scrollMaskRight} ${canScrollRight ? styles.visible : ''}`} />
+        {/* Right gradient mask */}
+        <div className={`${styles.scrollMask} ${styles.scrollMaskRight} ${canScrollRight ? styles.visible : ''}`} />
       </div>
 
       {/* Event Type Legend */}

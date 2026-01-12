@@ -142,7 +142,7 @@ export const TimelineInfoEditor: React.FC<TimelineInfoEditorProps> = ({
   }
 
   const sortedEventTypes = Object.entries(timeline?.info.eventTypes || {})
-    .sort((a, b) => a[1].order - b[1].order)
+    .sort((a, b) => (a[1].order || 0) - (b[1].order || 0))
 
   return (
     <Modal

@@ -75,10 +75,10 @@ export function LoginModal({ open, onClose, embedded = false }: LoginModalProps)
   // Common Social Login Buttons
   const SocialButtons = () => (
     <div className={styles.socialSection}>
-      <Divider plain className={styles.divider}>
+      <Divider plain className={embedded ? styles.dividerEmbedded : styles.divider}>
         {t.auth?.orContinueWith || 'Or continue with'}
       </Divider>
-      <div className={styles.oauthButtons}>
+      <div className={embedded ? styles.oauthButtonsEmbedded : styles.oauthButtons}>
         <Button
           icon={<GoogleOutlined />}
           onClick={handleGoogleLogin}
@@ -114,13 +114,13 @@ export function LoginModal({ open, onClose, embedded = false }: LoginModalProps)
   )
 
   const content = (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <img src={logoNew} alt="Logo" className={styles.logo} />
-        <h2 className={styles.title}>{t.app?.productName || 'Product Evolution Platform'}</h2>
+    <div className={embedded ? styles.containerEmbedded : styles.container}>
+      <div className={embedded ? styles.headerEmbedded : styles.header}>
+        <img src={logoNew} alt="Logo" className={embedded ? styles.logoEmbedded : styles.logo} />
+        <h2 className={embedded ? styles.titleEmbedded : styles.title}>{t.app?.productName || 'Product Evolution Platform'}</h2>
       </div>
 
-      <div className={styles.slideContainer}>
+      <div className={embedded ? styles.slideContainerEmbedded : styles.slideContainer}>
         <AnimatePresence mode="wait" initial={false}>
           {mode === 'login' ? (
             <motion.div

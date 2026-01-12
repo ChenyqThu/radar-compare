@@ -24,6 +24,7 @@ export function Navbar() {
   const [shareModalOpen, setShareModalOpen] = useState(false)
   const [collaborationsModalOpen, setCollaborationsModalOpen] = useState(false)
   const [copying, setCopying] = useState(false)
+  const [returning, setReturning] = useState(false)
 
   const toggleLanguage = () => {
     setLanguage(language === 'zh-CN' ? 'en-US' : 'zh-CN')
@@ -33,11 +34,23 @@ export function Navbar() {
     setTheme(theme === 'light' ? 'dark' : 'light')
   }
 
-  const handleBackToHome = () => {
-    // Reset share mode before navigating
-    useUIStore.getState().setShareMode(false, undefined)
-    // Navigate to main app for logged in users
-    navigate('/app', { replace: true })
+  const handleBackToHome = async () => {
+    setReturning(true)
+    try {
+      // Set global loading state and clear current project to force MainApp to re-initialize
+      useRadarStore.setState({ isLoading: true, currentProject: null })
+
+      // Reset share mode
+      useUIStore.getState().setShareMode(false, undefined)
+
+      // Navigate immediately - MainApp will handle the loading
+      navigate('/app', { replace: true })
+    } catch (error) {
+      console.error('Failed to return home:', error)
+      message.error('操作失败，请重试')
+      setReturning(false)
+      useRadarStore.setState({ isLoading: false })
+    }
   }
 
   const handleLeaveCollaboration = async () => {
@@ -65,13 +78,38 @@ export function Navbar() {
         try {
           // Copy the shared tabs (or all tabs if no specific sharedTabIds)
           const tabIds = shareInfo?.sharedTabIds || []
-          const newProjectId = await copySharedTabsToMyProject(tabIds)
+          const result: { projectId: string; copiedTabIds: string[] } | null = await copySharedTabsToMyProject(tabIds)
 
-          if (newProjectId) {
-            message.success(t.share?.copySuccess || '已复制到新项目')
-            // Reset share mode before navigating
+          if (result) {
+            const { projectId, copiedTabIds } = result
+
+            // Load the target project with copied tabs
+            const { loadProject, setActiveRadar } = useRadarStore.getState()
+            await loadProject(projectId)
+
+            // Set the first copied tab as active and determine correct app mode
+            if (copiedTabIds.length > 0) {
+              const firstTabId = copiedTabIds[0]
+              setActiveRadar(firstTabId)
+
+              // Get the tab to determine app mode
+              const project = useRadarStore.getState().currentProject
+              if (project) {
+                const firstTab = project.radarCharts.find((c) => c.id === firstTabId)
+                if (firstTab) {
+                  const { isVersionTimeline } = await import('@/types/versionTimeline')
+                  const appMode = isVersionTimeline(firstTab) ? 'timeline' : 'radar'
+                  useUIStore.getState().setAppMode(appMode)
+                }
+              }
+            }
+
+            message.success(t.share?.copySuccess || '已复制到我的项目')
+
+            // Reset share mode before navigation
             useUIStore.getState().setShareMode(false, undefined)
-            // Navigate to main app to see the new project
+
+            // Navigate to main app to see the copied tabs
             navigate('/app', { replace: true })
           } else {
             message.error(t.share?.copyFailed || '复制失败')
@@ -139,6 +177,8 @@ export function Navbar() {
                 type="text"
                 icon={<HomeOutlined />}
                 onClick={handleBackToHome}
+                loading={returning}
+                disabled={returning}
                 className={styles.toggleBtn}
               />
             </Tooltip>

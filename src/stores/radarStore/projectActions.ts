@@ -267,7 +267,7 @@ export function createProjectActions(set: StoreSetter, get: StoreGetter) {
         const defaultTimeline: AnyRadarChart = {
           id: nanoid(),
           name: '发展历程示例',
-          chartType: 'versionTimeline',
+          isVersionTimeline: true,
           order: 1,
           events: [
             {
@@ -621,9 +621,117 @@ export function createProjectActions(set: StoreSetter, get: StoreGetter) {
         dim.scores = scores
       })
 
+      // Create default timeline with sample events
+      const defaultTimeline: AnyRadarChart = {
+        id: nanoid(),
+        name: '发展历程示例',
+        isVersionTimeline: true,
+        order: 1,
+        events: [
+          {
+            id: nanoid(),
+            year: 2020,
+            month: 1,
+            title: '公司成立',
+            description: '在深圳成立，专注于企业级软件研发',
+            type: 'milestone',
+          },
+          {
+            id: nanoid(),
+            year: 2020,
+            month: 6,
+            title: '推出 v1.0',
+            description: '首个正式版本发布，支持基础功能',
+            type: 'major',
+          },
+          {
+            id: nanoid(),
+            year: 2021,
+            month: 3,
+            title: '获得 A 轮融资',
+            description: '融资金额 $5000万，估值达 $2亿',
+            type: 'funding',
+            highlight: ['$5000万', '$2亿'],
+          },
+          {
+            id: nanoid(),
+            year: 2021,
+            month: 9,
+            title: '推出 v2.0',
+            description: '全新架构，性能提升 300%',
+            type: 'major',
+            highlight: ['300%'],
+          },
+          {
+            id: nanoid(),
+            year: 2022,
+            month: 2,
+            title: '海外市场拓展',
+            description: '进入欧美市场，设立海外办事处',
+            type: 'milestone',
+          },
+          {
+            id: nanoid(),
+            year: 2022,
+            month: 8,
+            title: '推出企业版',
+            description: '支持私有化部署和定制化服务',
+            type: 'major',
+          },
+          {
+            id: nanoid(),
+            year: 2023,
+            month: 5,
+            title: '用户突破 100 万',
+            description: '全球活跃用户达到 100 万，覆盖 50+ 国家',
+            type: 'achievement',
+            highlight: ['100 万', '50+'],
+          },
+          {
+            id: nanoid(),
+            year: 2024,
+            month: 1,
+            title: '推出 v3.0',
+            description: 'AI 驱动的智能分析功能上线',
+            type: 'major',
+            highlight: ['AI'],
+          },
+        ],
+        info: {
+          title: '产品发展大事记',
+          company: 'Example Inc.',
+          theme: 'teal',
+          eventTypes: {
+            milestone: {
+              label: '里程碑',
+              color: '#1890ff',
+            },
+            major: {
+              label: '主要版本',
+              color: '#52c41a',
+            },
+            funding: {
+              label: '融资',
+              color: '#fa8c16',
+            },
+            achievement: {
+              label: '成就',
+              color: '#13c2c2',
+            },
+          },
+        },
+        createdAt: now,
+        updatedAt: now,
+      }
+
       const chartCreated = await createChart(projectId, defaultRadarChart)
       if (!chartCreated) {
         console.error('[Project] Failed to create default chart')
+      }
+
+      const timelineCreated = await createChart(projectId, defaultTimeline)
+      if (!timelineCreated) {
+        console.error('[Project] Failed to create default timeline')
       }
 
       // Update active_chart_id
@@ -680,11 +788,12 @@ export function createProjectActions(set: StoreSetter, get: StoreGetter) {
      * Copy shared tabs to user's own project
      * This is used when a collaborator wants to "fork" the shared content
      * If targetProjectId is not provided, adds to user's default project
+     * Returns { projectId, copiedTabIds } on success
      */
     copySharedTabsToMyProject: async (
       tabIds: string[],
       targetProjectId?: string
-    ): Promise<string | null> => {
+    ): Promise<{ projectId: string; copiedTabIds: string[] } | null> => {
       const { currentProject } = get()
       if (!currentProject) return null
 
@@ -704,6 +813,7 @@ export function createProjectActions(set: StoreSetter, get: StoreGetter) {
 
       // Clone the tabs with new IDs
       const clonedTabs = tabsToCopy.map(cloneRadarChartWithNewIds)
+      const copiedTabIds: string[] = []
 
       let finalProjectId: string
 
@@ -728,6 +838,7 @@ export function createProjectActions(set: StoreSetter, get: StoreGetter) {
       for (let i = 0; i < clonedTabs.length; i++) {
         clonedTabs[i].order = maxOrder + 1 + i
         await createChart(actualTargetId, clonedTabs[i])
+        copiedTabIds.push(clonedTabs[i].id)
       }
 
       finalProjectId = actualTargetId
@@ -735,7 +846,19 @@ export function createProjectActions(set: StoreSetter, get: StoreGetter) {
       // Refresh project list
       await get().refreshProjectList()
 
-      return finalProjectId
+      return { projectId: finalProjectId, copiedTabIds }
+    },
+
+    /**
+     * Clear current project state (for exiting share mode)
+     */
+    clearCurrentProject: () => {
+      set({
+        currentProject: null,
+        currentProjectId: null,
+        currentProjectName: '',
+        isLoading: false,
+      })
     },
   }
 }

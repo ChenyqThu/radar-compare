@@ -308,6 +308,11 @@ radar_charts 表
 - **复制到我的项目**: 协作者可将分享的 Tab 复制到自己的项目中（追加到现有项目，不创建新项目）
 - **我的协作列表**: 每个分享的 Tab 独立显示为一个条目，方便管理和访问
 
+**技术实现细节**:
+- **返回主页/复制项目**: 从协作页面返回时，`Navbar` 调用 `setShareMode(false)` 并直接导航，`MainApp` 会重新初始化并加载用户项目。同时会自动修正 `appMode` 以匹配加载的项目内容（例如从 Timeline 模式切换到 Radar 模式）
+- **ShareView 加载控制**: 使用 `useRef` 追踪 `shareMode` 的变化，避免在用户离开协作页面时错误地重新加载分享项目。只在首次访问或 token 变化时加载
+- **Login 后重定向**: 使用 `sessionStorage` 保存分享页面路径，OAuth 登录成功后自动跳转回分享页面
+
 **数据库设计**:
 - `shares` 表: 存储分享链接配置，支持 `share_scope` (project/tabs) 和 `shared_tab_ids`
 - `collaborators` 表: 存储协作关系，关联 `share_id` 记录加入来源
