@@ -167,6 +167,7 @@ export const enUS: Locale = {
     signUp: 'Sign Up',
     loginTitle: 'Login to Radar Compare',
     continueWithGoogle: 'Continue with Google',
+    continueWithGithub: 'Continue with GitHub',
     continueWithNotion: 'Continue with Notion',
     orContinueWith: 'or',
     emailPlaceholder: 'Email',
@@ -357,5 +358,6 @@ export const enUS: Locale = {
     theme_monochrome: 'Monochrome',
     enableAxisBreak: 'Enable Axis Break',
     disableAxisBreak: 'Disable Axis Break',
+    doubleClickToReorder: 'Double-click to bring to front',
   },
 }

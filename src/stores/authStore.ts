@@ -79,6 +79,28 @@ export const useAuthStore = create<AuthStore>((set) => ({
     }
   },
 
+  signInWithGithub: async () => {
+    if (!isSupabaseConfigured) {
+      set({ error: 'Supabase is not configured' })
+      return
+    }
+
+    set({ isLoading: true, error: null })
+
+    const redirectTo = `${window.location.origin}/auth/callback`
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo,
+      },
+    })
+
+    if (error) {
+      set({ error: error.message, isLoading: false })
+    }
+  },
+
   signInWithNotion: async () => {
     if (!isSupabaseConfigured) {
       set({ error: 'Supabase is not configured' })

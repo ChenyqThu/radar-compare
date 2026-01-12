@@ -260,11 +260,21 @@ export function calculateSmartLayout(
     eventsWithPosition.sort((a, b) => a.pixelOriginal - b.pixelOriginal)
 
     // 4. Collision Avoidance (Nudging Dots)
+    // Only nudge events with different timestamps
+    // Events at the same time should remain aligned (same node position)
     for (let i = 1; i < eventsWithPosition.length; i++) {
         const prev = eventsWithPosition[i - 1]
         const curr = eventsWithPosition[i]
 
-        if (curr.pixelAdjusted - prev.pixelAdjusted < MIN_DOT_DIST_PX) {
+        // Calculate timestamps for comparison
+        const prevTime = prev.year + (prev.month ? (prev.month - 1) / 12 : 0.5)
+        const currTime = curr.year + (curr.month ? (curr.month - 1) / 12 : 0.5)
+
+        // Only apply collision avoidance if events have different timestamps
+        // (Events at same time will be separated by track layout, not horizontal nudging)
+        const isDifferentTime = Math.abs(currTime - prevTime) > 0.001
+
+        if (isDifferentTime && curr.pixelAdjusted - prev.pixelAdjusted < MIN_DOT_DIST_PX) {
             curr.pixelAdjusted = prev.pixelAdjusted + MIN_DOT_DIST_PX
         }
     }

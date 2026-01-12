@@ -3,6 +3,7 @@ import { LandingPage } from '@/pages/LandingPage'
 import { MainApp } from '@/pages/MainApp'
 import { ShareView } from '@/pages/ShareView'
 import { AuthCallback } from '@/pages/AuthCallback'
+import { PrivacyPolicy } from '@/pages/PrivacyPolicy'
 import { AuthGuard } from '@/components/auth/AuthGuard'
 
 export const router = createBrowserRouter([
@@ -25,6 +26,10 @@ export const router = createBrowserRouter([
   {
     path: '/auth/callback',
     element: <AuthCallback />,
+  },
+  {
+    path: '/privacy',
+    element: <PrivacyPolicy />,
   },
   {
     // 兼容旧链接和 404

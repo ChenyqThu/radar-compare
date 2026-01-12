@@ -288,8 +288,8 @@ export function LandingPage() {
             </div>
             <div className={styles.footerLinks}>
               <a href="#">Documentation</a>
-              <a href="#">GitHub</a>
-              <a href="#">Privacy</a>
+              <a href="https://github.com/ChenyqThu/radar-compare" target="_blank" rel="noopener noreferrer">GitHub</a>
+              <a href="/privacy">Privacy</a>
             </div>
           </div>
           <div className={styles.copyright}>

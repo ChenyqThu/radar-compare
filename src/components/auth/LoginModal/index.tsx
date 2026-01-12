@@ -1,5 +1,5 @@
 import { Modal, Button, Divider, Form, Input, message } from 'antd'
-import { GoogleOutlined, MailOutlined, LockOutlined, UserOutlined, ArrowLeftOutlined } from '@ant-design/icons'
+import { GoogleOutlined, GithubOutlined, MailOutlined, LockOutlined, UserOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import { useAuthStore } from '@/stores/authStore'
 import { useI18n } from '@/locales'
 import { useState, useEffect } from 'react'
@@ -25,7 +25,7 @@ interface LoginModalProps {
 type Mode = 'login' | 'signup'
 
 export function LoginModal({ open, onClose, embedded = false }: LoginModalProps) {
-  const { signInWithGoogle, signInWithNotion, signInWithEmail, signUpWithEmail, isLoading, error, clearError } = useAuthStore()
+  const { signInWithGoogle, signInWithGithub, signInWithNotion, signInWithEmail, signUpWithEmail, isLoading, error, clearError } = useAuthStore()
   const { t } = useI18n()
   const [form] = Form.useForm()
   const [mode, setMode] = useState<Mode>('login')
@@ -41,6 +41,10 @@ export function LoginModal({ open, onClose, embedded = false }: LoginModalProps)
 
   const handleGoogleLogin = async () => {
     await signInWithGoogle()
+  }
+
+  const handleGithubLogin = async () => {
+    await signInWithGithub()
   }
 
   const handleNotionLogin = async () => {
@@ -84,6 +88,16 @@ export function LoginModal({ open, onClose, embedded = false }: LoginModalProps)
           className={styles.googleBtn}
         >
           {t.auth?.continueWithGoogle || 'Google'}
+        </Button>
+        <Button
+          icon={<GithubOutlined />}
+          onClick={handleGithubLogin}
+          loading={isLoading}
+          block
+          size="large"
+          className={styles.googleBtn} // Reusing googleBtn style (outline style)
+        >
+          {t.auth?.continueWithGithub || 'GitHub'}
         </Button>
         <Button
           icon={<NotionIcon />}

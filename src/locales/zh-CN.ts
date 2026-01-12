@@ -165,6 +165,7 @@ export const zhCN = {
     signUp: '注册',
     loginTitle: '登录到 Radar Compare',
     continueWithGoogle: '使用 Google 登录',
+    continueWithGithub: '使用 GitHub 登录',
     continueWithNotion: '使用 Notion 登录',
     orContinueWith: '或',
     emailPlaceholder: '邮箱',
@@ -355,6 +356,7 @@ export const zhCN = {
     theme_monochrome: '单色渐变',
     enableAxisBreak: '启用断轴优化',
     disableAxisBreak: '禁用断轴优化',
+    doubleClickToReorder: '双击置顶',
   },
 }
 

@@ -1,0 +1,34 @@
+.container {
+    min-height: 100vh;
+    background: var(--color-bg-base);
+    padding: 40px 20px;
+}
+
+.header {
+    max-width: 800px;
+    margin: 0 auto 20px;
+}
+
+.content {
+    max-width: 800px;
+    margin: 0 auto;
+    background: var(--color-bg-layout);
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+.backBtn {
+    color: var(--color-text-secondary);
+}
+
+.backBtn:hover {
+    color: var(--color-primary);
+    background: transparent;
+}
+
+@media (max-width: 768px) {
+    .content {
+        padding: 24px;
+    }
+}

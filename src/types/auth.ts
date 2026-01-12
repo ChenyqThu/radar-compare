@@ -1,6 +1,6 @@
 import type { User, Session } from '@supabase/supabase-js'
 
-export type AuthProvider = 'google' | 'notion' | 'email'
+export type AuthProvider = 'google' | 'notion' | 'github' | 'email'
 
 export interface AuthUser {
   id: string
@@ -20,6 +20,7 @@ export interface AuthState {
 
 export interface AuthActions {
   signInWithGoogle: () => Promise<void>
+  signInWithGithub: () => Promise<void>
   signInWithNotion: () => Promise<void>
   signInWithEmail: (email: string, password: string) => Promise<void>
   signUpWithEmail: (email: string, password: string, name?: string) => Promise<void>

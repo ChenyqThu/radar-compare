@@ -1,169 +1,92 @@
 # 时间轴布局优化与 Perfect Zoom 方案 (结构化提案)
 
 > 创建时间: 2026-01-11
-> 更新时间: 2026-01-12 (Part 2 已实现)
-> 状态: Part 1 建议中 / **Part 2 已实现**
+> 更新时间: 2026-01-11 (Part 1 & 2 已实现，新增 Part 3 优化建议)
+> 状态: **Part 1 & 2 已投产** / **Part 3 建议中**
 
-## 一、当前逻辑分析 (Current Logic Breakdown)
+## 一、当前现状 (Current Status)
 
-在讨论优化前，先梳理清楚当前 `src/components/versionTimeline/layoutUtils.ts` 中的两套核心逻辑：
+经过代码分析 (`src/components/versionTimeline/layoutUtils.ts` 和 `VersionTimelineView/index.tsx`)，我们确认以下核心逻辑已实现：
 
-### 1. 坐标轴生成 (`generateTimeSegments`)
-*   **逻辑**: 输入事件和 Zoom 值，单纯地将年份映射为像素。
-*   **弹性规则**: 如果某时间段内事件密集，它会用一个简单的公式 `Max(NaturalWidth, EventCount * MIN_EVENT_SPACING)` 来强行撑大这一段。
-*   **参数**: `MIN_EVENT_SPACING` 目前是 28px。
+### 1. 智能排布 (Smart Layout - Best Fit)
+已在 `layoutUtils.ts` 中实现。
+*   **算法**: Cost-Based Best-Fit Slotting (基于代价的空位优先)。
+*   **特性**: 放弃了僵硬的 Zig-Zag，改为评估 4 条轨道的代价 (Layer, Overlap, Crowd) 并选择最优解。
+*   **参数**: 
+    *   `COEFF_LAYER = 800` (优先内层)
+    *   `OVERLAP_BASE = 1000` (严惩重叠)
+    *   `OVERLAP_COEFF = 30000` (二次方重叠惩罚)
 
-### 2. 卡片排布算法 (`calculateSmartLayout` - Greedy)
-当前使用的是一个**带偏好的贪心算法 (Biased Greedy Zig-Zag)**。
-*   **容器**: 定义了 4 个槽位（Layer）：`Top-Layer0` (贴近轴线), `Top-Layer1` (远离轴线), `Bottom-Layer0`, `Bottom-Layer1`。
-*   **流程**:
-    1.  按时间顺序遍历事件。
-    2.  **交替偏好 (Zig-Zag)**: 记录上一个放哪边（比如 Bottom），下一个优先试探另一边（Top）。
-    3.  **碰撞检测**:
-        *   先试探偏好侧的 Layer0。
-        *   如果 Layer0 满了，试探 Layer1。
-        *   如果偏好侧 Layer0/1 都满了，试探另一侧的 Layer0/1。
-    4.  **兜底**: 如果 4 个槽位都满了，**强制放入 Layer1 并允许重叠**。
+### 2. 自然缩放 (Natural Width Zoom)
+已在 `VersionTimelineView/index.tsx` 的 `calculateZoomBounds` 中实现。
+*   **逻辑**: 基于内容数量计算 `naturalWidth` (舒适宽) 和 `limitWidth` (极限宽)。
+*   **Perfect Zoom**: `max(fitZoom, 100%)`，优先保证舒适度。
 
 ---
 
-## 二、问题分析 & 优化空间
+## 二、存在的问题 (Identified Issues)
 
-### 问题 1: Smart Layout 算法太僵硬 (Too Rigid)
-*   **盲目交替**: 算法总是试图 "左一个-右一个" (Zig-Zag)。这在稀疏时很好看，但在密集时会导致空间浪费。
-    *   *例子*: 如果 Top 还有大把空位，但算法轮到了 Bottom 且 Bottom 满了，它会被迫挤在 Bottom 重叠，而不去填 Top 的空位。
-*   **缺乏全局最优**: 它是纯贪心的，只看当前这一个，不往后看。
-*   **层级限制**: 目前硬编码了 2 层 (Layer0, Layer1)。如果事件真的很多，强制重叠不如动态增加 Layer。
+尽管核心逻辑已上线，但在 `Current Analysis` 中发现以下深层问题，导致体验未达极致：
 
-### 问题 2: Zoom 逻辑与视觉脱节
-*   **弹性阈值过低**: 坐标轴生成的弹性阈值是 `28px`，而一张卡片实际占用约 `160px`。这意味着底座生成的空间远远不足以放下卡片，导致 Layout 算法即使想排好，也没有物理空间。
-*   **Zoom 计算简单**: 以前的 Perfect Zoom 只是简单的 "填满屏幕"，没考虑内容是否会挤爆。
+### 问题 1: 弹性布局与 Zoom 限制脱节 (Elasticity Mismatch)
+*   **现象**: `VersionTimelineView` 允许缩放到 `minZoom` (约 `13.5px/event`)，但 `layoutUtils` 内部强制使用 `MIN_EVENT_SPACING = 28px`。
+*   **后果**: 当用户缩放到最小时，UI 容器变小了，但内部排布逻辑依然按照 28px 预留空间，导致时间轴实际宽度超出容器，或者排布异常拥挤（因为 `naturalWidth` 变小但 `requiredWidth` 卡在 28px）。
+*   **根本原因**: 渲染层的 Zoom 逻辑与计算层的 Spacing 逻辑使用了两套不同的常量。
+
+### 问题 2: 断轴策略过于保守 (Broken Axis Too Conservative)
+*   **现象**: 目前断轴触发阈值是 `MIN_GAP_RATIO = 0.15` (15%)。
+*   **后果**: 对于一个跨度 50 年的时间轴，需要 **7.5 年** 的空白才会触发断轴。这在很多中等跨度的项目中难以触发，导致大量屏幕空间被空白占据。
+
+### 问题 3: 逻辑分散 (Logic Scattering)
+*   **现象**: Zoom 的核心计算 (`calculateZoomBounds`) 位于 View 组件中，而排布逻辑位于 Util 中。两者复用了相似的逻辑（如 `CARD_WIDTH`, `Tracks`）但没有共享常量，增加了维护风险。
 
 ---
 
-## 三、优化方案 Proposal
+## 三、Part 3: 深度优化建议 (Optimization Proposal - Jan 2026)
 
-### Part 1: Smart Layout 算法优化 (Best-Fit Slotting)
+### 优化 A: 统一弹性约束 (Unified Elasticity)
 
-**目标**: 从 "僵硬交替" 升级为 **"基于代价的空位优先 (Cost-Based Best-Fit)"**。
+我们需要将 Render 层和 Layout 层的密度标准统一。
 
-本章节详细阐述 **"Best-Fit Slotting"** 算法的核心逻辑。我们将布局问题转化为一个**最小化代价函数 (Cost Minimization)** 的问题。
+**建议方案**:
+1.  **定义标准密度**:
+    *   `D_comfort` (舒适): 54px/event (4轨道, 216px宽, 无重叠) -> 对应 Zoom 100%
+    *   `D_limit` (极限): 16px/event (4轨道, 70%重叠) -> 对应 Min Zoom
+2.  **动态 Spacing**:
+    *   在 `generateTimeSegments` 中，不再硬编码 `28px`。
+    *   而是根据当前的 `pixelsPerYear` 动态调整 `MIN_EVENT_SPACING`，或者直接将 `D_limit` 作为硬底线 (`16px`)。
+    *   或者，将 `MIN_EVENT_SPACING` 提升至 `40px` 并配合 Zoom 限制，确保 Layout 出来的结果总是可读的。
+    *   **推荐**: 将 `layoutUtils.ts` 的 `MIN_EVENT_SPACING` 调整为 **45px** (接近 Comfort)，但在 Zoom 极小时允许压缩。或者保持 28px 但承认这是极限值。
 
-#### 1. 核心模型：轨道 (Tracks)
+### 优化 B: 激进断轴策略 (Aggressive Broken Axis)
 
-我们将布局空间抽象为 4 条主要轨道（对应 UI 的层级）：
+降低断轴门槛，让时间轴更紧凑。
 
-| 轨道 ID | 描述 | UI 对应 | 层级系数 (LayerIndex) |
+**参数调整**:
+*   `MIN_GAP_RATIO`: **0.15 -> 0.08 (8%)**
+    *   *效果*: 50 年跨度下，4 年空白即可触发断轴。
+*   `MIN_GAP_PIXELS`: 保持 **400px** 或降至 **300px**。
+
+### 优化 C: 架构重构 (Architecture Refactor)
+
+**行动**:
+1.  将 `calculateZoomBounds` 移入 `layoutUtils.ts` (或 `zoomUtils.ts`)。
+2.  共享常量 `CARD_WIDTH`, `PARALLEL_TRACKS`。
+3.  Layout 算法直接返回 `recommendedMinZoom`。
+
+---
+
+## 四、参数对比 (Parameter Tuning)
+
+| 参数 | 当前值 (Current) | 建议值 (Proposed) | 说明 |
 | :--- | :--- | :--- | :--- |
-| **T0** | 上方内侧 | Top Layer 0 | 0 |
-| **T1** | 下方内侧 | Bottom Layer 0 | 0 |
-| **T2** | 上方外侧 | Top Layer 1 | 1 |
-| **T3** | 下方外侧 | Bottom Layer 1 | 1 |
+| **Gap Ratio** | 15% | **8%** | 更容易触发断轴，节省空间 |
+| **Gap Pixels** | 400px | **400px** | 保持视觉节奏 |
+| **Min Event Spacing** | 28px | **45px** (Ideal) / **16px** (Limit) | 需要与 Zoom 逻辑统一 |
+| **Zoom Limit** | ~13.5px / event | **Sync with Spacing** | 防止 Layout 与 Render 脱节 |
 
-#### 2. 代价函数 (Cost Function)
+## 五、实施计划 (Action Plan)
 
-对于每一个待排布的事件 $E$，我们需要计算把它放入任意轨道 $T_i$ 的总代价 $C(T_i)$，并选择代价最小的轨道。
-
-核心公式：
-$$ C(T_i) = P_{layer} + P_{zigzag} + P_{crowd} + P_{overlap}(ratio) $$
-
-#### 3. 详细惩罚设计 (参数精调)
-
-我们根据 **"10% 重叠差异阈值"** 反推了以下参数：
-
-**A. 基础惩罚 (Base Penalties)**
-*   **层级惩罚 ($P_{layer}$) = 800**
-    *   *降低门槛*: 从 1000 降为 800，让外层更容易被选中。
-*   **ZigZag 惩罚 ($P_{zigzag}$) = 50**
-    *   保持不变。
-
-**B. 拥挤惩罚 ($P_{crowd}$) —— 间隙管理**
-*   **间隙 ($gap$)**: $E_{start} - \text{PrevEvent}_{end}$
-*   **安全距离**: 10px。
-*   **规则**:
-    *   $0 \le gap \le 10$: **200** 分
-    *   $gap > 10$: **0** 分
-
-**C. 重叠惩罚 ($P_{overlap}$) —— 二次函数 (Quadratic)**
-公式：
-$$ P_{overlap}(r) = \text{Base} + \text{Coeff} \times r^2 $$
-
-*   **Base (起步价) = 1,000**
-    *   *逻辑*: 大于 $P_{layer}$ (800)。
-    *   *意义*: **只要有重叠，哪怕只重叠 1px (Cost 1000+)，也比去空闲的外层 (Cost 800) 贵**。确保了"无重叠至上"。
-*   **Coeff (增长系数) = 30,000**
-    *   这个数值是根据 "内层重叠 19% vs 外层重叠 10%" 的临界点算出来的。
-
-#### 4. 关键决策模拟 (Critical Simulation)
-
-验证逻辑：
-
-**场景 1: 内层 (10%重叠) vs 外层 (9%重叠)**
-*   **内层**: $1000 + 30000 \times 0.01 = \text{1,300}$
-*   **外层**: $800 \text{ (Layer)} + 1000 + 30000 \times 0.0081 = 1800 + 243 = \text{2,043}$
-*   **结果**: **选内层 (1300 < 2043)**。
-*   **符合预期**: 差距仅 1%，不足以抵消去外层的 800 分代价。
-
-**场景 2: 内层 (20%重叠) vs 外层 (10%重叠) —— 差距 10%**
-*   **内层**: $1000 + 30000 \times 0.04 = 1000 + 1200 = \text{2,200}$
-*   **外层**: $800 + 1000 + 30000 \times 0.01 = 1800 + 300 = \text{2,100}$
-*   **结果**: **选外层 (2100 < 2200)**。
-*   **符合预期**: 当差距拉大到 10% (0.2 vs 0.1) 时，外层带来的视野优势终于超过了层级代价，算法"聪明"地去了外层。
-
-**场景 3: 内层 (5%重叠) vs 外层 (空闲)**
-*   **内层**: $1000 + ... \approx 1075$
-*   **外层**: 800
-*   **结果**: **选外层**。
-*   **符合预期**: 只要有重叠，哪怕很小，不如去空闲的外层。
-
-### Part 2: Zoom 策略优化 (Perfect Zoom & Min Zoom)
-
-我们需要定义两个关键值：**默认视图 (Perfect)** 和 **最小缩放限制 (Min)**。
-
-#### 1. 基础公式
-
-*   **全览 Zoom ($Z_{fit}$)**:
-    *   `Zoom = (容器宽度 - 边距) / 总年限`
-    *   *意义*: 刚好一屏放下所有内容。
-
-*   **舒适 Zoom ($Z_{comfort}$)** (即之前的 DensityZoom):
-    *   目标：**无重叠** (Overlap 0%)。
-    *   假设 4 轨道并行，每张卡片占位 180px。
-    *   `Z_comfort = (总事件数 / 4) * 180px / 总年限 = 事件数 * 45 / 总年限`
-
-*   **极限 Zoom ($Z_{limit}$)** (New!):
-    *   目标：**最大重叠容忍度 70%** (保留 30% 可见区域)。
-    *   意味着每张卡片虽然宽 180px，但我们只给它留 `180 * 0.3 = 54px` 的物理空间。
-    *   `Z_limit = (总事件数 / 4) * 54px / 总年限 = 事件数 * 13.5 / 总年限`
-
-#### 2. 策略定义
-
-**A. 最小缩放值 (minZoom)**
-用户无法将时间轴缩得比这更小。
-$$ \text{minZoom} = \max(Z_{fit}, Z_{limit}) $$
-*   **逻辑**:
-    1.  如果事件很少，直接用 $Z_{fit}$ 填满一屏，不准缩成一坨。
-    2.  如果事件超多，$Z_{fit}$ 会导致严重重叠 (90%+) -> 此时 $Z_{limit}$ 会大于 $Z_{fit}$，强行守住 70% 重叠的底线，哪怕一屏放不下。
-
-**B. 完美缩放值 (perfectZoom)**
-初始化时的默认视图。
-$$ \text{perfectZoom} = \max(Z_{fit}, Z_{comfort}) $$
-*   **逻辑**:
-    1.  如果事件少，用 $Z_{fit}$ 填满。
-    2.  如果事件多，用 $Z_{comfort}$ 撑开，保证**默认视角下无重叠**，给用户最好的第一印象。
-
----
-
-## 四、新旧方案对比 (Comparison)
-
-| 特性 | 旧方案 (Current) | 新方案 (Proposed) | 提升点 |
-| :--- | :--- | :--- | :--- |
-| **排布策略** | 严格 Zig-Zag (上下交替) | **Best-Fit Cost** (基于代价的空位优先) | 消除"一边空着一边挤"的现象，大幅减少重叠。 |
-| **轨道利用** | 优先填满当前侧 Layer0->1，再试探对面 | **全局评估**所有 4 个轨道，选代价最低者 | 布局更紧凑，空间利用率更高。 |
-| **重叠处理** | 4 个槽位满后直接重叠 | **分级重叠代价** (轻微 vs 严重) | 实现了"有空位去空位，没空位选轻微重叠，最后才选严重重叠"的智能避让。 |
-| **Zoom 策略** | 100% (默认) 或 Fit Screen | **Max(Fit, Density)** | 既能全览，又能自适应变长以保护内容。 |
-| **参数基准** | 28px / Event (过小) | **45px / Event** (基于 4 轨道的物理推导) | 数值更科学，符合视觉真实尺寸。 |
-
-## 五、实施建议
-
-建议优先实施 **Part 1 (Smart Layout 算法优化)**，因为这是纯逻辑层面的优化，能直接提升当前视图下的表现。待排布算法变聪明后，再接入 Part 2 的 Perfect Zoom 计算，效果会事半功倍。
+1.  **重构**: 将 Zoom 计算逻辑抽取至 `layoutUtils`。
+2.  **调整**: 修改 `generateTimeSegments` 中的 Spacing 逻辑，使其与 Zoom Limit 对齐。
+3.  **调优**: 更新断轴阈值参数。

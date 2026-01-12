@@ -86,7 +86,7 @@ const TIMELINE_END_OFFSET = 100 // Space after last event
 // Natural Width = Content width at comfortable spacing (4 tracks, no overlap)
 // Reference: docs/architecture/timeline-layout-proposal.md Part 2
 
-const PARALLEL_TRACKS = 4          // Number of parallel layout tracks (Top/Bottom × Layer0/Layer1)
+const PARALLEL_TRACKS = 2.5          // Number of parallel layout tracks (Top/Bottom × Layer0/Layer1)
 const CARD_WIDTH = 216             // Card width in pixels (from layoutUtils.ts)
 const OVERLAP_TOLERANCE = 0.7      // Maximum overlap ratio (70% overlap, 30% visible)
 const BASE_MAX_ZOOM = 300          // Maximum zoom level
@@ -188,6 +188,83 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
   // Initialize with null to detect first load
   const [zoom, setZoom] = useState<number | null>(null)
 
+  // Hover and z-index state for event interactions
+  const [hoveredEventId, setHoveredEventId] = useState<string | null>(null)
+  const [eventZIndices, setEventZIndices] = useState<Record<string, number>>({})
+  const zIndexCounterRef = useRef(1)
+
+  // Load z-index preferences from localStorage
+  useEffect(() => {
+    if (timeline && timeline.id) {
+      const saved = localStorage.getItem(`timeline_zindex_${timeline.id}`)
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved) as Record<string, number>
+          setEventZIndices(parsed)
+          // Update counter to max + 1
+          const maxZ = Math.max(0, ...Object.values(parsed))
+          zIndexCounterRef.current = maxZ + 1
+        } catch (e) {
+          console.error('Failed to parse z-index from localStorage', e)
+        }
+      }
+    }
+  }, [timeline?.id])
+
+  // Save z-index preferences to localStorage
+  const saveZIndices = useCallback((indices: Record<string, number>) => {
+    if (timeline && timeline.id) {
+      localStorage.setItem(`timeline_zindex_${timeline.id}`, JSON.stringify(indices))
+    }
+  }, [timeline?.id])
+
+  // Timer ref for distinguishing single-click vs double-click
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Handle double-click to bring card to front (adjust z-index)
+  const handleEventCardDoubleClick = useCallback((event: VersionEvent) => {
+    // Clear single-click timer to prevent opening edit modal
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current)
+      clickTimerRef.current = null
+    }
+
+    // Update z-index
+    const newZIndices = { ...eventZIndices }
+    newZIndices[event.id] = zIndexCounterRef.current++
+
+    // Normalize if counter gets too large (prevent overflow and keep below modal z-index)
+    // Keep z-index in range 0-99 (well below modal's 1000)
+    if (zIndexCounterRef.current > 100) {
+      const entries = Object.entries(newZIndices)
+      entries.sort((a, b) => a[1] - b[1])
+      const normalized: Record<string, number> = {}
+      entries.forEach(([id], index) => {
+        normalized[id] = index + 1
+      })
+      setEventZIndices(normalized)
+      zIndexCounterRef.current = entries.length + 1
+      saveZIndices(normalized)
+    } else {
+      setEventZIndices(newZIndices)
+      saveZIndices(newZIndices)
+    }
+  }, [eventZIndices, saveZIndices])
+
+  // Handle single-click to open edit modal (with delay to allow double-click detection)
+  const handleEventCardClick = useCallback((event: VersionEvent) => {
+    // Clear any existing timer
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current)
+    }
+
+    // Delay single-click action to allow double-click detection
+    clickTimerRef.current = setTimeout(() => {
+      clickTimerRef.current = null
+      onEventClick?.(event)
+    }, 250) // 250ms delay to detect double-click
+  }, [onEventClick])
+
   // Observe container width
   useEffect(() => {
     const container = containerRef.current
@@ -205,13 +282,12 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
   }, [])
 
   // Calculate dynamic zoom bounds based on Natural Width strategy
-  const { minZoom, maxZoom, perfectZoom, fitZoom, naturalWidth } = useMemo(() => {
+  const { minZoom, maxZoom, perfectZoom, naturalWidth } = useMemo(() => {
     if (!timeline?.events.length) {
       return {
         minZoom: BASE_MIN_ZOOM,
         maxZoom: BASE_MAX_ZOOM,
         perfectZoom: 100,
-        fitZoom: 100,
         naturalWidth: 1000
       }
     }
@@ -432,9 +508,19 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
     return <span dangerouslySetInnerHTML={{ __html: result }} />
   }, [])
 
-  const handleEventClick = useCallback((event: VersionEvent) => {
-    onEventClick?.(event)
-  }, [onEventClick])
+  // Get z-index style for an event
+  // Keep all z-indices below modal (1000) to prevent cards appearing above edit modal
+  const getEventZIndex = useCallback((eventId: string, isNode: boolean = false): number => {
+    // Hover always wins (highest priority, but still below modal)
+    if (hoveredEventId === eventId) {
+      return 200 // Below modal's 1000
+    }
+    // Node elements should always be above their corresponding cards
+    // Base z-index range: 0-99 (from clicks)
+    // Node z-index range: 100-199 (base + 100)
+    const baseZ = eventZIndices[eventId] || 0
+    return isNode ? baseZ + 100 : baseZ
+  }, [hoveredEventId, eventZIndices])
 
   // Handle zoom change - must be before early return to maintain hooks order
   const handleZoomChange = useCallback((value: number) => {
@@ -513,11 +599,11 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
           />
           <ZoomInOutlined className={styles.zoomIcon} onClick={() => handleZoomChange(Math.min(maxZoom, (zoom ?? minZoom) + 10))} />
 
-          {/* Fit Button - Zoom to fit content in one screen */}
+          {/* Fit Button - Reset to perfect zoom */}
           <button
             className={styles.fitButton}
-            onClick={() => setZoom(fitZoom)}
-            title={`Fit to screen (${fitZoom}%)`}
+            onClick={() => setZoom(perfectZoom)}
+            title={`Reset to perfect zoom (${perfectZoom}%)`}
           >
             <CompressOutlined />
           </button>
@@ -630,113 +716,162 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
             />
 
             {/* Event node markers */}
-            {layoutEvents.map(event => (
-              <div
-                key={`node-${event.id}`}
-                className={`${styles.eventNode} ${event.position === 'bottom' ? styles.eventNodeBottom : ''}`}
-                style={{ left: `${getEventPosition(event.timelinePosition)}px` }}
-              >
-                <div className={styles.eventDot} style={{ backgroundColor: event.color }} />
-                <div className={styles.eventTimeLabel}>
-                  {formatEventTime(event.year, event.month)}
+            {layoutEvents.map(event => {
+              const zIndex = getEventZIndex(event.id, true) // isNode = true
+              const isHovered = hoveredEventId === event.id
+              return (
+                <div
+                  key={`node-${event.id}`}
+                  className={`${styles.eventNode} ${event.position === 'bottom' ? styles.eventNodeBottom : ''} ${isHovered ? styles.hovered : ''}`}
+                  style={{
+                    left: `${getEventPosition(event.timelinePosition)}px`,
+                    zIndex
+                  }}
+                >
+                  <div className={styles.eventDot} style={{ backgroundColor: event.color }} />
+                  <div className={styles.eventTimeLabel}>
+                    {formatEventTime(event.year, event.month)}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
 
             {/* Top events layer 1 */}
             <div className={`${styles.eventsLayer} ${styles.eventsLayerTop} ${styles.layer1}`}>
-              {topLayer1.map(event => (
-                <div
-                  key={event.id}
-                  className={`${styles.eventCard} ${styles.eventCardTop}`}
-                  style={{ left: `${getEventPosition(event.timelinePosition)}px` }}
-                  onClick={() => handleEventClick(event)}
-                >
-                  <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
-                    <div className={styles.eventTitle}>
-                      {highlightText(event.title, event.highlight)}
-                    </div>
-                    {event.description && (
-                      <div className={styles.eventDescription}>
-                        {highlightText(event.description, event.highlight)}
+              {topLayer1.map(event => {
+                const zIndex = getEventZIndex(event.id)
+                const isHovered = hoveredEventId === event.id
+                return (
+                  <div
+                    key={event.id}
+                    className={`${styles.eventCard} ${styles.eventCardTop} ${isHovered ? styles.hovered : ''}`}
+                    style={{
+                      left: `${getEventPosition(event.timelinePosition)}px`,
+                      zIndex
+                    }}
+                    onClick={() => handleEventCardClick(event)}
+                    onDoubleClick={() => handleEventCardDoubleClick(event)}
+                    onMouseEnter={() => setHoveredEventId(event.id)}
+                    onMouseLeave={() => setHoveredEventId(null)}
+                    title={t.versionTimeline.doubleClickToReorder}
+                  >
+                    <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
+                      <div className={styles.eventTitle}>
+                        {highlightText(event.title, event.highlight)}
                       </div>
-                    )}
+                      {event.description && (
+                        <div className={styles.eventDescription}>
+                          {highlightText(event.description, event.highlight)}
+                        </div>
+                      )}
+                    </div>
+                    <div className={`${styles.eventConnector} ${styles.eventConnectorTop} ${styles.connectorLong}`} />
                   </div>
-                  <div className={`${styles.eventConnector} ${styles.eventConnectorTop} ${styles.connectorLong}`} />
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             {/* Top events layer 0 */}
             <div className={`${styles.eventsLayer} ${styles.eventsLayerTop} ${styles.layer0}`}>
-              {topLayer0.map(event => (
-                <div
-                  key={event.id}
-                  className={`${styles.eventCard} ${styles.eventCardTop}`}
-                  style={{ left: `${getEventPosition(event.timelinePosition)}px` }}
-                  onClick={() => handleEventClick(event)}
-                >
-                  <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
-                    <div className={styles.eventTitle}>
-                      {highlightText(event.title, event.highlight)}
-                    </div>
-                    {event.description && (
-                      <div className={styles.eventDescription}>
-                        {highlightText(event.description, event.highlight)}
+              {topLayer0.map(event => {
+                const zIndex = getEventZIndex(event.id)
+                const isHovered = hoveredEventId === event.id
+                return (
+                  <div
+                    key={event.id}
+                    className={`${styles.eventCard} ${styles.eventCardTop} ${isHovered ? styles.hovered : ''}`}
+                    style={{
+                      left: `${getEventPosition(event.timelinePosition)}px`,
+                      zIndex
+                    }}
+                    onClick={() => handleEventCardClick(event)}
+                    onDoubleClick={() => handleEventCardDoubleClick(event)}
+                    onMouseEnter={() => setHoveredEventId(event.id)}
+                    onMouseLeave={() => setHoveredEventId(null)}
+                    title={t.versionTimeline.doubleClickToReorder}
+                  >
+                    <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
+                      <div className={styles.eventTitle}>
+                        {highlightText(event.title, event.highlight)}
                       </div>
-                    )}
+                      {event.description && (
+                        <div className={styles.eventDescription}>
+                          {highlightText(event.description, event.highlight)}
+                        </div>
+                      )}
+                    </div>
+                    <div className={`${styles.eventConnector} ${styles.eventConnectorTop}`} />
                   </div>
-                  <div className={`${styles.eventConnector} ${styles.eventConnectorTop}`} />
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             {/* Bottom events layer 0 */}
             <div className={`${styles.eventsLayer} ${styles.eventsLayerBottom} ${styles.layer0}`}>
-              {bottomLayer0.map(event => (
-                <div
-                  key={event.id}
-                  className={`${styles.eventCard} ${styles.eventCardBottom}`}
-                  style={{ left: `${getEventPosition(event.timelinePosition)}px` }}
-                  onClick={() => handleEventClick(event)}
-                >
-                  <div className={`${styles.eventConnector} ${styles.eventConnectorBottom}`} />
-                  <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
-                    <div className={styles.eventTitle}>
-                      {highlightText(event.title, event.highlight)}
-                    </div>
-                    {event.description && (
-                      <div className={styles.eventDescription}>
-                        {highlightText(event.description, event.highlight)}
+              {bottomLayer0.map(event => {
+                const zIndex = getEventZIndex(event.id)
+                const isHovered = hoveredEventId === event.id
+                return (
+                  <div
+                    key={event.id}
+                    className={`${styles.eventCard} ${styles.eventCardBottom} ${isHovered ? styles.hovered : ''}`}
+                    style={{
+                      left: `${getEventPosition(event.timelinePosition)}px`,
+                      zIndex
+                    }}
+                    onClick={() => handleEventCardClick(event)}
+                    onDoubleClick={() => handleEventCardDoubleClick(event)}
+                    onMouseEnter={() => setHoveredEventId(event.id)}
+                    onMouseLeave={() => setHoveredEventId(null)}
+                  >
+                    <div className={`${styles.eventConnector} ${styles.eventConnectorBottom}`} />
+                    <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
+                      <div className={styles.eventTitle}>
+                        {highlightText(event.title, event.highlight)}
                       </div>
-                    )}
+                      {event.description && (
+                        <div className={styles.eventDescription}>
+                          {highlightText(event.description, event.highlight)}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             {/* Bottom events layer 1 */}
             <div className={`${styles.eventsLayer} ${styles.eventsLayerBottom} ${styles.layer1}`}>
-              {bottomLayer1.map(event => (
-                <div
-                  key={event.id}
-                  className={`${styles.eventCard} ${styles.eventCardBottom}`}
-                  style={{ left: `${getEventPosition(event.timelinePosition)}px` }}
-                  onClick={() => handleEventClick(event)}
-                >
-                  <div className={`${styles.eventConnector} ${styles.eventConnectorBottom} ${styles.connectorLong}`} />
-                  <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
-                    <div className={styles.eventTitle}>
-                      {highlightText(event.title, event.highlight)}
-                    </div>
-                    {event.description && (
-                      <div className={styles.eventDescription}>
-                        {highlightText(event.description, event.highlight)}
+              {bottomLayer1.map(event => {
+                const zIndex = getEventZIndex(event.id)
+                const isHovered = hoveredEventId === event.id
+                return (
+                  <div
+                    key={event.id}
+                    className={`${styles.eventCard} ${styles.eventCardBottom} ${isHovered ? styles.hovered : ''}`}
+                    style={{
+                      left: `${getEventPosition(event.timelinePosition)}px`,
+                      zIndex
+                    }}
+                    onClick={() => handleEventCardClick(event)}
+                    onDoubleClick={() => handleEventCardDoubleClick(event)}
+                    onMouseEnter={() => setHoveredEventId(event.id)}
+                    onMouseLeave={() => setHoveredEventId(null)}
+                  >
+                    <div className={`${styles.eventConnector} ${styles.eventConnectorBottom} ${styles.connectorLong}`} />
+                    <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
+                      <div className={styles.eventTitle}>
+                        {highlightText(event.title, event.highlight)}
                       </div>
-                    )}
+                      {event.description && (
+                        <div className={styles.eventDescription}>
+                          {highlightText(event.description, event.highlight)}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>
