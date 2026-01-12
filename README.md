@@ -10,7 +10,7 @@
 
 ### Overview
 
-Radar Compare is a powerful visualization platform designed for product managers, market analysts, and strategic planners. It goes beyond simple comparison by combining **multi-dimensional capability analysis (Radar)** with **chronological evolution tracking (Timeline)**.
+Prism is a powerful visualization platform designed for product managers, market analysts, and strategic planners. It goes beyond simple comparison by combining **multi-dimensional capability analysis (Radar)** with **chronological evolution tracking (Timeline)**.
 
 With cloud synchronization and team collaboration features, it serves as a central hub for your competitive intelligence.
 
@@ -29,7 +29,7 @@ With cloud synchronization and team collaboration features, it serves as a centr
 -   **Axis Breaks**: Intelligent handling of long gaps in history to keep the view focused on relevant data.
 
 #### ☁️ Cloud & Collaboration
--   **Cloud Sync**: Sign in with Google to save your data to the cloud automatically.
+-   **Cloud Sync**: Sign in with Google or GitHub to save your data to the cloud automatically.
 -   **Multi-Device Access**: Access your analysis from anywhere.
 -   **Secure Sharing**: Share analysis reports via unique links (Active Development).
 
@@ -72,7 +72,7 @@ MIT License
 
 ### 概述
 
-Radar Compare 是一个专业的竞品分析与产品演进可视化平台。它不仅提供强大的**雷达图可视化**来分析当前能力差异，还引入了**时间轴（Timeline）**功能来追踪产品的历史演进路线。
+Prism 是一个专业的竞品分析与产品演进可视化平台。它不仅提供强大的**雷达图可视化**来分析当前能力差异，还引入了**时间轴（Timeline）**功能来追踪产品的历史演进路线。
 
 支持云端同步与团队协作，是产品经理和行业分析师的得力助手。
 
@@ -91,7 +91,7 @@ Radar Compare 是一个专业的竞品分析与产品演进可视化平台。它
 -   **智能轴中断**: 自动隐藏无事件的长跨度时间段，聚焦关键信息。
 
 #### ☁️ 云端协作
--   **云端同步**: 支持 Google 账号登录，通过 Supabase 实时保存数据。
+-   **云端同步**: 支持 Google 和 GitHub 账号登录，通过 Supabase 实时保存数据。
 -   **跨设备访问**: 随时随地访问您的分析报告。
 -   **安全分享**: (开发中) 通过链接快速分享分析结果。
 
