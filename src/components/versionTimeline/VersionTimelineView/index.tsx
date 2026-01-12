@@ -8,8 +8,7 @@ import { calculateSmartLayout, generateTimeSegments } from '../layoutUtils'
 import styles from './VersionTimelineView.module.css'
 
 // Constants for layout calculation
-const DEFAULT_ZOOM = 100 // Default zoom percentage
-const MAX_ZOOM = 300 // Maximum zoom
+// (See zoom constants below around line 90)
 
 interface LayoutEvent extends VersionEvent {
   position: 'top' | 'bottom'
@@ -79,30 +78,99 @@ const EDGE_PADDING = 50 // Padding at left and right edges
 const TIMELINE_START_OFFSET = 200 // Space before first event for logo/orb
 const TIMELINE_END_OFFSET = 100 // Space after last event
 
-// Zoom Constants derived from "4-Track Capacity"
-// Comfort: ~180px card / 3 tracks = 60px per event (Increased for better spacing)
-const PIXELS_PER_EVENT_COMFORT = 90
-// Limit: ~54px card (70% overlap) / 4 tracks = 13.5px per event
-const PIXELS_PER_EVENT_LIMIT = 13.5
+// Zoom Definition (Based on Natural Width):
+// - zoom 100% = Natural Size (comfortable spacing, no overlap)
+// - zoom < 100% = Compressed (may have overlap, useful for overview)
+// - zoom > 100% = Enlarged (better readability, requires scroll)
+//
+// Natural Width = Content width at comfortable spacing (4 tracks, no overlap)
+// Reference: docs/architecture/timeline-layout-proposal.md Part 2
 
-function calculatePerfectZoom(
-  eventsCount: number,
-  totalYears: number,
+const PARALLEL_TRACKS = 4          // Number of parallel layout tracks (Top/Bottom × Layer0/Layer1)
+const CARD_WIDTH = 216             // Card width in pixels (from layoutUtils.ts)
+const OVERLAP_TOLERANCE = 0.7      // Maximum overlap ratio (70% overlap, 30% visible)
+const BASE_MAX_ZOOM = 300          // Maximum zoom level
+const BASE_MIN_ZOOM = 20           // Absolute minimum zoom level
+
+/**
+ * Calculate time span in days
+ */
+function calculateTimeSpanDays(events: VersionEvent[]): number {
+  if (events.length === 0) return 0
+
+  const timestamps = events.map(e => {
+    const year = e.year
+    const month = e.month || 6  // Default to mid-year if no month
+    const day = 15              // Default to mid-month
+    return new Date(year, month - 1, day).getTime()
+  })
+
+  const spanMs = Math.max(...timestamps) - Math.min(...timestamps)
+  return spanMs / (1000 * 60 * 60 * 24) // Convert to days
+}
+
+/**
+ * Calculate zoom bounds based on Natural Width strategy
+ * Reference: docs/architecture/timeline-layout-proposal.md Part 2
+ *
+ * Key concepts:
+ * - naturalWidth: Content width at comfortable spacing (no overlap, 4 tracks parallel)
+ * - zoom 100% = naturalWidth
+ * - fitZoom: Zoom level that fits content in one screen
+ * - limitZoom: Minimum zoom to maintain 30% visibility (70% overlap tolerance)
+ */
+function calculateZoomBounds(
+  events: VersionEvent[],
   containerWidth: number
 ) {
-  const contentWidth = containerWidth - EDGE_PADDING * 2
-  const fitZoom = totalYears > 0 ? contentWidth / totalYears : 100
+  // Calculate available width for event content (excluding all reserved areas)
+  const reservedWidth = EDGE_PADDING * 2 + TIMELINE_START_OFFSET + TIMELINE_END_OFFSET
+  const availableWidth = Math.max(100, containerWidth - reservedWidth)
 
-  const comfortZoom = totalYears > 0 ? (eventsCount * PIXELS_PER_EVENT_COMFORT) / totalYears : 0
-  const limitZoom = totalYears > 0 ? (eventsCount * PIXELS_PER_EVENT_LIMIT) / totalYears : 0
+  const eventCount = events.length
 
-  // MinZoom: Ensure we don't go beyond 70% overlap
-  const minZoom = Math.ceil(Math.max(fitZoom, limitZoom))
+  // Natural Width: Comfortable spacing with 4 parallel tracks, no overlap
+  // Each "row" (eventCount / PARALLEL_TRACKS) needs CARD_WIDTH spacing
+  const naturalWidth = Math.max(CARD_WIDTH, (eventCount / PARALLEL_TRACKS) * CARD_WIDTH)
 
-  // PerfectZoom: Ensure we default to Comfort if Fit is too crowded
-  const perfectZoom = Math.ceil(Math.max(fitZoom, comfortZoom))
+  // Limit Width: Maximum overlap tolerance (70% overlap, 30% visible)
+  // At this width, cards overlap significantly but remain identifiable
+  const minVisibleRatio = 1 - OVERLAP_TOLERANCE // 0.3
+  const limitWidth = Math.max(CARD_WIDTH * minVisibleRatio, (eventCount / PARALLEL_TRACKS) * (CARD_WIDTH * minVisibleRatio))
 
-  return { minZoom, perfectZoom }
+  // fitZoom: Zoom level that makes content exactly fit in one screen
+  // At fitZoom, actualContentWidth = availableWidth
+  // actualContentWidth = naturalWidth × (zoom / 100)
+  // => fitZoom = (availableWidth / naturalWidth) × 100
+  const fitZoom = Math.round((availableWidth / naturalWidth) * 100)
+
+  // limitZoom: Minimum zoom to maintain acceptable visibility
+  // At limitZoom, actualContentWidth = limitWidth
+  // => limitZoom = (limitWidth / naturalWidth) × 100
+  const limitZoom = Math.round((limitWidth / naturalWidth) * 100)
+
+  // minZoom: Guard against extreme compression
+  // Use limitZoom as floor, but don't go below BASE_MIN_ZOOM
+  const minZoom = Math.max(BASE_MIN_ZOOM, limitZoom)
+
+  // maxZoom: Upper bound for zoom
+  const maxZoom = BASE_MAX_ZOOM
+
+  // perfectZoom: Recommended default zoom
+  // Strategy from docs:
+  // - If fitZoom >= 100: Content fits comfortably in one screen, use fitZoom (no scroll needed)
+  // - If fitZoom < 100: One screen would cause overlap, prefer 100% (accept scroll for comfort)
+  // But also respect minZoom as absolute floor
+  const perfectZoom = Math.max(minZoom, fitZoom >= 100 ? fitZoom : 100)
+
+  return {
+    minZoom,
+    maxZoom,
+    perfectZoom,
+    fitZoom: Math.max(minZoom, fitZoom), // Ensure fitZoom respects minZoom
+    naturalWidth,
+    availableWidth
+  }
 }
 
 export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
@@ -136,20 +204,22 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
     return () => resizeObserver.disconnect()
   }, [])
 
-  // Calculate dynamic zoom bounds
-  const { totalYears, eventCount } = useMemo(() => {
-    if (!timeline?.events.length) return { totalYears: 0, eventCount: 0 }
-    // Estimate unique years span roughly
-    const years = timeline.events.map(e => e.year)
-    const span = Math.max(...years) - Math.min(...years) || 1
-    return { totalYears: span, eventCount: timeline.events.length }
-  }, [timeline])
+  // Calculate dynamic zoom bounds based on Natural Width strategy
+  const { minZoom, maxZoom, perfectZoom, fitZoom, naturalWidth } = useMemo(() => {
+    if (!timeline?.events.length) {
+      return {
+        minZoom: BASE_MIN_ZOOM,
+        maxZoom: BASE_MAX_ZOOM,
+        perfectZoom: 100,
+        fitZoom: 100,
+        naturalWidth: 1000
+      }
+    }
 
-  const { minZoom, perfectZoom } = useMemo(() => {
-    return calculatePerfectZoom(eventCount, totalYears, containerWidth)
-  }, [eventCount, totalYears, containerWidth])
+    return calculateZoomBounds(timeline.events, containerWidth)
+  }, [timeline, containerWidth])
 
-  // Initialize Zoom - MOVED to legacy effect below to support localStorage
+  // Initialize Zoom - MOVED to effect below to support localStorage
 
   // Update scroll state
   const updateScrollState = useCallback(() => {
@@ -229,6 +299,25 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
   // Axis Break Toggle State
   const [enableAxisBreak, setEnableAxisBreak] = useState(true)
 
+  // Track previous zoom to detect user-initiated zoom changes
+  const prevZoomRef = useRef<number | null>(null)
+
+  // Auto-disable axis break when zoom changes (user interaction)
+  useEffect(() => {
+    // Skip initial zoom setup (null -> perfectZoom)
+    if (prevZoomRef.current === null && zoom !== null) {
+      prevZoomRef.current = zoom
+      return
+    }
+
+    // Detect zoom change after initialization
+    if (prevZoomRef.current !== null && zoom !== null && prevZoomRef.current !== zoom) {
+      // User changed zoom - reset axis break to recalculate at new zoom level
+      setEnableAxisBreak(false)
+      prevZoomRef.current = zoom
+    }
+  }, [zoom])
+
   const { layoutEvents, timelineGradient, themeColor, totalWidth, timeSegments, hasPossibleBreaks } = useMemo(() => {
     if (!timeline || timeline.events.length === 0) {
       return {
@@ -243,17 +332,34 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
 
     const eventYears = timeline.events.map(e => e.year)
 
+    // Calculate actual content width based on zoom
+    // New semantics: zoom 100% = naturalWidth (comfortable spacing, no overlap)
+    // actualContentWidth = naturalWidth × (zoom / 100)
+    const currentZoom = zoom ?? perfectZoom
+    const actualContentWidth = naturalWidth * (currentZoom / 100)
 
+    // Calculate time span for proper scaling
+    const spanDays = calculateTimeSpanDays(timeline.events)
+    const totalYears = spanDays / 365.25
 
-    // Check if breaks are possible (for showing warning/button state)
-    // We check if the NEW layout logic detects any breaks at the CURRENT zoom level.
-    // If we disable breaks, we still want to know if we *could* enable them.
-    const potentialZoom = zoom || DEFAULT_ZOOM
-    const potentialPixelsPerYear = (potentialZoom / 100) * 100
+    /**
+     * Convert zoom (content-based scaling) to pixelsPerYear (time-based scaling)
+     *
+     * The layoutUtils expects pixelsPerYear, which controls:
+     * 1. Gap detection for axis breaks (MIN_GAP_PIXELS threshold)
+     * 2. Time segment width calculation
+     *
+     * Strategy:
+     * - If totalYears >= 0.1 (~36 days): Direct conversion actualContentWidth / totalYears
+     * - Very short time span: Use large value to prevent meaningless axis breaks
+     */
+    const pixelsPerYear = totalYears >= 0.1
+      ? actualContentWidth / totalYears
+      : actualContentWidth * 100 // Very short span - prevent axis breaks
 
-    // We can use the utility to check, but we need to force enableBreaks=true to see if it *would* generate breaks
-    // This is cheap to calculation.
-    const potentialScale = generateTimeSegments(timeline.events, potentialPixelsPerYear, true)
+    // Check if breaks are possible (for showing toggle button)
+    const potentialPixelsPerYear = pixelsPerYear // Use same calculation as above
+    const potentialScale = generateTimeSegments(timeline.events, potentialPixelsPerYear, true, containerWidth)
     const hasPossibleBreaks = potentialScale.segments.some((s: TimeSegment) => s.type === 'break')
 
     // Theme colors
@@ -273,11 +379,8 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
     }
 
     // Calculate layout with Non-Linear Axis support
-    const currentZoom = zoom || DEFAULT_ZOOM
-    const pixelsPerYear = (currentZoom / 100) * 100
-
     const { layoutEvents: layout, totalWidth: eventsWidth, timeScale } = calculateSmartLayout(
-      timeline.events, colors, pixelsPerYear, enableAxisBreak
+      timeline.events, colors, pixelsPerYear, enableAxisBreak, containerWidth
     )
 
     // Total width
@@ -291,7 +394,7 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
       timeSegments: timeScale.segments,
       hasPossibleBreaks
     }
-  }, [timeline, containerWidth, zoom, enableAxisBreak])
+  }, [timeline, containerWidth, zoom, enableAxisBreak, naturalWidth, perfectZoom])
 
   // Initialize zoom to perfectZoom once calculated, or load from storage
   useEffect(() => {
@@ -302,16 +405,16 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
         if (savedZoom) {
           const parsed = parseInt(savedZoom, 10)
           if (!isNaN(parsed)) {
-            // Respect user's saved choice but ensure it meets hard minimum
-            setZoom(Math.max(parsed, minZoom))
+            // Respect user's saved choice but ensure it's within bounds
+            setZoom(Math.max(minZoom, Math.min(maxZoom, parsed)))
             return
           }
         }
       }
-      // Fallback to perfect default if no preference
+      // Fallback to perfectZoom if no preference
       setZoom(perfectZoom)
     }
-  }, [perfectZoom, zoom, timeline, minZoom])
+  }, [perfectZoom, zoom, timeline, minZoom, maxZoom])
 
   useEffect(() => {
     updateScrollState()
@@ -399,22 +502,22 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
         {/* Zoom slider */}
         {/* Zoom slider */}
         <div className={styles.zoomControl}>
-          <ZoomOutOutlined className={styles.zoomIcon} onClick={() => handleZoomChange(Math.max(minZoom, (zoom || minZoom) - 10))} />
+          <ZoomOutOutlined className={styles.zoomIcon} onClick={() => handleZoomChange(Math.max(minZoom, (zoom ?? minZoom) - 10))} />
           <Slider
             className={styles.zoomSlider}
             min={minZoom}
-            max={MAX_ZOOM}
-            value={zoom || minZoom}
+            max={maxZoom}
+            value={zoom ?? minZoom}
             onChange={handleZoomChange}
-            tooltip={{ formatter: (v) => `${v}%` }}
+            tooltip={{ formatter: (v) => v != null ? `${v}%` : `${minZoom}%` }}
           />
-          <ZoomInOutlined className={styles.zoomIcon} onClick={() => handleZoomChange(Math.min(MAX_ZOOM, (zoom || minZoom) + 10))} />
+          <ZoomInOutlined className={styles.zoomIcon} onClick={() => handleZoomChange(Math.min(maxZoom, (zoom ?? minZoom) + 10))} />
 
-          {/* Fit Button */}
+          {/* Fit Button - Zoom to fit content in one screen */}
           <button
             className={styles.fitButton}
-            onClick={() => setZoom(perfectZoom)}
-            title="Fit to view (Perfect Zoom)"
+            onClick={() => setZoom(fitZoom)}
+            title={`Fit to screen (${fitZoom}%)`}
           >
             <CompressOutlined />
           </button>

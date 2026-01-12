@@ -4,9 +4,28 @@ import { VersionEvent, TimeSegment, TimeScaleConfig } from '@/types/versionTimel
 // Constants
 // ----------------------------------------------------------------------
 
-const MIN_GAP_PIXELS = 400
-const BREAK_WIDTH = 48
-const MIN_GAP_YEARS = 1 // Minimum years required to trigger a break. Prevents breaking adjacent years at high zoom.
+// 断轴相关常量
+const MIN_GAP_PIXELS = 400        // 触发断轴的最小像素间距
+const MIN_GAP_RATIO = 0.15        // 触发断轴的最小时间差比例（占总跨度的 15%）
+const BREAK_WIDTH = 64           // 断轴区域的固定宽度
+
+// 事件布局常量
+const MIN_DOT_DIST_PX = 12        // 事件点之间的最小像素距离
+const MIN_EVENT_SPACING = 28      // 事件密集区域每个事件所需的最小宽度
+const CARD_WIDTH_PX = 216         // 卡片宽度（含边距）
+const CARD_TAIL_PADDING = 50      // 最后一个事件后的尾部留白
+
+// 成本计算系数（基于 10% 差异阈值调优）
+const COEFF_LAYER = 800           // 层级惩罚：优先使用 L0 层
+const COEFF_ZIGZAG = 50           // 连续同侧惩罚：鼓励锯齿形布局
+const GAP_SAFE_PX = 10            // 安全间距阈值
+const COST_CROWD = 200            // 拥挤惩罚
+const OVERLAP_BASE = 1000         // 重叠基础惩罚
+const OVERLAP_COEFF = 30000       // 重叠系数（二次方惩罚）
+
+// 视觉安全检查
+const CONNECTOR_OBSTRUCTION_THRESHOLD = 40  // 连接线遮挡检测阈值
+const CONNECTOR_OBSTRUCTION_PENALTY = 500   // 连接线遮挡惩罚
 
 interface LayoutEvent extends VersionEvent {
     position: 'top' | 'bottom'
@@ -22,15 +41,40 @@ interface LayoutEvent extends VersionEvent {
 /**
  * 1. Detect active ranges from event years.
  * Merges close years into single continuous ranges.
+ *
+ * Axis break is triggered when ALL THREE conditions are met:
+ * - Timeline requires scrolling (estimatedWidth > containerWidth)
+ * - Visual gap is large enough (pixelGap >= MIN_GAP_PIXELS)
+ * - Time gap is significant relative to total span (timeRatio >= MIN_GAP_RATIO)
  */
-function getActiveRanges(years: number[], pixelThresholdPerYear: number): { start: number; end: number }[] {
+function getActiveRanges(
+    years: number[],
+    pixelThresholdPerYear: number,
+    containerWidth: number
+): { start: number; end: number }[] {
     if (years.length === 0) return []
 
     const sorted = Array.from(new Set(years)).sort((a, b) => a - b)
-    const ranges: { start: number; end: number }[] = []
-
     if (sorted.length === 0) return []
 
+    // Calculate total time span for relative ratio check
+    const totalSpan = sorted[sorted.length - 1] - sorted[0]
+
+    // If all events are in the same year, no breaks possible
+    if (totalSpan === 0) {
+        return [{ start: sorted[0], end: sorted[0] }]
+    }
+
+    // Quick estimate: timeline width without axis breaks (ignoring elastic expansion)
+    const estimatedWidth = totalSpan * pixelThresholdPerYear
+
+    // If timeline fits in one screen, no need for axis breaks
+    // (Axis breaks are only useful when timeline requires scrolling)
+    if (estimatedWidth <= containerWidth) {
+        return [{ start: sorted[0], end: sorted[sorted.length - 1] }]
+    }
+
+    const ranges: { start: number; end: number }[] = []
     let currentStart = sorted[0]
     let currentEnd = sorted[0]
 
@@ -38,24 +82,26 @@ function getActiveRanges(years: number[], pixelThresholdPerYear: number): { star
         const year = sorted[i]
         const yearDiff = year - currentEnd
         const pixelGap = yearDiff * pixelThresholdPerYear
+        const timeRatio = yearDiff / totalSpan
 
-        // If gap is visually small OR the time difference is too short, merge into current range
-        if (pixelGap < MIN_GAP_PIXELS || yearDiff < MIN_GAP_YEARS) {
-            currentEnd = year
-        } else {
-            // Gap is large, finalize current range and start new one
+        // Trigger axis break if BOTH conditions are met:
+        // 1. Visual gap is large (screen has significant empty space)
+        // 2. Time gap is significant relative to total span (not just zoomed-in spacing)
+        const shouldBreak = pixelGap >= MIN_GAP_PIXELS && timeRatio >= MIN_GAP_RATIO
+
+        if (shouldBreak) {
+            // Gap is large both visually and temporally, finalize current range
             ranges.push({ start: currentStart, end: currentEnd })
             currentStart = year
+            currentEnd = year
+        } else {
+            // Gap is small, merge into current range
             currentEnd = year
         }
     }
     ranges.push({ start: currentStart, end: currentEnd })
 
-    // Add padding to ranges
-    return ranges.map(r => ({
-        start: r.start,
-        end: r.end
-    }))
+    return ranges
 }
 
 /**
@@ -66,14 +112,14 @@ function getActiveRanges(years: number[], pixelThresholdPerYear: number): { star
 export function generateTimeSegments(
     events: VersionEvent[],
     zoomPixelsPerYear: number,
-    enableBreaks: boolean = true
+    enableBreaks: boolean = true,
+    containerWidth: number = 1000 // Default fallback for backward compatibility
 ): TimeScaleConfig {
     const years = events.map(e => e.year)
-    const ranges = enableBreaks ? getActiveRanges(years, zoomPixelsPerYear) : [{ start: Math.min(...years), end: Math.max(...years) }]
+    const ranges = enableBreaks ? getActiveRanges(years, zoomPixelsPerYear, containerWidth) : [{ start: Math.min(...years), end: Math.max(...years) }]
 
     const segments: TimeSegment[] = []
     let currentPixel = 0
-    const MIN_EVENT_SPACING = 28 // Pixels needed per event in a cluster
 
     ranges.forEach((range, index) => {
         // Add Break Segment if not the first range
@@ -98,13 +144,7 @@ export function generateTimeSegments(
         const naturalWidth = validSpan * zoomPixelsPerYear
 
         // 2. Calculate required width based on event density
-        // Find events in this range
         const eventsInRange = events.filter(e => e.year >= range.start && e.year <= range.end)
-        // Group by year (assume collisions happen mostly on same year)
-        // Actually, we just need enough total width to spread them out? 
-        // Simple heuristic: Total Events * Spacing
-        // Better heuristic: Max events in any single year * Spacing? No, we nudge laterally.
-        // Let's use (Count - 1) * Spacing + Padding
         const requiredWidth = eventsInRange.length > 1
             ? (eventsInRange.length - 0.5) * MIN_EVENT_SPACING
             : MIN_EVENT_SPACING
@@ -172,21 +212,8 @@ export function mapDateToPixel(
 }
 
 // ----------------------------------------------------------------------
-// Layout Algorithm (Refactored)
+// Layout Algorithm (Cost-Based Best-Fit)
 // ----------------------------------------------------------------------
-
-// ----------------------------------------------------------------------
-// Layout Algorithm (Refactored: Cost-Based Best-Fit)
-// ----------------------------------------------------------------------
-
-// Tuned coefficients based on "10% difference threshold"
-const COEFF_LAYER = 800
-const COEFF_ZIGZAG = 50
-const GAP_SAFE_PX = 10
-const COST_CROWD = 200
-
-const OVERLAP_BASE = 1000
-const OVERLAP_COEFF = 30000
 
 // Track definitions
 // 0: Top-L0, 1: Bot-L0, 2: Top-L1, 3: Bot-L1
@@ -201,22 +228,24 @@ export function calculateSmartLayout(
     events: VersionEvent[],
     colors: string[], // Pre-generated colors map
     zoomPixelsPerYear: number,
-    enableBreaks: boolean = true
+    enableBreaks: boolean = true,
+    containerWidth: number = 1000 // Default fallback for backward compatibility
 ): {
     layoutEvents: LayoutEvent[],
     totalWidth: number,
     timeScale: TimeScaleConfig
 } {
     // 1. New Coordinate System
-    const timeScale = generateTimeSegments(events, zoomPixelsPerYear, enableBreaks)
+    const timeScale = generateTimeSegments(events, zoomPixelsPerYear, enableBreaks, containerWidth)
 
-    // 2. Map Events to Positions
+    // 2. 预计算年份到颜色索引的映射（避免循环内重复计算）
+    const uniqueYears = Array.from(new Set(events.map(e => e.year))).sort((a, b) => a - b)
+    const yearToColorIndex = new Map(uniqueYears.map((year, idx) => [year, idx]))
+
+    // 3. Map Events to Positions
     const eventsWithPosition = events.map(event => {
         const px = mapDateToPixel(event.year, event.month, timeScale)
-
-        // Color logic
-        const uniqueYears = Array.from(new Set(events.map(e => e.year))).sort((a, b) => a - b)
-        const yearIndex = uniqueYears.indexOf(event.year)
+        const yearIndex = yearToColorIndex.get(event.year) ?? 0
         const color = colors[yearIndex % colors.length] || colors[0]
 
         return {
@@ -230,9 +259,7 @@ export function calculateSmartLayout(
     // Sort by pixel position
     eventsWithPosition.sort((a, b) => a.pixelOriginal - b.pixelOriginal)
 
-    // 3. Collision Avoidance (Nudging Dots)
-    const MIN_DOT_DIST_PX = 12
-
+    // 4. Collision Avoidance (Nudging Dots)
     for (let i = 1; i < eventsWithPosition.length; i++) {
         const prev = eventsWithPosition[i - 1]
         const curr = eventsWithPosition[i]
@@ -242,20 +269,18 @@ export function calculateSmartLayout(
         }
     }
 
-    // 4. Calculate Final Layout (Cost-Based Best-Fit)
+    // 5. Calculate Final Layout (Cost-Based Best-Fit)
     const originalTotalWidth = timeScale.totalWidth
     const lastEvent = eventsWithPosition[eventsWithPosition.length - 1]
-    const nudgedTotalWidth = lastEvent ? Math.max(originalTotalWidth, lastEvent.pixelAdjusted + 50) : originalTotalWidth
+    const nudgedTotalWidth = lastEvent
+        ? Math.max(originalTotalWidth, lastEvent.pixelAdjusted + CARD_TAIL_PADDING)
+        : originalTotalWidth
     const finalTotalWidth = nudgedTotalWidth
 
     const layoutEvents: LayoutEvent[] = []
 
-    // Store occupied ranges for each track: { start, end }[]
+    // 每个轨道的占用区域记录
     const trackOccupancy: Array<{ start: number; end: number }[]> = [[], [], [], []]
-
-    // Using approx card width + gap. 
-    // Ideally this should match CSS. Let's assume ~180px visual + margin
-    const CARD_WIDTH_PX = 216
 
     let lastPlacedPosition: 'top' | 'bottom' | null = null
 
@@ -305,14 +330,9 @@ export function calculateSmartLayout(
                 }
             })
 
-            // Calculate Gap Cost
-            if (maxOverlapRatio === 0) {
-                if (minGap < gap_not_found_fallback(minGap)) {
-                    // Helper: if minGap is Infinity, it means track is empty or far away -> safe
-                }
-                if (minGap >= 0 && minGap <= GAP_SAFE_PX) {
-                    cost += COST_CROWD
-                }
+            // Calculate Gap Cost (only when no overlap)
+            if (maxOverlapRatio === 0 && minGap >= 0 && minGap <= GAP_SAFE_PX) {
+                cost += COST_CROWD
             }
 
             // Calculate Overlap Cost (Quadratic)
@@ -327,13 +347,11 @@ export function calculateSmartLayout(
                 const innerOccupancy = trackOccupancy[innerTrackId]
                 const obstruct = innerOccupancy.find(occ => centerPx >= occ.start && centerPx <= occ.end)
 
-                // If the connector (vertical line at centerPx) hits a card in Layer 0
-                // We should penalize this to avoid "visual collision" of the line
+                // 如果连接线穿过 L0 层的卡片中心区域，添加惩罚
                 if (obstruct) {
                     const obsCenter = (obstruct.start + obstruct.end) / 2
-                    // If it hits right in the middle of a card below/above it
-                    if (Math.abs(centerPx - obsCenter) < 40) {
-                        cost += 500 // Soft penalty, can be overridden if overlap cost is huge
+                    if (Math.abs(centerPx - obsCenter) < CONNECTOR_OBSTRUCTION_THRESHOLD) {
+                        cost += CONNECTOR_OBSTRUCTION_PENALTY
                     }
                 }
             }
@@ -368,9 +386,4 @@ export function calculateSmartLayout(
         totalWidth: finalTotalWidth,
         timeScale: finalConfig
     }
-}
-
-// Helper to handle Infinity
-function gap_not_found_fallback(val: number) {
-    return val === Infinity ? Infinity : val
 }

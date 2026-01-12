@@ -384,18 +384,58 @@ npm run lint
 
 ### 2. 断轴检测策略 (Gap Detection)
 
-- **基于视觉距离**: 不再基于固定的年份差。
-- **阈值**: `MIN_GAP_PIXELS = 250px`
-- **逻辑**: 如果两个连续事件之间的**屏幕像素距离** > 250px，则认为该空间浪费，自动折叠为断轴。
-- **优势**:
-  - 缩放无关性：无论缩放比例如何，只会折叠真正占据大量屏幕空间的区域。
-  - 大缩放(Zoom In): 可能折叠较短的年份间隔（因为它们占据了很大屏幕）。
-  - 小缩放(Zoom Out): 可能保留较长的年份间隔（因为它们占据屏幕很少）。
+断轴触发需要**同时满足三个条件**：
 
-### 3. 可视化细节
+1. **时间轴需要滚动**: `estimatedWidth > containerWidth` (一屏放不下才需要断轴优化)
+2. **视觉距离足够大**: `pixelGap >= 400px` (屏幕上真的有大片空白)
+3. **时间比例显著**: `timeRatio >= 15%` (间隔占总跨度的比例足够大)
 
-- **断轴宽度**: `BREAK_WIDTH = 40px` (视觉上更紧凑)
+**相关常量**:
+- `MIN_GAP_PIXELS = 400`: 触发断轴的最小像素间距
+- `MIN_GAP_RATIO = 0.15`: 触发断轴的最小时间差比例 (占总跨度的 15%)
+- `BREAK_WIDTH = 48`: 断轴区域的固定宽度
+
+### 3. Zoom 策略 (基于 Natural Width)
+
+参考 `docs/architecture/timeline-layout-proposal.md` Part 2 实现。
+
+**语义定义**:
+- `zoom 100%` = Natural Size (舒适间距，无重叠)
+- `zoom < 100%` = 压缩视图 (可能有重叠，用于全览)
+- `zoom > 100%` = 放大视图 (更好的可读性，需要滚动)
+
+**关键计算**:
+```typescript
+// 4 轨道并行布局
+const PARALLEL_TRACKS = 4
+const CARD_WIDTH = 216
+const OVERLAP_TOLERANCE = 0.7  // 70% 重叠容忍度
+
+// Natural Width: 无重叠所需的内容宽度
+naturalWidth = (eventCount / 4) × CARD_WIDTH
+
+// fitZoom: 刚好一屏放下
+fitZoom = (availableWidth / naturalWidth) × 100
+
+// limitZoom: 最大重叠容忍 (保留 30% 可见)
+limitZoom = 30%
+
+// minZoom: 不低于 limitZoom
+minZoom = max(20%, limitZoom)
+
+// perfectZoom: 推荐默认值
+// - fitZoom >= 100%: 使用 fitZoom (一屏能放下且无重叠)
+// - fitZoom < 100%: 使用 100% (接受滚动，保证舒适)
+perfectZoom = max(minZoom, fitZoom >= 100 ? fitZoom : 100)
+```
+
+**Fit 按钮**: 点击后设置为 `fitZoom` (刚好一屏放下)
+
+### 4. 可视化细节
+
+- **断轴宽度**: `BREAK_WIDTH = 48px`
 - **开关逻辑**: 只有当当前视图**存在**可折叠的空白区域时，工具栏才会显示"启用/禁用断轴"的切换按钮。
+- **自动重置**: 修改 zoom 后，断轴状态自动重置为未启用，用户可在新 zoom 下重新启用。
 
 
 ## ECharts 开发规范
