@@ -8,6 +8,8 @@ export const zhCN = {
     edit: '编辑',
     save: '保存',
     saveSuccess: '保存成功',
+    addSuccess: '添加成功',
+    deleteSuccess: '删除成功',
     upload: '上传',
     loading: '加载中...',
     noData: '暂无数据',
@@ -47,6 +49,7 @@ export const zhCN = {
     export: '导出',
     exportImage: '导出图片',
     exportExcel: '导出当前 Tab',
+
     exportAllTabs: '导出所有 Tab',
     exportJSON: '导出 JSON',
     downloadTemplate: '下载模板',
@@ -357,6 +360,12 @@ export const zhCN = {
     enableAxisBreak: '启用断轴优化',
     disableAxisBreak: '禁用断轴优化',
     doubleClickToReorder: '双击置顶',
+    // Event Types Management
+    eventTypes: '事件类型',
+    showAll: '显示全部',
+    hideType: '点击隐藏',
+    showType: '点击显示',
+    deleteTypeConfirm: '确定删除此类型吗？',
   },
 }
 

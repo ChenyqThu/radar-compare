@@ -3,7 +3,7 @@ import { Modal, Form, Input, Select, Button, Space, Tag, Row, Col } from 'antd'
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useRadarStore } from '@/stores/radarStore'
 import { useI18n } from '@/locales'
-import type { VersionEvent, VersionEventType } from '@/types/versionTimeline'
+import type { VersionEvent } from '@/types/versionTimeline'
 import styles from './VersionEventEditor.module.css'
 
 interface VersionEventEditorProps {
@@ -12,19 +12,6 @@ interface VersionEventEditorProps {
   timelineId: string
   event?: VersionEvent | null  // null for new event
 }
-
-interface EventTypeConfig {
-  value: VersionEventType
-  labelKey: 'eventType_major' | 'eventType_minor' | 'eventType_patch' | 'eventType_milestone'
-  color: string
-}
-
-const EVENT_TYPES: EventTypeConfig[] = [
-  { value: 'major', labelKey: 'eventType_major', color: 'red' },
-  { value: 'minor', labelKey: 'eventType_minor', color: 'blue' },
-  { value: 'patch', labelKey: 'eventType_patch', color: 'green' },
-  { value: 'milestone', labelKey: 'eventType_milestone', color: 'purple' },
-]
 
 // 生成年份选项 (1900-2100)
 const generateYearOptions = () => {
@@ -47,12 +34,25 @@ export const VersionEventEditor: React.FC<VersionEventEditorProps> = ({
   event,
 }) => {
   const { t } = useI18n()
-  const { addVersionEvent, updateVersionEvent, deleteVersionEvent } = useRadarStore()
+  const { addVersionEvent, updateVersionEvent, deleteVersionEvent, getVersionTimelineById } = useRadarStore()
   const [form] = Form.useForm()
   const [highlights, setHighlights] = useState<string[]>([])
   const [highlightInput, setHighlightInput] = useState('')
 
   const isEditing = !!event
+
+  // Get timeline info for event types
+  const timeline = getVersionTimelineById(timelineId)
+  const eventTypes = timeline?.info.eventTypes || {}
+
+  // Generate type options sorted by order
+  const typeOptions = Object.entries(eventTypes)
+    .sort((a, b) => a[1].order - b[1].order)
+    .map(([typeId, config]) => ({
+      value: typeId,
+      label: config.label,
+      color: config.color,
+    }))
 
   useEffect(() => {
     if (open) {
@@ -211,11 +211,20 @@ export const VersionEventEditor: React.FC<VersionEventEditorProps> = ({
           rules={[{ required: true }]}
         >
           <Select>
-            {EVENT_TYPES.map(type => (
+            {typeOptions.map(type => (
               <Select.Option key={type.value} value={type.value}>
-                <Tag color={type.color} style={{ marginRight: 8 }}>
-                  {t.versionTimeline[type.labelKey]}
-                </Tag>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: 12,
+                    height: 12,
+                    borderRadius: '50%',
+                    backgroundColor: type.color,
+                    marginRight: 8,
+                    verticalAlign: 'middle',
+                  }}
+                />
+                <span>{type.label}</span>
               </Select.Option>
             ))}
           </Select>

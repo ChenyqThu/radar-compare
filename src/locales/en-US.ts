@@ -10,6 +10,8 @@ export const enUS: Locale = {
     edit: 'Edit',
     save: 'Save',
     saveSuccess: 'Saved successfully',
+    addSuccess: 'Added successfully',
+    deleteSuccess: 'Deleted successfully',
     upload: 'Upload',
     loading: 'Loading...',
     noData: 'No data',
@@ -49,6 +51,7 @@ export const enUS: Locale = {
     export: 'Export',
     exportImage: 'Export Image',
     exportExcel: 'Export Current Tab',
+
     exportAllTabs: 'Export All Tabs',
     exportJSON: 'Export JSON',
     downloadTemplate: 'Download Template',
@@ -359,5 +362,11 @@ export const enUS: Locale = {
     enableAxisBreak: 'Enable Axis Break',
     disableAxisBreak: 'Disable Axis Break',
     doubleClickToReorder: 'Double-click to bring to front',
+    // Event Types Management
+    eventTypes: 'Event Types',
+    showAll: 'Show All',
+    hideType: 'Click to hide',
+    showType: 'Click to show',
+    deleteTypeConfirm: 'Are you sure to delete this type?',
   },
 }

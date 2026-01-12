@@ -2,7 +2,14 @@
  * 版本时间轴类型定义
  */
 
-// 版本事件类型
+// 事件类型配置接口
+export interface EventTypeConfig {
+  label: string       // 显示名称（如 "关键节点"）
+  color: string       // 颜色（HEX 格式，如 #ff4d4f）
+  order: number       // 排序权重（用于图例排序）
+}
+
+// 版本事件类型（保留用于向后兼容）
 export type VersionEventType =
   | 'major'        // 重大版本
   | 'minor'        // 次要版本
@@ -16,7 +23,7 @@ export interface VersionEvent {
   month?: number                   // 发布月份（1-12，可选）
   title: string                    // 事件标题
   description?: string             // 详细描述
-  type: VersionEventType           // 事件类型
+  type: string                     // 事件类型（支持自定义类型）
   position: 'top' | 'bottom'       // 显示位置（上层或下层，由算法自动分配）
   highlight?: string[]             // 需要高亮的关键词
   icon?: string                    // 图标（可选）
@@ -38,8 +45,9 @@ export interface TimelineInfo {
   logo?: string                    // Logo URL
   title: string                    // 标题（如"大事记"）
   company?: string                 // 公司名称
-  themeColor?: string              // 主题色（HEX格式，如 #0A7171）
+  themeColor?: string              // 主题色（HEX格式，如 #0A7171，作为未定义类型的回退颜色）
   theme?: TimelineTheme            // 时间轴主题样式
+  eventTypes?: Record<string, EventTypeConfig>  // 事件类型注册表（Key: 类型ID, Value: 配置）
 }
 
 // 时间轴数据 (用于组件 props)
@@ -87,4 +95,12 @@ export function isVersionTimeline(chart: unknown): chart is VersionTimeline {
     'isVersionTimeline' in chart &&
     (chart as VersionTimeline).isVersionTimeline === true
   )
+}
+
+// 默认事件类型配置
+export const DEFAULT_EVENT_TYPES: Record<string, EventTypeConfig> = {
+  major: { label: '重大版本', color: '#ff4d4f', order: 0 },
+  minor: { label: '次要版本', color: '#1890ff', order: 1 },
+  patch: { label: '补丁版本', color: '#52c41a', order: 2 },
+  milestone: { label: '里程碑', color: '#faad14', order: 3 },
 }

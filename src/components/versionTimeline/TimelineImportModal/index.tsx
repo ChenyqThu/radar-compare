@@ -4,7 +4,8 @@ import { InboxOutlined } from '@ant-design/icons'
 import type { UploadProps } from 'antd'
 import { useRadarStore } from '@/stores/radarStore'
 import { useI18n } from '@/locales'
-import type { VersionTimeline, VersionEvent, TimelineInfo } from '@/types/versionTimeline'
+import type { VersionTimeline, VersionEvent, TimelineInfo, EventTypeConfig } from '@/types/versionTimeline'
+import { DEFAULT_EVENT_TYPES } from '@/types/versionTimeline'
 import styles from './TimelineImportModal.module.css'
 
 const { Dragger } = Upload
@@ -52,6 +53,9 @@ function validateTimelineData(data: unknown): ParseResult {
   if (!Array.isArray(obj.events)) {
     errors.push('events 必须是数组')
   } else {
+    // Get eventTypes from info for validation (if present)
+    const eventTypes = (obj.info as Record<string, unknown>)?.eventTypes as Record<string, EventTypeConfig> | undefined
+
     obj.events.forEach((event, index) => {
       if (!event || typeof event !== 'object') {
         errors.push(`events[${index}] 必须是对象`)
@@ -64,8 +68,12 @@ function validateTimelineData(data: unknown): ParseResult {
       if (!e.title || typeof e.title !== 'string') {
         errors.push(`events[${index}].title 是必需的字符串字段`)
       }
-      if (e.type && !['major', 'minor', 'patch', 'milestone'].includes(e.type as string)) {
-        warnings.push(`events[${index}].type "${e.type}" 不是有效类型，将使用默认值 "minor"`)
+      // Validate event type against eventTypes if present
+      if (e.type && typeof e.type === 'string') {
+        const typeExists = eventTypes?.[e.type as string] || DEFAULT_EVENT_TYPES[e.type as string]
+        if (!typeExists) {
+          warnings.push(`events[${index}].type "${e.type}" 未在 eventTypes 中定义，将使用主题色渲染`)
+        }
       }
     })
   }
@@ -76,14 +84,18 @@ function validateTimelineData(data: unknown): ParseResult {
 
   // Normalize data
   const info = obj.info as TimelineInfo
+  // Ensure eventTypes exists, use DEFAULT_EVENT_TYPES if not present
+  if (!info.eventTypes) {
+    info.eventTypes = { ...DEFAULT_EVENT_TYPES }
+  }
+
   const events = (obj.events as Array<Record<string, unknown>>).map((e, i) => ({
     id: (e.id as string) || `imported-${i}`,
     year: e.year as number,
+    month: e.month as number | undefined,
     title: e.title as string,
     description: e.description as string | undefined,
-    type: (['major', 'minor', 'patch', 'milestone'].includes(e.type as string)
-      ? e.type
-      : 'minor') as VersionEvent['type'],
+    type: (e.type as string) || 'minor', // Preserve original type, default to 'minor'
     position: 'top' as const,
     highlight: Array.isArray(e.highlight) ? e.highlight as string[] : undefined,
     icon: e.icon as string | undefined,
@@ -162,12 +174,21 @@ export function TimelineImportModal({ open, onClose }: TimelineImportModalProps)
     if (!result?.data) return null
 
     const { data } = result
-    const eventsByType = {
-      major: data.events.filter(e => e.type === 'major').length,
-      minor: data.events.filter(e => e.type === 'minor').length,
-      milestone: data.events.filter(e => e.type === 'milestone').length,
-      patch: data.events.filter(e => e.type === 'patch').length,
-    }
+
+    // Count events by type dynamically
+    const typeCounts: Record<string, number> = {}
+    data.events.forEach(e => {
+      typeCounts[e.type] = (typeCounts[e.type] || 0) + 1
+    })
+
+    // Get type labels from eventTypes or use type id as fallback
+    const eventTypes = data.info.eventTypes || {}
+    const typeLabels = Object.entries(typeCounts).map(([typeId, count]) => ({
+      typeId,
+      label: eventTypes[typeId]?.label || typeId,
+      color: eventTypes[typeId]?.color || '#999',
+      count,
+    })).sort((a, b) => (eventTypes[a.typeId]?.order || 0) - (eventTypes[b.typeId]?.order || 0))
 
     const years = data.events.map(e => e.year)
     const minYear = Math.min(...years)
@@ -184,15 +205,18 @@ export function TimelineImportModal({ open, onClose }: TimelineImportModalProps)
           <Text><strong>{t.versionTimeline.eventCount || '事件数量'}:</strong> {data.events.length}</Text>
           <Text><strong>{t.versionTimeline.timeRange || '时间范围'}:</strong> {minYear} - {maxYear}</Text>
           <div className={styles.eventTypes}>
-            {eventsByType.milestone > 0 && (
-              <span className={styles.badge}>{t.versionTimeline.milestone || '里程碑'}: {eventsByType.milestone}</span>
-            )}
-            {eventsByType.major > 0 && (
-              <span className={styles.badge}>{t.versionTimeline.major || '重大'}: {eventsByType.major}</span>
-            )}
-            {eventsByType.minor > 0 && (
-              <span className={styles.badge}>{t.versionTimeline.minor || '次要'}: {eventsByType.minor}</span>
-            )}
+            {typeLabels.map(({ typeId, label, color, count }) => (
+              <span
+                key={typeId}
+                className={styles.badge}
+                style={{
+                  borderColor: color,
+                  color: color,
+                }}
+              >
+                {label}: {count}
+              </span>
+            ))}
           </div>
         </Space>
       </div>

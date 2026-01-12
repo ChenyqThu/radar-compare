@@ -32,6 +32,8 @@ interface LayoutEvent extends VersionEvent {
     offset: number
     timelinePosition: number // Percentage 0-100 relative to totalWidth
     color: string
+    nodeColor?: string
+    styleColor?: string
 }
 
 // ----------------------------------------------------------------------
@@ -225,8 +227,7 @@ const TRACKS = [
 ]
 
 export function calculateSmartLayout(
-    events: VersionEvent[],
-    colors: string[], // Pre-generated colors map
+    events: Array<VersionEvent & { color: string; nodeColor?: string; styleColor?: string }>, // Events must have color field
     zoomPixelsPerYear: number,
     enableBreaks: boolean = true,
     containerWidth: number = 1000 // Default fallback for backward compatibility
@@ -238,21 +239,15 @@ export function calculateSmartLayout(
     // 1. New Coordinate System
     const timeScale = generateTimeSegments(events, zoomPixelsPerYear, enableBreaks, containerWidth)
 
-    // 2. 预计算年份到颜色索引的映射（避免循环内重复计算）
-    const uniqueYears = Array.from(new Set(events.map(e => e.year))).sort((a, b) => a - b)
-    const yearToColorIndex = new Map(uniqueYears.map((year, idx) => [year, idx]))
-
-    // 3. Map Events to Positions
+    // 2. Map Events to Positions (color is already attached to each event)
     const eventsWithPosition = events.map(event => {
         const px = mapDateToPixel(event.year, event.month, timeScale)
-        const yearIndex = yearToColorIndex.get(event.year) ?? 0
-        const color = colors[yearIndex % colors.length] || colors[0]
 
         return {
             ...event,
             pixelOriginal: px,
             pixelAdjusted: px, // Will be nudged
-            color
+            color: event.color, // Use event's own color
         }
     })
 

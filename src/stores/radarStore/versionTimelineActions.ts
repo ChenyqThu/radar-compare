@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid'
-import type { VersionTimeline, VersionEvent, TimelineInfo } from '@/types/versionTimeline'
-import { isVersionTimeline } from '@/types/versionTimeline'
+import type { VersionTimeline, VersionEvent, TimelineInfo, EventTypeConfig } from '@/types/versionTimeline'
+import { isVersionTimeline, DEFAULT_EVENT_TYPES } from '@/types/versionTimeline'
 import {
   isSupabaseConfigured,
   createChart,
@@ -40,7 +40,10 @@ export function createVersionTimelineActions(set: StoreSetter, get: StoreGetter)
         name: name ?? `时间轴 ${currentProject.radarCharts.filter(isVersionTimeline).length + 1}`,
         order: currentProject.radarCharts.length,
         isVersionTimeline: true,
-        info: { title: '大事记' },
+        info: {
+          title: '大事记',
+          eventTypes: { ...DEFAULT_EVENT_TYPES },
+        },
         events: [],
         createdAt: now,
         updatedAt: now,
@@ -278,6 +281,106 @@ export function createVersionTimelineActions(set: StoreSetter, get: StoreGetter)
 
       // Update active chart id
       await updateProjectMeta(currentProjectId, { activeChartId: imported.id })
+    },
+
+    // Event type management
+    addEventType: (timelineId: string, typeId: string, config: EventTypeConfig) => {
+      const { currentProject } = get()
+      if (!currentProject) return
+
+      const timeline = currentProject.radarCharts.find((r) => r.id === timelineId)
+      if (!timeline || !isVersionTimeline(timeline)) return
+
+      const updatedChart = {
+        ...timeline,
+        info: {
+          ...timeline.info,
+          eventTypes: {
+            ...(timeline.info.eventTypes || {}),
+            [typeId]: config,
+          },
+        },
+        updatedAt: Date.now(),
+      }
+
+      const updated = {
+        ...currentProject,
+        radarCharts: currentProject.radarCharts.map((r) => (r.id === timelineId ? updatedChart : r)),
+      }
+      set({ currentProject: updated })
+      debouncedSaveChart(updatedChart)
+    },
+
+    updateEventType: (timelineId: string, typeId: string, updates: Partial<EventTypeConfig>) => {
+      const { currentProject } = get()
+      if (!currentProject) return
+
+      const timeline = currentProject.radarCharts.find((r) => r.id === timelineId)
+      if (!timeline || !isVersionTimeline(timeline) || !timeline.info.eventTypes?.[typeId]) return
+
+      const updatedChart = {
+        ...timeline,
+        info: {
+          ...timeline.info,
+          eventTypes: {
+            ...timeline.info.eventTypes,
+            [typeId]: {
+              ...timeline.info.eventTypes[typeId],
+              ...updates,
+            },
+          },
+        },
+        updatedAt: Date.now(),
+      }
+
+      const updated = {
+        ...currentProject,
+        radarCharts: currentProject.radarCharts.map((r) => (r.id === timelineId ? updatedChart : r)),
+      }
+      set({ currentProject: updated })
+      debouncedSaveChart(updatedChart)
+    },
+
+    deleteEventType: (timelineId: string, typeId: string) => {
+      const { currentProject } = get()
+      if (!currentProject) return
+
+      const timeline = currentProject.radarCharts.find((r) => r.id === timelineId)
+      if (!timeline || !isVersionTimeline(timeline) || !timeline.info.eventTypes) return
+
+      // Check if any events reference this type
+      const referencedCount = timeline.events.filter((e) => e.type === typeId).length
+      if (referencedCount > 0) {
+        throw new Error(`该类型被 ${referencedCount} 个事件引用，无法删除`)
+      }
+
+      const { [typeId]: removed, ...remainingTypes } = timeline.info.eventTypes
+
+      const updatedChart = {
+        ...timeline,
+        info: {
+          ...timeline.info,
+          eventTypes: remainingTypes,
+        },
+        updatedAt: Date.now(),
+      }
+
+      const updated = {
+        ...currentProject,
+        radarCharts: currentProject.radarCharts.map((r) => (r.id === timelineId ? updatedChart : r)),
+      }
+      set({ currentProject: updated })
+      debouncedSaveChart(updatedChart)
+    },
+
+    getEventTypeUsageCount: (timelineId: string, typeId: string) => {
+      const { currentProject } = get()
+      if (!currentProject) return 0
+
+      const timeline = currentProject.radarCharts.find((r) => r.id === timelineId)
+      if (!timeline || !isVersionTimeline(timeline)) return 0
+
+      return timeline.events.filter((e) => e.type === typeId).length
     },
   }
 }

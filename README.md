@@ -24,9 +24,9 @@ With cloud synchronization and team collaboration features, it serves as a centr
 
 #### ⏳ Version Timeline (New!)
 -   **Product Evolution**: Track how products or vendors change over time.
--   **Smart Layout Algorithm**: Custom "Best-Fit" algorithm ensures events are packed densely without overlapping, even on crowded timelines.
 -   **Perfect Zoom**: Infinitely zoomable timeline with "Perfect Zoom" technology that preserves readability at any scale.
 -   **Axis Breaks**: Intelligent handling of long gaps in history to keep the view focused on relevant data.
+-   **Custom Event Types**: Dynamic coloring based on event types with interactive legend filtering.
 
 #### ☁️ Cloud & Collaboration
 -   **Cloud Sync**: Sign in with Google or GitHub to save your data to the cloud automatically.
@@ -89,6 +89,7 @@ Prism 是一个专业的竞品分析与产品演进可视化平台。它不仅�
 -   **智能排布算法**: 采用 "Best-Fit" 算法，在事件密集时自动寻找最优空位，避免重叠且保持紧凑。
 -   **完美缩放 (Perfect Zoom)**: 支持无级缩放，无论查看十年跨度还是单月细节，都能保持最佳阅读体验。
 -   **智能轴中断**: 自动隐藏无事件的长跨度时间段，聚焦关键信息。
+-   **自定义事件类型**: 支持按类型定义事件颜色，底部图例支持点击筛选与自动重排。
 
 #### ☁️ 云端协作
 -   **云端同步**: 支持 Google 和 GitHub 账号登录，通过 Supabase 实时保存数据。

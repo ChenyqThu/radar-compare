@@ -8,7 +8,7 @@ import type {
   TimeMarker,
   AnyRadarChart,
 } from '@/types'
-import type { VersionTimeline, VersionEvent, TimelineInfo } from '@/types/versionTimeline'
+import type { VersionTimeline, VersionEvent, TimelineInfo, EventTypeConfig } from '@/types/versionTimeline'
 
 // 校验结果类型
 export interface ValidationResult {
@@ -129,6 +129,12 @@ export interface RadarState {
   addVersionEvent: (timelineId: UUID, event?: Partial<VersionEvent>) => void
   updateVersionEvent: (timelineId: UUID, eventId: UUID, updates: Partial<VersionEvent>) => void
   deleteVersionEvent: (timelineId: UUID, eventId: UUID) => void
+
+  // 事件类型管理
+  addEventType: (timelineId: UUID, typeId: string, config: EventTypeConfig) => void
+  updateEventType: (timelineId: UUID, typeId: string, updates: Partial<EventTypeConfig>) => void
+  deleteEventType: (timelineId: UUID, typeId: string) => void
+  getEventTypeUsageCount: (timelineId: UUID, typeId: string) => number
 
   // 版本时间轴导入
   importVersionTimeline: (data: VersionTimeline) => void

@@ -5,6 +5,7 @@ import { useRadarStore } from '@/stores/radarStore'
 import { useI18n } from '@/locales'
 import type { VersionEvent, TimelineTheme, TimeSegment } from '@/types/versionTimeline'
 import { calculateSmartLayout, generateTimeSegments } from '../layoutUtils'
+import { EventTypeLegend } from '../EventTypeLegend'
 import styles from './VersionTimelineView.module.css'
 
 // Constants for layout calculation
@@ -15,6 +16,8 @@ interface LayoutEvent extends VersionEvent {
   offset: number
   timelinePosition: number
   color: string
+  nodeColor?: string
+  styleColor?: string
 }
 
 // Format event time (e.g., "Mar 2025" or "2025")
@@ -192,6 +195,9 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null)
   const [eventZIndices, setEventZIndices] = useState<Record<string, number>>({})
   const zIndexCounterRef = useRef(1)
+
+  // Event type filtering state for legend
+  const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set())
 
   // Load z-index preferences from localStorage
   useEffect(() => {
@@ -406,8 +412,6 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
       }
     }
 
-    const eventYears = timeline.events.map(e => e.year)
-
     // Calculate actual content width based on zoom
     // New semantics: zoom 100% = naturalWidth (comfortable spacing, no overlap)
     // actualContentWidth = naturalWidth × (zoom / 100)
@@ -441,22 +445,61 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
     // Theme colors
     const theme = timeline.info?.theme || 'teal'
     const customThemeColor = timeline.info?.themeColor || '#0A7171'
-    const colors = generateTimelineColors(eventYears.length, theme)
 
+    // Filter out hidden types first
+    const visibleRawEvents = timeline.events.filter(event => !hiddenTypes.has(event.type))
+
+    // If all events are hidden, return empty state
+    if (visibleRawEvents.length === 0) {
+      return {
+        layoutEvents: [] as LayoutEvent[],
+        timelineGradient: '',
+        themeColor: customThemeColor,
+        totalWidth: containerWidth,
+        timeSegments: [] as TimeSegment[],
+        hasPossibleBreaks: false
+      }
+    }
+
+    // Generate gradient colors based on visible count (for timeline axis)
+    const axisColors = generateTimelineColors(visibleRawEvents.length, theme)
+
+    // Attach color to each event
+    // Logic:
+    // 1. Node (Dot): Typed = Type Color; Untyped = Axis Gradient Color (position-based)
+    // 2. Card/Connector: Typed = Type Color; Untyped = Theme Color
+    const visibleEvents = visibleRawEvents.map((event, index) => {
+      const typeConfig = timeline.info.eventTypes?.[event.type]
+      const typeColor = typeConfig?.color
+
+      const nodeColor = typeColor || axisColors[index]
+      // For style color (Card/Connector), if no type color, we leave it undefined 
+      // so CSS falls back to var(--theme-color)
+      const styleColor = typeColor
+
+      return {
+        ...event,
+        nodeColor,
+        styleColor,
+        color: nodeColor // Pass color (used by layout engine and also as fallback)
+      }
+    })
+
+    // Generate gradient string
     let gradient: string
-    if (colors.length === 1) {
-      gradient = colors[0]
+    if (axisColors.length === 1) {
+      gradient = axisColors[0]
     } else {
-      const gradientStops = colors.map((color, index) => {
-        const position = (index / (colors.length - 1)) * 100
+      const gradientStops = axisColors.map((color, index) => {
+        const position = (index / (axisColors.length - 1)) * 100
         return `${color} ${position}%`
       }).join(', ')
       gradient = `linear-gradient(to right, ${gradientStops})`
     }
 
-    // Calculate layout with Non-Linear Axis support
+    // Calculate layout with Non-Linear Axis support (using filtered visible events)
     const { layoutEvents: layout, totalWidth: eventsWidth, timeScale } = calculateSmartLayout(
-      timeline.events, colors, pixelsPerYear, enableAxisBreak, containerWidth
+      visibleEvents, pixelsPerYear, enableAxisBreak, containerWidth
     )
 
     // Total width
@@ -470,7 +513,7 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
       timeSegments: timeScale.segments,
       hasPossibleBreaks
     }
-  }, [timeline, containerWidth, zoom, enableAxisBreak, naturalWidth, perfectZoom])
+  }, [timeline, containerWidth, zoom, enableAxisBreak, naturalWidth, perfectZoom, hiddenTypes])
 
   // Initialize zoom to perfectZoom once calculated, or load from storage
   useEffect(() => {
@@ -513,7 +556,7 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
   const getEventZIndex = useCallback((eventId: string, isNode: boolean = false): number => {
     // Hover always wins (highest priority, but still below modal)
     if (hoveredEventId === eventId) {
-      return 200 // Below modal's 1000
+      return isNode ? 300 : 200 // Node above card (300 > 200), both below modal (1000)
     }
     // Node elements should always be above their corresponding cards
     // Base z-index range: 0-99 (from clicks)
@@ -530,6 +573,24 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
     }
     setZoom(Math.max(value, minZoom))
   }, [minZoom, timeline])
+
+  // Handle event type filtering (for legend)
+  const handleToggleType = useCallback((typeId: string) => {
+    setHiddenTypes(prev => {
+      const next = new Set(prev)
+      if (next.has(typeId)) {
+        next.delete(typeId)
+      } else {
+        next.add(typeId)
+      }
+      return next
+    })
+  }, [])
+
+  // Handle show all types (reset filter)
+  const handleShowAll = useCallback(() => {
+    setHiddenTypes(new Set())
+  }, [])
 
   // Empty state
   if (!timeline || timeline.events.length === 0) {
@@ -575,10 +636,12 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
       className={styles.container}
       style={{ '--theme-color': themeColor } as React.CSSProperties}
     >
-      {/* Company badge - top right */}
-      {timeline.info?.company && (
-        <span className={styles.companyBadge}>{timeline.info.company}</span>
-      )}
+      {/* Main content area */}
+      <div className={styles.mainContent}>
+        {/* Company badge - top right */}
+        {timeline.info?.company && (
+          <span className={styles.companyBadge}>{timeline.info.company}</span>
+        )}
 
       {/* Controls - top left */}
       <div className={styles.controls}>
@@ -725,10 +788,10 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
                   className={`${styles.eventNode} ${event.position === 'bottom' ? styles.eventNodeBottom : ''} ${isHovered ? styles.hovered : ''}`}
                   style={{
                     left: `${getEventPosition(event.timelinePosition)}px`,
-                    zIndex
-                  }}
+                    zIndex,
+                  } as React.CSSProperties}
                 >
-                  <div className={styles.eventDot} style={{ backgroundColor: event.color }} />
+                  <div className={styles.eventDot} style={{ backgroundColor: event.nodeColor || event.color }} />
                   <div className={styles.eventTimeLabel}>
                     {formatEventTime(event.year, event.month)}
                   </div>
@@ -741,14 +804,20 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
               {topLayer1.map(event => {
                 const zIndex = getEventZIndex(event.id)
                 const isHovered = hoveredEventId === event.id
+                // Use event.styleColor if present, otherwise CSS will use fallback
+                const style: React.CSSProperties & { '--event-color'?: string } = {
+                  left: `${getEventPosition(event.timelinePosition)}px`,
+                  zIndex,
+                }
+                if (event.styleColor) {
+                  style['--event-color'] = event.styleColor
+                }
+
                 return (
                   <div
                     key={event.id}
                     className={`${styles.eventCard} ${styles.eventCardTop} ${isHovered ? styles.hovered : ''}`}
-                    style={{
-                      left: `${getEventPosition(event.timelinePosition)}px`,
-                      zIndex
-                    }}
+                    style={style as React.CSSProperties}
                     onClick={() => handleEventCardClick(event)}
                     onDoubleClick={() => handleEventCardDoubleClick(event)}
                     onMouseEnter={() => setHoveredEventId(event.id)}
@@ -776,14 +845,20 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
               {topLayer0.map(event => {
                 const zIndex = getEventZIndex(event.id)
                 const isHovered = hoveredEventId === event.id
+                // Use event.styleColor if present, otherwise CSS will use fallback
+                const style: React.CSSProperties & { '--event-color'?: string } = {
+                  left: `${getEventPosition(event.timelinePosition)}px`,
+                  zIndex,
+                }
+                if (event.styleColor) {
+                  style['--event-color'] = event.styleColor
+                }
+
                 return (
                   <div
                     key={event.id}
                     className={`${styles.eventCard} ${styles.eventCardTop} ${isHovered ? styles.hovered : ''}`}
-                    style={{
-                      left: `${getEventPosition(event.timelinePosition)}px`,
-                      zIndex
-                    }}
+                    style={style as React.CSSProperties}
                     onClick={() => handleEventCardClick(event)}
                     onDoubleClick={() => handleEventCardDoubleClick(event)}
                     onMouseEnter={() => setHoveredEventId(event.id)}
@@ -811,14 +886,20 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
               {bottomLayer0.map(event => {
                 const zIndex = getEventZIndex(event.id)
                 const isHovered = hoveredEventId === event.id
+                // Use event.styleColor if present, otherwise CSS will use fallback
+                const style: React.CSSProperties & { '--event-color'?: string } = {
+                  left: `${getEventPosition(event.timelinePosition)}px`,
+                  zIndex,
+                }
+                if (event.styleColor) {
+                  style['--event-color'] = event.styleColor
+                }
+
                 return (
                   <div
                     key={event.id}
                     className={`${styles.eventCard} ${styles.eventCardBottom} ${isHovered ? styles.hovered : ''}`}
-                    style={{
-                      left: `${getEventPosition(event.timelinePosition)}px`,
-                      zIndex
-                    }}
+                    style={style as React.CSSProperties}
                     onClick={() => handleEventCardClick(event)}
                     onDoubleClick={() => handleEventCardDoubleClick(event)}
                     onMouseEnter={() => setHoveredEventId(event.id)}
@@ -845,14 +926,20 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
               {bottomLayer1.map(event => {
                 const zIndex = getEventZIndex(event.id)
                 const isHovered = hoveredEventId === event.id
+                // Use event.styleColor if present, otherwise CSS will use fallback
+                const style: React.CSSProperties & { '--event-color'?: string } = {
+                  left: `${getEventPosition(event.timelinePosition)}px`,
+                  zIndex,
+                }
+                if (event.styleColor) {
+                  style['--event-color'] = event.styleColor
+                }
+
                 return (
                   <div
                     key={event.id}
                     className={`${styles.eventCard} ${styles.eventCardBottom} ${isHovered ? styles.hovered : ''}`}
-                    style={{
-                      left: `${getEventPosition(event.timelinePosition)}px`,
-                      zIndex
-                    }}
+                    style={style as React.CSSProperties}
                     onClick={() => handleEventCardClick(event)}
                     onDoubleClick={() => handleEventCardDoubleClick(event)}
                     onMouseEnter={() => setHoveredEventId(event.id)}
@@ -879,6 +966,15 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
 
       {/* Right gradient mask */}
       <div className={`${styles.scrollMask} ${styles.scrollMaskRight} ${canScrollRight ? styles.visible : ''}`} />
+      </div>
+
+      {/* Event Type Legend */}
+      <EventTypeLegend
+        timeline={timeline}
+        hiddenTypes={hiddenTypes}
+        onToggleType={handleToggleType}
+        onShowAll={handleShowAll}
+      />
     </div>
   )
 }

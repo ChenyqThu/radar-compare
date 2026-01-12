@@ -6,6 +6,16 @@
   min-height: 500px;
   background-color: var(--bg-primary, #ffffff);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Main content area that takes remaining space */
+.mainContent {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Company badge - top right */
@@ -374,26 +384,28 @@
   right: 0;
   height: 0;
   pointer-events: none;
+  /* Ensure no z-index or transform here to avoid isolated stacking context */
+  z-index: auto;
 }
 
 .eventsLayerTop.layer0 {
-  bottom: 0;
-  transform: translateY(-50px);
+  bottom: 50px;
+  /* Was transform: translateY(-50px) */
 }
 
 .eventsLayerTop.layer1 {
-  bottom: 0;
-  transform: translateY(-160px);
+  bottom: 160px;
+  /* Was transform: translateY(-160px) */
 }
 
 .eventsLayerBottom.layer0 {
-  top: 0;
-  transform: translateY(50px);
+  top: 50px;
+  /* Was transform: translateY(50px) */
 }
 
 .eventsLayerBottom.layer1 {
-  top: 0;
-  transform: translateY(160px);
+  top: 160px;
+  /* Was transform: translateY(160px) */
 }
 
 /* Event card */
@@ -443,7 +455,8 @@
   min-width: 160px;
   display: flex;
   flex-direction: column;
-  z-index: 2; /* Higher than connector (1), ensures content is always above lines */
+  z-index: 2;
+  /* Higher than connector (1), ensures content is always above lines */
   clip-path: polygon(0 6px,
       6px 0,
       100% 0,
@@ -517,11 +530,84 @@
 }
 
 .eventContent:hover .eventDescription::-webkit-scrollbar-thumb:hover {
-  background-color: var(--theme-color, var(--color-primary, #0A7171));
+  background-color: var(--event-color, var(--theme-color, var(--color-primary, #0A7171)));
+}
+
+.eventContent::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* Default border color */
+  background: var(--border-color, #d9d9d9);
+  /* Gradient overlay for the "border" - giving it a colored top fading down */
+  background: linear-gradient(to bottom,
+      var(--event-color, var(--border-color, #d9d9d9)) 0%,
+      var(--border-color, #d9d9d9) 50%);
+  clip-path: polygon(0 6px,
+      6px 0,
+      100% 0,
+      100% calc(100% - 6px),
+      calc(100% - 6px) 100%,
+      0 100%);
+  z-index: -2;
+  transition: opacity 0.3s ease, background 0.3s ease;
 }
 
 .eventContent:hover::before {
-  background-color: var(--theme-color, var(--color-primary, #0A7171));
+  /* On hover, make the color slightly more prominent or solid at top */
+  background: linear-gradient(to bottom,
+      var(--event-color, var(--theme-color, var(--color-primary, #0A7171))) 0%,
+      var(--border-color, #d9d9d9) 80%);
+  opacity: 1;
+}
+
+/* Connector lines - Using mask-image for reliable fading with dynamic colors */
+.eventConnector {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  background-color: var(--event-color, var(--theme-color, var(--color-primary, #0A7171)));
+  transition: width 0.3s ease;
+  z-index: 1;
+  /* Lower than content (2) and node elements (3) */
+}
+
+.eventConnectorTop {
+  bottom: -50px;
+  height: 50px;
+  /* Top connector: hang down from card to axis */
+  /* Reversed: Transparent near Card (Top), Solid near Axis (Bottom) */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, black 100%);
+}
+
+.eventConnectorBottom {
+  top: -50px;
+  height: 50px;
+  /* Bottom connector: stick up from card to axis */
+  /* Reversed: Transparent near Card (Bottom), Solid near Axis (Top) */
+  -webkit-mask-image: linear-gradient(to top, transparent 0%, black 100%);
+  mask-image: linear-gradient(to top, transparent 0%, black 100%);
+}
+
+.eventConnectorTop.connectorLong {
+  bottom: -160px;
+  height: 160px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, black 100%);
+}
+
+.eventConnectorBottom.connectorLong {
+  top: -160px;
+  height: 160px;
+  -webkit-mask-image: linear-gradient(to top, transparent 0%, black 100%);
+  mask-image: linear-gradient(to top, transparent 0%, black 100%);
+}
+
+.eventCard:hover .eventConnector,
+.eventCard.hovered .eventConnector {
+  width: 3px;
 }
 
 .eventTitle {
@@ -533,6 +619,7 @@
   flex-shrink: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -541,6 +628,7 @@
 .eventContent:hover .eventTitle {
   display: block;
   -webkit-line-clamp: unset;
+  line-clamp: unset;
   overflow: visible;
 }
 
@@ -554,72 +642,7 @@
   overflow-x: hidden;
 }
 
-.eventContent:hover .eventDescription {
-  max-height: 160px;
-}
-
-/* Layered cards have smaller description max height on hover */
-.eventContentLayered:hover .eventDescription {
-  max-height: 110px;
-}
-
-/* Highlight text */
-.highlight {
-  color: var(--theme-color, var(--color-primary, #0A7171));
-  font-weight: 500;
-}
-
-/* Connector lines */
-.eventConnector {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 2px;
-  transition: width 0.3s ease;
-  z-index: 1; /* Lower than content (2) and node elements (3) */
-}
-
-.eventConnectorTop {
-  bottom: -50px;
-  height: 50px;
-  background: linear-gradient(to top,
-      var(--theme-color, var(--color-primary, #0A7171)) 0%,
-      rgba(10, 113, 113, 0.3) 70%,
-      transparent 100%);
-}
-
-.eventConnectorBottom {
-  top: -50px;
-  height: 50px;
-  background: linear-gradient(to bottom,
-      var(--theme-color, var(--color-primary, #0A7171)) 0%,
-      rgba(10, 113, 113, 0.3) 70%,
-      transparent 100%);
-}
-
-.eventConnectorTop.connectorLong {
-  bottom: -160px;
-  height: 160px;
-  background: linear-gradient(to top,
-      var(--theme-color, var(--color-primary, #0A7171)) 0%,
-      rgba(10, 113, 113, 0.3) 80%,
-      transparent 100%);
-}
-
-.eventConnectorBottom.connectorLong {
-  top: -160px;
-  height: 160px;
-  background: linear-gradient(to bottom,
-      var(--theme-color, var(--color-primary, #0A7171)) 0%,
-      rgba(10, 113, 113, 0.3) 80%,
-      transparent 100%);
-}
-
-.eventCard:hover .eventConnector,
-.eventCard.hovered .eventConnector {
-  width: 3px;
-}
-
+/* ... skipped ... */
 /* Event node markers */
 .eventNode {
   position: absolute;
@@ -628,15 +651,13 @@
   /* z-index is now controlled by inline style */
 }
 
-.eventNodeBottom {
-  /* Same positioning */
-}
+/* Removed empty .eventNodeBottom rule */
 
 .eventDot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background-color: var(--color-primary, #0A7171);
+  background-color: var(--event-color, var(--color-primary, #0A7171));
   border: 2px solid var(--bg-primary, #ffffff);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   transition: all 0.3s ease;
@@ -644,7 +665,8 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  z-index: 3; /* Higher than connector (1) and content (2) */
+  z-index: 3;
+  /* Higher than connector (1) and content (2) */
 }
 
 .eventNode:hover .eventDot,
@@ -665,7 +687,17 @@
   left: 50%;
   transform: translateX(-50%);
   bottom: calc(50% + 12px);
-  z-index: 3; /* Higher than connector (1) and content (2) */
+  z-index: 3;
+  z-index: 3;
+  /* Higher than connector (1) and content (2) */
+  transition: all 0.3s ease;
+}
+
+.eventNode:hover .eventTimeLabel,
+.eventNode.hovered .eventTimeLabel {
+  color: var(--event-color, var(--color-primary, #0A7171));
+  font-weight: 700;
+  transform: translateX(-50%) scale(1.1);
 }
 
 .eventNodeBottom .eventTimeLabel {

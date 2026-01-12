@@ -22,15 +22,6 @@ export function TimelineToolbar({ onAddEvent, onEditInfo, onImport }: TimelineTo
   const { t } = useI18n()
   const timeline = useRadarStore(state => state.getActiveVersionTimeline())
 
-  const handleExportExcel = () => {
-    if (!timeline) {
-      message.warning(t.versionTimeline.noTimeline)
-      return
-    }
-    // TODO: Implement Excel export
-    message.info(t.common.featureComingSoon)
-  }
-
   const handleExportJson = () => {
     if (!timeline) {
       message.warning(t.versionTimeline.noTimeline)
@@ -54,12 +45,6 @@ export function TimelineToolbar({ onAddEvent, onEditInfo, onImport }: TimelineTo
   }
 
   const exportMenuItems: MenuProps['items'] = [
-    {
-      key: 'excel',
-      icon: <FileExcelOutlined />,
-      label: t.toolbar.exportExcel,
-      onClick: handleExportExcel,
-    },
     {
       key: 'json',
       icon: <FileTextOutlined />,
