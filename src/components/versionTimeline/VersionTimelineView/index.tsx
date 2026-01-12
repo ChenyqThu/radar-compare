@@ -331,7 +331,8 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
     const container = scrollContainerRef.current
     if (!container) return
 
-    const scrollAmount = containerWidth * 0.6
+    // Reduced scroll amount for smoother, more controlled scrolling
+    const scrollAmount = containerWidth * 0.4
 
     switch (position) {
       case 'start':
@@ -539,17 +540,29 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
     updateScrollState()
   }, [totalWidth, updateScrollState])
 
-  const highlightText = useCallback((text: string, highlights?: string[]) => {
+  // Update scroll state when zoom changes
+  useEffect(() => {
+    // Small delay to ensure DOM has updated after zoom change
+    const timer = setTimeout(() => {
+      updateScrollState()
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [zoom, updateScrollState])
+
+  const highlightText = useCallback((text: string, highlights?: string[], color?: string) => {
     if (!highlights || highlights.length === 0) return text
+
+    // Use the event's style color, or fallback to theme color
+    const highlightColor = color || themeColor
 
     let result = text
     highlights.forEach(keyword => {
       const regex = new RegExp(`(${keyword})`, 'gi')
-      result = result.replace(regex, `<span class="${styles.highlight}">$1</span>`)
+      result = result.replace(regex, `<span class="${styles.highlight}" style="color: ${highlightColor}">$1</span>`)
     })
 
     return <span dangerouslySetInnerHTML={{ __html: result }} />
-  }, [])
+  }, [styles.highlight, themeColor])
 
   // Get z-index style for an event
   // Keep all z-indices below modal (1000) to prevent cards appearing above edit modal
@@ -826,11 +839,11 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
                   >
                     <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
                       <div className={styles.eventTitle}>
-                        {highlightText(event.title, event.highlight)}
+                        {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
                       </div>
                       {event.description && (
                         <div className={styles.eventDescription}>
-                          {highlightText(event.description, event.highlight)}
+                          {highlightText(event.description, event.highlight, event.styleColor || themeColor)}
                         </div>
                       )}
                     </div>
@@ -867,11 +880,11 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
                   >
                     <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
                       <div className={styles.eventTitle}>
-                        {highlightText(event.title, event.highlight)}
+                        {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
                       </div>
                       {event.description && (
                         <div className={styles.eventDescription}>
-                          {highlightText(event.description, event.highlight)}
+                          {highlightText(event.description, event.highlight, event.styleColor || themeColor)}
                         </div>
                       )}
                     </div>
@@ -908,11 +921,11 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
                     <div className={`${styles.eventConnector} ${styles.eventConnectorBottom}`} />
                     <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
                       <div className={styles.eventTitle}>
-                        {highlightText(event.title, event.highlight)}
+                        {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
                       </div>
                       {event.description && (
                         <div className={styles.eventDescription}>
-                          {highlightText(event.description, event.highlight)}
+                          {highlightText(event.description, event.highlight, event.styleColor || themeColor)}
                         </div>
                       )}
                     </div>
@@ -948,11 +961,11 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
                     <div className={`${styles.eventConnector} ${styles.eventConnectorBottom} ${styles.connectorLong}`} />
                     <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
                       <div className={styles.eventTitle}>
-                        {highlightText(event.title, event.highlight)}
+                        {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
                       </div>
                       {event.description && (
                         <div className={styles.eventDescription}>
-                          {highlightText(event.description, event.highlight)}
+                          {highlightText(event.description, event.highlight, event.styleColor || themeColor)}
                         </div>
                       )}
                     </div>

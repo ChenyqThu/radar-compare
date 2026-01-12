@@ -168,19 +168,209 @@ export function createProjectActions(set: StoreSetter, get: StoreGetter) {
 
       // If no charts exist, create a default one
       if (charts.length === 0) {
-        const defaultChart: AnyRadarChart = {
+        const now = Date.now()
+
+        // Create default radar chart with sample data
+        const defaultRadarChart: AnyRadarChart = {
           id: nanoid(),
-          name: '竞品对比',
+          name: '竞品对比示例',
           order: 0,
-          dimensions: [],
-          vendors: [],
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
+          dimensions: [
+            {
+              id: nanoid(),
+              name: '功能完整性',
+              description: '产品功能的丰富程度和完整性',
+              weight: 30,
+              order: 0,
+              scores: {},
+              subDimensions: [],
+            },
+            {
+              id: nanoid(),
+              name: '性能表现',
+              description: '系统响应速度和稳定性',
+              weight: 25,
+              order: 1,
+              scores: {},
+              subDimensions: [],
+            },
+            {
+              id: nanoid(),
+              name: '用户体验',
+              description: '界面设计和交互体验',
+              weight: 25,
+              order: 2,
+              scores: {},
+              subDimensions: [],
+            },
+            {
+              id: nanoid(),
+              name: '价格',
+              description: '产品定价和性价比',
+              weight: 20,
+              order: 3,
+              scores: {},
+              subDimensions: [],
+            },
+          ],
+          vendors: [
+            {
+              id: nanoid(),
+              name: '产品 A',
+              color: '#1890ff',
+              markerType: 'circle',
+              order: 0,
+              visible: true,
+            },
+            {
+              id: nanoid(),
+              name: '产品 B',
+              color: '#52c41a',
+              markerType: 'rect',
+              order: 1,
+              visible: true,
+            },
+            {
+              id: nanoid(),
+              name: '产品 C',
+              color: '#faad14',
+              markerType: 'triangle',
+              order: 2,
+              visible: true,
+            },
+          ],
+          createdAt: now,
+          updatedAt: now,
         }
-        await createChart(projectId, defaultChart)
-        charts = [defaultChart]
+
+        // Assign sample scores
+        const vendors = defaultRadarChart.vendors as Vendor[]
+        const dimensions = defaultRadarChart.dimensions as Dimension[]
+
+        // Sample scores matrix (3 vendors x 4 dimensions)
+        const sampleScores = [
+          [8, 7, 6], // 功能完整性: A=8, B=7, C=6
+          [7, 8, 7], // 性能表现: A=7, B=8, C=7
+          [6, 9, 8], // 用户体验: A=6, B=9, C=8
+          [5, 7, 9], // 价格: A=5, B=7, C=9
+        ]
+
+        dimensions.forEach((dim, dimIdx) => {
+          const scores: Record<string, number> = {}
+          vendors.forEach((vendor, vendorIdx) => {
+            scores[vendor.id] = sampleScores[dimIdx][vendorIdx]
+          })
+          dim.scores = scores
+        })
+
+        // Create default timeline with sample events
+        const defaultTimeline: AnyRadarChart = {
+          id: nanoid(),
+          name: '发展历程示例',
+          chartType: 'versionTimeline',
+          order: 1,
+          events: [
+            {
+              id: nanoid(),
+              year: 2020,
+              month: 1,
+              title: '公司成立',
+              description: '在深圳成立，专注于企业级软件研发',
+              type: 'milestone',
+            },
+            {
+              id: nanoid(),
+              year: 2020,
+              month: 6,
+              title: '推出 v1.0',
+              description: '首个正式版本发布，支持基础功能',
+              type: 'major',
+            },
+            {
+              id: nanoid(),
+              year: 2021,
+              month: 3,
+              title: '获得 A 轮融资',
+              description: '融资金额 $5000万，估值达 $2亿',
+              type: 'funding',
+              highlight: ['$5000万', '$2亿'],
+            },
+            {
+              id: nanoid(),
+              year: 2021,
+              month: 9,
+              title: '推出 v2.0',
+              description: '全新架构，性能提升 300%',
+              type: 'major',
+              highlight: ['300%'],
+            },
+            {
+              id: nanoid(),
+              year: 2022,
+              month: 2,
+              title: '海外市场拓展',
+              description: '进入欧美市场，设立海外办事处',
+              type: 'milestone',
+            },
+            {
+              id: nanoid(),
+              year: 2022,
+              month: 8,
+              title: '推出企业版',
+              description: '支持私有化部署和定制化服务',
+              type: 'major',
+            },
+            {
+              id: nanoid(),
+              year: 2023,
+              month: 5,
+              title: '用户突破 100 万',
+              description: '全球活跃用户达到 100 万，覆盖 50+ 国家',
+              type: 'achievement',
+              highlight: ['100 万', '50+'],
+            },
+            {
+              id: nanoid(),
+              year: 2024,
+              month: 1,
+              title: '推出 v3.0',
+              description: 'AI 驱动的智能分析功能上线',
+              type: 'major',
+              highlight: ['AI'],
+            },
+          ],
+          info: {
+            title: '产品发展大事记',
+            company: 'Example Inc.',
+            theme: 'teal',
+            eventTypes: {
+              milestone: {
+                label: '里程碑',
+                color: '#1890ff',
+              },
+              major: {
+                label: '主要版本',
+                color: '#52c41a',
+              },
+              funding: {
+                label: '融资',
+                color: '#fa8c16',
+              },
+              achievement: {
+                label: '成就',
+                color: '#13c2c2',
+              },
+            },
+          },
+          createdAt: now,
+          updatedAt: now,
+        }
+
+        await createChart(projectId, defaultRadarChart)
+        await createChart(projectId, defaultTimeline)
+        charts = [defaultRadarChart, defaultTimeline]
         // Update active_chart_id
-        await updateProjectMeta(projectId, { activeChartId: defaultChart.id })
+        await updateProjectMeta(projectId, { activeChartId: defaultRadarChart.id })
       }
 
       // Assemble project
@@ -337,23 +527,107 @@ export function createProjectActions(set: StoreSetter, get: StoreGetter) {
 
       // Create a default chart
       const now = Date.now()
-      const defaultChart: AnyRadarChart = {
+
+      // Create default radar chart with sample data
+      const defaultRadarChart: AnyRadarChart = {
         id: nanoid(),
-        name: '竞品对比',
+        name: '竞品对比示例',
         order: 0,
-        dimensions: [],
-        vendors: [],
+        dimensions: [
+          {
+            id: nanoid(),
+            name: '功能完整性',
+            description: '产品功能的丰富程度和完整性',
+            weight: 30,
+            order: 0,
+            scores: {},
+            subDimensions: [],
+          },
+          {
+            id: nanoid(),
+            name: '性能表现',
+            description: '系统响应速度和稳定性',
+            weight: 25,
+            order: 1,
+            scores: {},
+            subDimensions: [],
+          },
+          {
+            id: nanoid(),
+            name: '用户体验',
+            description: '界面设计和交互体验',
+            weight: 25,
+            order: 2,
+            scores: {},
+            subDimensions: [],
+          },
+          {
+            id: nanoid(),
+            name: '价格',
+            description: '产品定价和性价比',
+            weight: 20,
+            order: 3,
+            scores: {},
+            subDimensions: [],
+          },
+        ],
+        vendors: [
+          {
+            id: nanoid(),
+            name: '产品 A',
+            color: '#1890ff',
+            markerType: 'circle',
+            order: 0,
+            visible: true,
+          },
+          {
+            id: nanoid(),
+            name: '产品 B',
+            color: '#52c41a',
+            markerType: 'rect',
+            order: 1,
+            visible: true,
+          },
+          {
+            id: nanoid(),
+            name: '产品 C',
+            color: '#faad14',
+            markerType: 'triangle',
+            order: 2,
+            visible: true,
+          },
+        ],
         createdAt: now,
         updatedAt: now,
       }
 
-      const chartCreated = await createChart(projectId, defaultChart)
+      // Assign sample scores
+      const vendors = defaultRadarChart.vendors as Vendor[]
+      const dimensions = defaultRadarChart.dimensions as Dimension[]
+
+      // Sample scores matrix (3 vendors x 4 dimensions)
+      const sampleScores = [
+        [8, 7, 6], // 功能完整性: A=8, B=7, C=6
+        [7, 8, 7], // 性能表现: A=7, B=8, C=7
+        [6, 9, 8], // 用户体验: A=6, B=9, C=8
+        [5, 7, 9], // 价格: A=5, B=7, C=9
+      ]
+
+      dimensions.forEach((dim, dimIdx) => {
+        const scores: Record<string, number> = {}
+        vendors.forEach((vendor, vendorIdx) => {
+          scores[vendor.id] = sampleScores[dimIdx][vendorIdx]
+        })
+        dim.scores = scores
+      })
+
+      const chartCreated = await createChart(projectId, defaultRadarChart)
       if (!chartCreated) {
         console.error('[Project] Failed to create default chart')
       }
 
       // Update active_chart_id
-      await updateProjectMeta(projectId, { activeChartId: defaultChart.id })
+      await updateProjectMeta(projectId, { activeChartId: defaultRadarChart.id })
 
       await get().refreshProjectList()
       return projectId

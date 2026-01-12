@@ -1038,3 +1038,9 @@
 :global([data-theme='dark']) .breakLine {
   background-color: #434343;
 }
+
+/* Highlight text styles */
+.highlight {
+  font-weight: 700;
+  color: inherit; /* Color will be set inline via style attribute */
+}
