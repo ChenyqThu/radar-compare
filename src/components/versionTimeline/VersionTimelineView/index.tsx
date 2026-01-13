@@ -371,13 +371,7 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [scrollTo])
 
-  /* Axis Break Icon Component */
-  const AxisBreakIcon = () => (
-    <div className={styles.axisBreak}>
-      <div className={styles.breakLine} />
-      <div className={styles.breakLine} />
-    </div>
-  )
+
 
   // Axis Break Toggle State
   const [enableAxisBreak, setEnableAxisBreak] = useState(true)
@@ -550,16 +544,17 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
   }, [zoom, updateScrollState])
 
   const highlightText = useCallback((text: string, highlights?: string[], color?: string) => {
-    if (!highlights || highlights.length === 0) return text
+    // First, convert newlines to <br /> tags to preserve line breaks
+    let result = text.replace(/\n/g, '<br />')
 
-    // Use the event's style color, or fallback to theme color
-    const highlightColor = color || themeColor
-
-    let result = text
-    highlights.forEach(keyword => {
-      const regex = new RegExp(`(${keyword})`, 'gi')
-      result = result.replace(regex, `<span class="${styles.highlight}" style="color: ${highlightColor}">$1</span>`)
-    })
+    // Then apply highlighting if keywords exist
+    if (highlights && highlights.length > 0) {
+      const highlightColor = color || themeColor
+      highlights.forEach(keyword => {
+        const regex = new RegExp(`(${keyword})`, 'gi')
+        result = result.replace(regex, `<span class="${styles.highlight}" style="color: ${highlightColor}">$1</span>`)
+      })
+    }
 
     return <span dangerouslySetInnerHTML={{ __html: result }} />
   }, [styles.highlight, themeColor])
@@ -768,15 +763,19 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
                 if (segment.type !== 'break') return null
 
                 const startLeft = EDGE_PADDING + TIMELINE_START_OFFSET + segment.pixelStart
+                // Position at the center of the break spacing
+                // User adjustment: Shift left by half of MIN_DOT_DIST_PX (12px) to account for visual balance
+                const centerLeft = startLeft + segment.pixelWidth / 2
                 return (
                   <div
                     key={`break-${index}`}
                     className={styles.axisBreak}
                     style={{
-                      left: `${startLeft + segment.pixelWidth}px`
+                      left: `${centerLeft}px`
                     }}
                   >
-                    <AxisBreakIcon />
+                    <div className={styles.breakLine} />
+                    <div className={styles.breakLine} />
                   </div>
                 )
               })}

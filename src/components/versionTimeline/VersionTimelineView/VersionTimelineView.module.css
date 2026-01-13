@@ -640,6 +640,9 @@
   min-height: 0;
   overflow-y: scroll;
   overflow-x: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 /* ... skipped ... */

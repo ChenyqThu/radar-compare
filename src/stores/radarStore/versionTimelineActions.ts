@@ -185,6 +185,7 @@ export function createVersionTimelineActions(set: StoreSetter, get: StoreGetter)
       const newEvent: VersionEvent = {
         id: nanoid(),
         year: event?.year ?? new Date().getFullYear(),
+        month: event?.month,
         title: event?.title ?? '新事件',
         description: event?.description,
         type: event?.type ?? 'minor',

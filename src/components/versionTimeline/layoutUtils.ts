@@ -7,7 +7,7 @@ import { VersionEvent, TimeSegment, TimeScaleConfig } from '@/types/versionTimel
 // 断轴相关常量
 const MIN_GAP_PIXELS = 400        // 触发断轴的最小像素间距
 const MIN_GAP_RATIO = 0.15        // 触发断轴的最小时间差比例（占总跨度的 15%）
-const BREAK_WIDTH = 64           // 断轴区域的固定宽度
+const BREAK_SPACING = 96          // 断轴的实际像素间距（布局用）
 
 // 事件布局常量
 const MIN_DOT_DIST_PX = 12        // 事件点之间的最小像素距离
@@ -41,8 +41,8 @@ interface LayoutEvent extends VersionEvent {
 // ----------------------------------------------------------------------
 
 /**
- * 1. Detect active ranges from event years.
- * Merges close years into single continuous ranges.
+ * 1. Detect active ranges from events using full timestamps (year + month).
+ * Merges close time periods into single continuous ranges.
  *
  * Axis break is triggered when ALL THREE conditions are met:
  * - Timeline requires scrolling (estimatedWidth > containerWidth)
@@ -50,19 +50,21 @@ interface LayoutEvent extends VersionEvent {
  * - Time gap is significant relative to total span (timeRatio >= MIN_GAP_RATIO)
  */
 function getActiveRanges(
-    years: number[],
+    events: VersionEvent[],
     pixelThresholdPerYear: number,
     containerWidth: number
 ): { start: number; end: number }[] {
-    if (years.length === 0) return []
+    if (events.length === 0) return []
 
-    const sorted = Array.from(new Set(years)).sort((a, b) => a - b)
+    // Convert events to full timestamps (year + month as decimal)
+    const times = events.map(e => e.year + (e.month ? (e.month - 1) / 12 : 0.5))
+    const sorted = Array.from(new Set(times)).sort((a, b) => a - b)
     if (sorted.length === 0) return []
 
     // Calculate total time span for relative ratio check
     const totalSpan = sorted[sorted.length - 1] - sorted[0]
 
-    // If all events are in the same year, no breaks possible
+    // If all events are at the same time, return a single point range
     if (totalSpan === 0) {
         return [{ start: sorted[0], end: sorted[0] }]
     }
@@ -81,27 +83,31 @@ function getActiveRanges(
     let currentEnd = sorted[0]
 
     for (let i = 1; i < sorted.length; i++) {
-        const year = sorted[i]
-        const yearDiff = year - currentEnd
-        const pixelGap = yearDiff * pixelThresholdPerYear
-        const timeRatio = yearDiff / totalSpan
+        const time = sorted[i]
+        const timeDiff = time - currentEnd
+        const pixelGap = timeDiff * pixelThresholdPerYear
+        const timeRatio = timeDiff / totalSpan
 
         // Trigger axis break if BOTH conditions are met:
         // 1. Visual gap is large (screen has significant empty space)
         // 2. Time gap is significant relative to total span (not just zoomed-in spacing)
         const shouldBreak = pixelGap >= MIN_GAP_PIXELS && timeRatio >= MIN_GAP_RATIO
 
+
+
         if (shouldBreak) {
             // Gap is large both visually and temporally, finalize current range
             ranges.push({ start: currentStart, end: currentEnd })
-            currentStart = year
-            currentEnd = year
+            currentStart = time
+            currentEnd = time
         } else {
             // Gap is small, merge into current range
-            currentEnd = year
+            currentEnd = time
         }
     }
     ranges.push({ start: currentStart, end: currentEnd })
+
+
 
     return ranges
 }
@@ -117,8 +123,12 @@ export function generateTimeSegments(
     enableBreaks: boolean = true,
     containerWidth: number = 1000 // Default fallback for backward compatibility
 ): TimeScaleConfig {
-    const years = events.map(e => e.year)
-    const ranges = enableBreaks ? getActiveRanges(years, zoomPixelsPerYear, containerWidth) : [{ start: Math.min(...years), end: Math.max(...years) }]
+    // Calculate full timestamps (year + month as decimal)
+    const times = events.map(e => e.year + (e.month ? (e.month - 1) / 12 : 0.5))
+
+    const ranges = enableBreaks
+        ? getActiveRanges(events, zoomPixelsPerYear, containerWidth)
+        : [{ start: Math.min(...times), end: Math.max(...times) }]
 
     const segments: TimeSegment[] = []
     let currentPixel = 0
@@ -127,29 +137,49 @@ export function generateTimeSegments(
         // Add Break Segment if not the first range
         if (index > 0) {
             const prevRange = ranges[index - 1]
-            segments.push({
+            const breakSeg = {
                 startYear: prevRange.end,
                 endYear: range.start,
                 pixelStart: currentPixel,
-                pixelWidth: BREAK_WIDTH,
+                pixelWidth: BREAK_SPACING,
                 scale: 0,
-                type: 'break'
-            })
-            currentPixel += BREAK_WIDTH
+                type: 'break' as const
+            }
+            segments.push(breakSeg)
+
+            currentPixel += BREAK_SPACING
         }
 
         // Add Continuous Segment (Elastic)
         const yearsSpan = range.end - range.start
-        const validSpan = Math.max(0.001, yearsSpan) // Avoid division by zero
+
+        // Special case: If all events in this range have the same timestamp (span = 0),
+        // we need to give it a virtual span based on event density
+        let virtualSpan = yearsSpan
+
+        // Filter events using full timestamps (range now contains year + month)
+        const eventsInRange = events.filter(e => {
+            const time = e.year + (e.month ? (e.month - 1) / 12 : 0.5)
+            return time >= range.start && time <= range.end
+        })
+
+        if (yearsSpan === 0 && eventsInRange.length > 0) {
+            // User requested NO width expansion for simultaneous events
+            // We keep virtualSpan as 0 (or effectively 0 via validSpan)
+            // so that all events map to the same point.
+            virtualSpan = 0
+        }
+
+        const validSpan = Math.max(0.001, virtualSpan) // Avoid division by zero
 
         // 1. Calculate ideal width based on global zoom
         const naturalWidth = validSpan * zoomPixelsPerYear
 
         // 2. Calculate required width based on event density
-        const eventsInRange = events.filter(e => e.year >= range.start && e.year <= range.end)
-        const requiredWidth = eventsInRange.length > 1
+        // Skip expansion for single-point ranges (simultaneous events)
+        const requiredWidth = (yearsSpan > 0 && eventsInRange.length > 1)
             ? (eventsInRange.length - 0.5) * MIN_EVENT_SPACING
-            : MIN_EVENT_SPACING
+            : (yearsSpan > 0 ? MIN_EVENT_SPACING : 0)
 
         // 3. Compare and expand
         const finalWidth = Math.max(naturalWidth, requiredWidth)
@@ -157,9 +187,11 @@ export function generateTimeSegments(
         // 4. Calculate effective scale for this segment
         const segmentScale = finalWidth / validSpan
 
+
+
         segments.push({
             startYear: range.start,
-            endYear: range.end,
+            endYear: range.end, // Keep original range boundaries (don't add virtualSpan)
             pixelStart: currentPixel,
             pixelWidth: finalWidth,
             scale: segmentScale, // Localized elastic scale
@@ -185,8 +217,9 @@ export function mapDateToPixel(
     const time = year + (month ? (month - 1) / 12 : 0.5)
 
     // Find segment
+    // Find segment (prioritize continuous segments)
     const segment = config.segments.find(
-        s => time >= s.startYear && time <= s.endYear
+        s => s.type === 'continuous' && time >= s.startYear && time <= s.endYear
     )
 
     // Edge case: Time is inside a break (shouldn't happen with valid logic, but safe fallback)
@@ -196,7 +229,7 @@ export function mapDateToPixel(
             s => s.type === 'break' && time >= s.startYear && time <= s.endYear
         )
         if (breakSegment) {
-            return breakSegment.pixelStart + BREAK_WIDTH / 2
+            return breakSegment.pixelStart + BREAK_SPACING / 2
         }
 
         // If out of bounds/before first
@@ -207,6 +240,8 @@ export function mapDateToPixel(
 
         return 0
     }
+
+
 
     // Linear interpolation within continuous segment
     const offsetYears = time - segment.startYear
