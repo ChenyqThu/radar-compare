@@ -321,10 +321,25 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
     const container = scrollContainerRef.current
     if (!container) return
 
-    updateScrollState()
+    // Use double requestAnimationFrame to ensure DOM is fully laid out
+    // First rAF schedules after current frame, second rAF ensures layout is complete
+    // This fixes the issue where scroll arrows don't update correctly after switching app modes
+    let rafId1: number
+    let rafId2: number
+
+    rafId1 = requestAnimationFrame(() => {
+      rafId2 = requestAnimationFrame(() => {
+        updateScrollState()
+      })
+    })
+
     container.addEventListener('scroll', updateScrollState)
-    return () => container.removeEventListener('scroll', updateScrollState)
-  }, [updateScrollState])
+    return () => {
+      cancelAnimationFrame(rafId1)
+      cancelAnimationFrame(rafId2)
+      container.removeEventListener('scroll', updateScrollState)
+    }
+  }, [updateScrollState, timeline?.id])
 
   // Scroll functions
   const scrollTo = useCallback((position: 'start' | 'end' | 'left' | 'right') => {
@@ -531,8 +546,21 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
   }, [perfectZoom, zoom, timeline, minZoom, maxZoom])
 
   useEffect(() => {
-    updateScrollState()
-  }, [totalWidth, updateScrollState])
+    // Use double requestAnimationFrame to ensure DOM has fully updated
+    let rafId1: number
+    let rafId2: number
+
+    rafId1 = requestAnimationFrame(() => {
+      rafId2 = requestAnimationFrame(() => {
+        updateScrollState()
+      })
+    })
+
+    return () => {
+      cancelAnimationFrame(rafId1)
+      cancelAnimationFrame(rafId2)
+    }
+  }, [totalWidth, containerWidth, updateScrollState])
 
   // Update scroll state when zoom changes
   useEffect(() => {

@@ -17,6 +17,8 @@ import {
   TimelineToolbar,
   TimelineImportModal,
 } from '@/components/versionTimeline'
+import { ManpowerView } from '@/components/manpower'
+import { ManpowerSettingsDrawer } from '@/components/manpower/ManpowerSettingsDrawer'
 import { useRadarStore } from '@/stores/radarStore'
 import { useUIStore } from '@/stores/uiStore'
 import { getCloudProjects } from '@/services/supabase'
@@ -37,6 +39,7 @@ export function MainApp() {
     createProject,
     getActiveRadar,
     getActiveVersionTimeline,
+    getActiveManpowerChart,
   } = useRadarStore()
   const {
     settingsDrawerVisible,
@@ -59,6 +62,7 @@ export function MainApp() {
 
   const activeRadar = getActiveRadar()
   const activeVersionTimeline = getActiveVersionTimeline()
+  const activeManpowerChart = getActiveManpowerChart()
   const isTimeline = activeRadar && isTimelineRadar(activeRadar)
   const isVersionTimelineMode = activeRadar && isVersionTimeline(activeRadar)
 
@@ -104,6 +108,7 @@ export function MainApp() {
         const project = useRadarStore.getState().currentProject
         if (project) {
           const { isVersionTimeline } = await import('@/types/versionTimeline')
+          const { isManpowerChart } = await import('@/types/manpower')
           const { isRegularRadar, isTimelineRadar } = await import('@/types')
           const currentAppMode = useUIStore.getState().appMode
 
@@ -114,6 +119,13 @@ export function MainApp() {
               // No VersionTimeline, switch back to radar mode
               useUIStore.getState().setAppMode('radar')
             }
+          } else if (currentAppMode === 'manpower') {
+            // Check if project has ManpowerChart
+            const hasManpowerChart = project.radarCharts.some(chart => isManpowerChart(chart))
+            if (!hasManpowerChart) {
+              // No ManpowerChart, switch back to radar mode
+              useUIStore.getState().setAppMode('radar')
+            }
           } else {
             // If in radar mode, check if we have regular radar charts
             const hasRadarChart = project.radarCharts.some(chart => isRegularRadar(chart) || isTimelineRadar(chart))
@@ -122,6 +134,12 @@ export function MainApp() {
               const hasVersionTimeline = project.radarCharts.some(chart => isVersionTimeline(chart))
               if (hasVersionTimeline) {
                 useUIStore.getState().setAppMode('timeline')
+              } else {
+                // Try manpower mode
+                const hasManpowerChart = project.radarCharts.some(chart => isManpowerChart(chart))
+                if (hasManpowerChart) {
+                  useUIStore.getState().setAppMode('manpower')
+                }
               }
             }
           }
@@ -217,9 +235,9 @@ export function MainApp() {
   }
 
   return (
-    <Layout className={styles.layout}>
+    <Layout className={`${styles.layout} ${appMode === 'manpower' ? styles.layoutManpower : ''}`}>
       <Navbar />
-      <Content className={styles.content}>
+      <Content className={`${styles.content} ${appMode === 'manpower' ? styles.contentManpower : ''}`}>
         {appMode === 'timeline' ? (
           // Version Timeline mode
           <div className={styles.timelineMode}>
@@ -235,6 +253,7 @@ export function MainApp() {
             </div>
             <div className={styles.chartArea}>
               <VersionTimelineView
+                key="timeline-mode"
                 onEventClick={isReadonly ? undefined : handleEventClick}
                 onAddEvent={isReadonly ? undefined : handleAddEvent}
               />
@@ -261,6 +280,23 @@ export function MainApp() {
               />
             )}
           </div>
+        ) : appMode === 'manpower' ? (
+          // Manpower mode
+          <div className={styles.manpowerMode}>
+            <div className={styles.header}>
+              <RadarTabs readonly={isReadonly} />
+              {!isReadonly && <Toolbar hideTimeCompare />}
+            </div>
+            <div className={styles.chartArea}>
+              {activeManpowerChart ? (
+                <ManpowerView />
+              ) : (
+                <Empty description={t.manpower?.noData || '暂无数据'} />
+              )}
+            </div>
+            {!isReadonly && <SettingsButton keyShortcut="s" />}
+            {!isReadonly && <ManpowerSettingsDrawer />}
+          </div>
         ) : (
           // Radar chart mode
           <>
@@ -273,6 +309,7 @@ export function MainApp() {
                 <TimelineRadarChart timelineId={activeRadar.id} />
               ) : isVersionTimelineMode ? (
                 <VersionTimelineView
+                  key="radar-mode"
                   onEventClick={isReadonly ? undefined : handleEventClick}
                   onAddEvent={isReadonly ? undefined : handleAddEvent}
                 />
@@ -288,7 +325,6 @@ export function MainApp() {
               <>
                 <SettingsDrawer />
                 <SubRadarDrawer />
-                <ImportModal />
                 <CreateTimelineModal
                   open={createTimelineModalVisible}
                   onClose={() => setCreateTimelineModalVisible(false)}
@@ -313,6 +349,8 @@ export function MainApp() {
           </>
         )}
       </Content>
+      {/* Global modals - render outside mode-specific sections */}
+      {!isReadonly && <ImportModal />}
     </Layout>
   )
 }
