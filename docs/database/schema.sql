@@ -1,6 +1,6 @@
 -- Radar Compare - Supabase Database Schema
--- 版本 2.1.0 (2026-01-11)
--- 图表级独立存储架构 + 协作者 Profile 可见性
+-- 版本 2.2.0 (2026-01-13)
+-- 新增人力排布图表类型 (manpower)
 --
 -- 注意:
 -- - project.id 使用 TEXT 类型以兼容前端 nanoid
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS radar_compare.radar_charts (
   id TEXT PRIMARY KEY,
   project_id TEXT NOT NULL REFERENCES radar_compare.projects(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  chart_type TEXT NOT NULL DEFAULT 'radar' CHECK (chart_type IN ('radar', 'timeline', 'version_timeline')),
+  chart_type TEXT NOT NULL DEFAULT 'radar' CHECK (chart_type IN ('radar', 'timeline', 'version_timeline', 'manpower')),
   order_index INTEGER NOT NULL DEFAULT 0,
   data JSONB NOT NULL,                        -- 图表数据 (根据类型不同)
   time_marker JSONB,                          -- 时间标记 { year, month? }
@@ -60,8 +60,8 @@ CREATE TABLE IF NOT EXISTS radar_compare.radar_charts (
 );
 
 COMMENT ON TABLE radar_compare.radar_charts IS '雷达图表数据，每个 Tab 对应一条记录';
-COMMENT ON COLUMN radar_compare.radar_charts.chart_type IS '图表类型: radar=普通雷达图, timeline=时间轴雷达图, version_timeline=版本时间轴';
-COMMENT ON COLUMN radar_compare.radar_charts.data IS '图表数据: radar={dimensions,vendors}, timeline={sourceRadarIds}, version_timeline={info,events}';
+COMMENT ON COLUMN radar_compare.radar_charts.chart_type IS '图表类型: radar=普通雷达图, timeline=时间轴雷达图, version_timeline=版本时间轴, manpower=人力排布';
+COMMENT ON COLUMN radar_compare.radar_charts.data IS '图表数据: radar={dimensions,vendors}, timeline={sourceRadarIds}, version_timeline={info,events}, manpower={metadata,teams,projects,timePoints,allocations}';
 COMMENT ON COLUMN radar_compare.radar_charts.time_marker IS '时间标记，用于时间轴对比功能';
 
 -- Shares table (for sharing feature)
@@ -482,7 +482,11 @@ GRANT EXECUTE ON FUNCTION radar_compare.is_project_editor(text) TO authenticated
 GRANT EXECUTE ON FUNCTION radar_compare.get_project_by_share_token(text) TO anon, authenticated;
 
 -- =============================================================================
--- Schema Version: 2.1.0 (2026-01-11)
+-- Schema Version: 2.2.0 (2026-01-13)
+--
+-- 架构变更 (v2.2):
+--   - 新增 chart_type='manpower' 人力排布图表类型
+--   - manpower data 结构: {metadata,teams,projects,timePoints,allocations}
 --
 -- 架构变更 (v2.1):
 --   - 更新 profiles RLS 策略，允许项目所有者查看协作者 profile (name/email)
@@ -499,12 +503,16 @@ GRANT EXECUTE ON FUNCTION radar_compare.get_project_by_share_token(text) TO anon
 --     - chart_type='radar': data={dimensions, vendors}
 --     - chart_type='timeline': data={sourceRadarIds}
 --     - chart_type='version_timeline': data={info, events}
+--     - chart_type='manpower': data={metadata, teams, projects, timePoints, allocations}
 --
 -- 迁移说明:
+--   v2.2: 参见 migration_v2.2_manpower_chart.sql
 --   v2.0: 参见 migration_v2.0_chart_storage.sql
 --   v2.1: 参见 migration_v2.1_collaborator_profiles.sql
 --
 -- Previous versions:
+--   v2.2.0 (2026-01-13): 新增人力排布图表类型
+--   v2.1.0 (2026-01-11): 协作者 Profile 可见性
 --   v2.0.0 (2026-01-11): 图表级独立存储架构
 --   v1.2.2 (2026-01-11): get_project_by_share_token 函数
 --   v1.2.1 (2026-01-11): 修复 RLS 循环依赖，新增辅助函数

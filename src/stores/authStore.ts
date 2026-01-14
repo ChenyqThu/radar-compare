@@ -184,6 +184,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
     if (error) {
       set({ error: error.message, isLoading: false })
     } else {
+      // Clear radar store state to prevent data leakage
+      useRadarStore.getState().clearCurrentProject()
+      useRadarStore.setState({ projectList: [] })
+
       set({ user: null, session: null, isLoading: false })
     }
   },

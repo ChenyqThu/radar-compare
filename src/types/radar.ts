@@ -1,5 +1,7 @@
 import type { VersionTimeline } from './versionTimeline'
 import { isVersionTimeline } from './versionTimeline'
+import type { ManpowerChart } from './manpower'
+import { isManpowerChart } from './manpower'
 
 export type UUID = string
 
@@ -62,7 +64,7 @@ export interface TimelineRadarChart {
 }
 
 // 联合类型
-export type AnyRadarChart = RadarChart | TimelineRadarChart | VersionTimeline
+export type AnyRadarChart = RadarChart | TimelineRadarChart | VersionTimeline | ManpowerChart
 
 // 类型守卫
 export function isTimelineRadar(chart: AnyRadarChart): chart is TimelineRadarChart {
@@ -70,8 +72,11 @@ export function isTimelineRadar(chart: AnyRadarChart): chart is TimelineRadarCha
 }
 
 export function isRegularRadar(chart: AnyRadarChart): chart is RadarChart {
-  return !isTimelineRadar(chart) && !isVersionTimeline(chart)
+  return !isTimelineRadar(chart) && !isVersionTimeline(chart) && !isManpowerChart(chart)
 }
+
+// 重新导出 manpower 类型守卫
+export { isManpowerChart } from './manpower'
 
 export interface Project {
   id: UUID

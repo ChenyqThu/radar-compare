@@ -9,6 +9,7 @@ import { createVendorActions } from './vendorActions'
 import { createDimensionActions } from './dimensionActions'
 import { createTimelineActions } from './timelineActions'
 import { createVersionTimelineActions } from './versionTimelineActions'
+import { createManpowerActions } from './manpowerActions'
 
 export type { RadarState, ValidationResult, TimelineData, ProjectListItem } from './types'
 
@@ -23,6 +24,7 @@ export const useRadarStore = create<RadarState>()(
     const dimensionActions = createDimensionActions(set, get)
     const timelineActions = createTimelineActions(set, get)
     const versionTimelineActions = createVersionTimelineActions(set, get)
+    const manpowerActions = createManpowerActions(set, get)
 
     return {
       // Project state - assembled from projects + radar_charts tables
@@ -59,6 +61,9 @@ export const useRadarStore = create<RadarState>()(
 
       // Version timeline actions
       ...versionTimelineActions,
+
+      // Manpower actions
+      ...manpowerActions,
     }
   })
 )

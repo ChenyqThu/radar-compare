@@ -2,9 +2,18 @@ import { supabase, isSupabaseConfigured } from './client'
 import type { AnyRadarChart, RadarChart, TimeMarker } from '@/types'
 import type { TimelineRadarChart } from '@/types/radar'
 import type { VersionTimeline, TimelineInfo, VersionEvent } from '@/types/versionTimeline'
+import type {
+  ManpowerChart,
+  ManpowerTeam,
+  ManpowerProject,
+  ManpowerTimePoint,
+  AllocationMatrix,
+  ManpowerMetadata,
+} from '@/types/manpower'
 import type { Database, RadarChartRow } from '@/types/supabase'
 import { isTimelineRadar } from '@/types'
 import { isVersionTimeline } from '@/types/versionTimeline'
+import { isManpowerChart } from '@/types/manpower'
 
 type ChartInsert = Database['radar_compare']['Tables']['radar_charts']['Insert']
 type ChartUpdate = Database['radar_compare']['Tables']['radar_charts']['Update']
@@ -42,6 +51,27 @@ function rowToChart(row: RadarChartRow): AnyRadarChart {
     } as VersionTimeline
   }
 
+  if (row.chart_type === 'manpower') {
+    // ManpowerChart
+    return {
+      id: row.id,
+      name: row.name,
+      order: row.order_index,
+      isManpowerChart: true,
+      metadata: (baseData.metadata as ManpowerMetadata) || {
+        title: '研发人力排布',
+        version: '1.0.0',
+        totalPersons: 0,
+      },
+      teams: (baseData.teams as ManpowerTeam[]) || [],
+      projects: (baseData.projects as ManpowerProject[]) || [],
+      timePoints: (baseData.timePoints as ManpowerTimePoint[]) || [],
+      allocations: (baseData.allocations as AllocationMatrix) || {},
+      createdAt: new Date(row.created_at).getTime(),
+      updatedAt: new Date(row.updated_at).getTime(),
+    } as ManpowerChart
+  }
+
   // Regular RadarChart
   return {
     id: row.id,
@@ -59,7 +89,7 @@ function rowToChart(row: RadarChartRow): AnyRadarChart {
  * Convert frontend chart to database row data
  */
 function chartToRowData(chart: AnyRadarChart): {
-  chartType: 'radar' | 'timeline' | 'version_timeline'
+  chartType: 'radar' | 'timeline' | 'version_timeline' | 'manpower'
   data: Record<string, unknown>
   timeMarker: TimeMarker | null
 } {
@@ -78,6 +108,21 @@ function chartToRowData(chart: AnyRadarChart): {
         isVersionTimeline: true,
         info: chart.info,
         events: chart.events,
+      },
+      timeMarker: null,
+    }
+  }
+
+  if (isManpowerChart(chart)) {
+    return {
+      chartType: 'manpower',
+      data: {
+        isManpowerChart: true,
+        metadata: chart.metadata,
+        teams: chart.teams,
+        projects: chart.projects,
+        timePoints: chart.timePoints,
+        allocations: chart.allocations,
       },
       timeMarker: null,
     }

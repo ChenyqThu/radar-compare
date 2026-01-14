@@ -221,6 +221,26 @@ export async function getProjectByShareToken(token: string): Promise<SharedProje
       }
     }
 
+    if (c.chartType === 'manpower') {
+      return {
+        id: c.id,
+        name: c.name,
+        order: c.order,
+        isManpowerChart: true as const,
+        metadata: (c.data.metadata as any) || {
+          title: '研发人力排布',
+          version: '1.0.0',
+          totalPersons: 0,
+        },
+        teams: (c.data.teams as any[]) || [],
+        projects: (c.data.projects as any[]) || [],
+        timePoints: (c.data.timePoints as any[]) || [],
+        allocations: (c.data.allocations as any) || {},
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+      }
+    }
+
     // Regular radar chart
     return {
       id: c.id,

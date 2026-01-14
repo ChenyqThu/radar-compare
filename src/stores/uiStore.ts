@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 import type { UUID } from '@/types'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
-export type AppMode = 'radar' | 'timeline'
+export type AppMode = 'radar' | 'timeline' | 'manpower'
 export type ShareType = 'readonly' | 'editable'
 
 // 分享信息
@@ -29,6 +29,7 @@ interface UIState {
   // 每个模式下上次选中的 Tab ID
   lastRadarModeTabId: UUID | null
   lastTimelineModeTabId: UUID | null
+  lastManpowerModeTabId: UUID | null
   setLastTabForMode: (mode: AppMode, tabId: UUID | null) => void
 
   // 主题
@@ -112,10 +113,13 @@ export const useUIStore = create<UIState>()(
 
       lastRadarModeTabId: null,
       lastTimelineModeTabId: null,
+      lastManpowerModeTabId: null,
       setLastTabForMode: (mode, tabId) => set(
         mode === 'radar'
           ? { lastRadarModeTabId: tabId }
-          : { lastTimelineModeTabId: tabId }
+          : mode === 'timeline'
+            ? { lastTimelineModeTabId: tabId }
+            : { lastManpowerModeTabId: tabId }
       ),
 
       theme: initialTheme,
@@ -159,6 +163,7 @@ export const useUIStore = create<UIState>()(
         appMode: state.appMode,
         lastRadarModeTabId: state.lastRadarModeTabId,
         lastTimelineModeTabId: state.lastTimelineModeTabId,
+        lastManpowerModeTabId: state.lastManpowerModeTabId,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {

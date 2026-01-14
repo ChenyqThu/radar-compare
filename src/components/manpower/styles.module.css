@@ -1,0 +1,512 @@
+/**
+ * Manpower module styles
+ * Using CSS Modules with Ant Design v5
+ * Following project design specifications
+ */
+
+/* Container */
+.container {
+  min-height: 100vh;
+  background-color: var(--color-bg-layout);
+  transition: background-color 0.3s ease;
+}
+
+/* Card styles */
+.card {
+  margin-bottom: 16px;
+  border-radius: var(--border-radius);
+  transition: box-shadow 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.cardTitle {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--color-text);
+  transition: color 0.3s ease;
+}
+
+/* Allocation grid styles */
+.allocationTable {
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.allocationTable th,
+.allocationTable td {
+  transition: background-color 0.2s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Table header */
+.tableHeader {
+  background-color: var(--color-fill-quaternary);
+  transition: background-color 0.3s ease;
+}
+
+.tableHeader th {
+  background-color: var(--color-fill-quaternary);
+}
+
+.allocationInput {
+  text-align: center;
+}
+
+/* InputNumber 内部 input 元素居中 */
+.allocationInput :global(.ant-input-number-input) {
+  text-align: center;
+}
+
+/* Utilization colors - using CSS variables */
+.utilizationGreen {
+  background-color: rgba(82, 196, 26, 0.1);
+  color: var(--color-success);
+}
+
+.utilizationYellow {
+  background-color: rgba(250, 173, 20, 0.1);
+  color: var(--color-warning);
+}
+
+.utilizationOrange {
+  background-color: rgba(250, 140, 22, 0.1);
+  color: #fa8c16;
+}
+
+.utilizationRed {
+  background-color: rgba(255, 77, 79, 0.1);
+  color: var(--color-error);
+}
+
+/* Chart container */
+.chartContainer {
+  height: 400px;
+  width: 100%;
+  transition: background-color 0.3s ease;
+}
+
+/* Config card grid */
+.configGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.configCard {
+  cursor: pointer;
+  border-radius: var(--border-radius);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: cardSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.configCard:hover {
+  box-shadow: var(--shadow-elevated);
+  transform: translateY(-2px);
+}
+
+@keyframes cardSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Badge styles */
+.teamBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.teamBadge:hover {
+  transform: scale(1.05);
+}
+
+.projectBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.projectBadge:hover {
+  transform: scale(1.05);
+}
+
+/* Status colors - using opacity for dark mode compatibility */
+.statusDevelopment {
+  background-color: rgba(24, 144, 255, 0.1);
+  color: #1890ff;
+  border-color: rgba(24, 144, 255, 0.3);
+}
+
+.statusPlanning {
+  background-color: rgba(250, 140, 22, 0.1);
+  color: #fa8c16;
+  border-color: rgba(250, 140, 22, 0.3);
+}
+
+.statusRelease {
+  background-color: rgba(82, 196, 26, 0.1);
+  color: var(--color-success);
+  border-color: rgba(82, 196, 26, 0.3);
+}
+
+.statusCompleted {
+  background-color: rgba(114, 46, 209, 0.1);
+  color: #722ed1;
+  border-color: rgba(114, 46, 209, 0.3);
+}
+
+/* Filter tags */
+.filterTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+/* Sticky column for allocation table */
+.stickyCol {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: var(--color-fill-quaternary);
+  transition: background-color 0.3s ease;
+}
+
+/* Sticky column in table header should match header background */
+.tableHeader .stickyCol {
+  background: var(--color-fill-quaternary);
+}
+
+/* Project row */
+.projectRow {
+  background-color: var(--color-fill-tertiary);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.projectRow:hover {
+  background-color: var(--color-fill-secondary);
+}
+
+/* Project header cell (项目行的单元格) */
+.projectHeaderCell {
+  background-color: var(--color-fill-tertiary);
+  transition: background-color 0.3s ease;
+}
+
+/* Team row */
+.teamRow {
+  padding-left: 24px;
+  transition: background-color 0.2s ease;
+}
+
+.teamRow:hover {
+  background-color: var(--color-fill);
+}
+
+/* Color picker */
+.colorOption {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.colorOption:hover {
+  transform: scale(1.15);
+}
+
+.colorOptionSelected {
+  border-color: var(--color-primary);
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px rgba(10, 113, 113, 0.2);
+}
+
+/* Tab content */
+.tabContent {
+  padding: 16px 0;
+}
+
+/* Empty state */
+.emptyState {
+  text-align: center;
+  padding: 48px;
+  color: var(--color-text-secondary);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Action buttons */
+.actionButtons {
+  display: flex;
+  gap: 8px;
+}
+
+/* Row animations */
+.row {
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: rowSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes rowSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Info tip card */
+.infoCard {
+  background-color: rgba(10, 113, 113, 0.06);
+  border-color: rgba(10, 113, 113, 0.2);
+  border-radius: var(--border-radius);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Dark mode specific overrides */
+[data-theme='dark'] .stickyCol {
+  background: var(--color-fill-quaternary);
+}
+
+[data-theme='dark'] .tableHeader {
+  background-color: var(--color-fill-quaternary);
+}
+
+[data-theme='dark'] .tableHeader th {
+  background-color: var(--color-fill-quaternary);
+}
+
+[data-theme='dark'] .projectRow {
+  background-color: var(--color-fill-tertiary);
+}
+
+[data-theme='dark'] .projectRow:hover {
+  background-color: var(--color-fill-secondary);
+}
+
+[data-theme='dark'] .projectHeaderCell {
+  background-color: var(--color-fill-tertiary);
+}
+
+[data-theme='dark'] .colorOptionSelected {
+  box-shadow: 0 0 0 2px rgba(18, 161, 161, 0.3);
+}
+
+[data-theme='dark'] .infoCard {
+  background-color: rgba(18, 161, 161, 0.08);
+  border-color: rgba(18, 161, 161, 0.2);
+}
+
+[data-theme='dark'] .configCard:hover {
+  box-shadow: var(--shadow-elevated);
+}
+
+/* Statistic text color */
+.statisticText {
+  color: var(--color-text-secondary);
+  transition: color 0.3s ease;
+}
+
+/* Divider */
+.divider {
+  border-color: var(--color-border-secondary);
+  transition: border-color 0.3s ease;
+}
+
+/* Section title */
+.sectionTitle {
+  color: var(--color-text);
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+/* Hint text */
+.hintText {
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+  transition: color 0.3s ease;
+}
+
+/* Legend item */
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.legendItem:hover {
+  background: var(--color-fill);
+}
+
+.legendDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.legendItem:hover .legendDot {
+  transform: scale(1.2);
+}
+
+/* Sankey filter containers */
+.sankeyFilterContainer {
+  padding: 12px 16px;
+  border-radius: 8px;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.sankeyTeamFilter {
+  background-color: rgba(24, 144, 255, 0.06);
+  border: 1px solid rgba(24, 144, 255, 0.2);
+}
+
+.sankeyProjectFilter {
+  background-color: rgba(82, 196, 26, 0.06);
+  border: 1px solid rgba(82, 196, 26, 0.2);
+}
+
+.sankeyFilterHeader {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sankeyFilterDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.sankeyFilterDotTeam {
+  background-color: #1890ff;
+}
+
+.sankeyFilterDotProject {
+  background-color: #52c41a;
+}
+
+/* Filter tag checkable */
+.filterTagCheckable {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  padding: 4px 12px;
+  border-radius: 4px;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  border: 1px solid;
+}
+
+.filterTagCheckableTeam {
+  background-color: rgba(24, 144, 255, 0.06);
+  border-color: rgba(24, 144, 255, 0.2);
+  color: var(--color-text);
+}
+
+.filterTagCheckableTeam.checked {
+  background-color: rgba(24, 144, 255, 0.15);
+  border-color: rgba(24, 144, 255, 0.5);
+  color: #1890ff;
+  font-weight: 500;
+}
+
+.filterTagCheckableProject {
+  background-color: rgba(82, 196, 26, 0.06);
+  border-color: rgba(82, 196, 26, 0.2);
+  color: var(--color-text);
+}
+
+.filterTagCheckableProject.checked {
+  background-color: rgba(82, 196, 26, 0.15);
+  border-color: rgba(82, 196, 26, 0.5);
+  color: #52c41a;
+  font-weight: 500;
+}
+
+.filterTagIcon {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+}
+
+/* Dark mode adjustments for filters */
+[data-theme='dark'] .sankeyTeamFilter {
+  background-color: rgba(24, 144, 255, 0.08);
+  border-color: rgba(24, 144, 255, 0.3);
+}
+
+[data-theme='dark'] .sankeyProjectFilter {
+  background-color: rgba(82, 196, 26, 0.08);
+  border-color: rgba(82, 196, 26, 0.3);
+}
+
+[data-theme='dark'] .filterTagCheckableTeam {
+  background-color: rgba(24, 144, 255, 0.08);
+  border-color: rgba(24, 144, 255, 0.3);
+}
+
+[data-theme='dark'] .filterTagCheckableTeam.checked {
+  background-color: rgba(24, 144, 255, 0.2);
+  border-color: rgba(24, 144, 255, 0.6);
+  color: #69b1ff;
+}
+
+[data-theme='dark'] .filterTagCheckableProject {
+  background-color: rgba(82, 196, 26, 0.08);
+  border-color: rgba(82, 196, 26, 0.3);
+}
+
+[data-theme='dark'] .filterTagCheckableProject.checked {
+  background-color: rgba(82, 196, 26, 0.2);
+  border-color: rgba(82, 196, 26, 0.6);
+  color: #95de64;
+}
+
+/* Time point filter container */
+.timePointFilterContainer {
+  background-color: var(--color-fill-tertiary);
+  transition: background-color 0.3s ease;
+}
+
+[data-theme='dark'] .timePointFilterContainer {
+  background-color: var(--color-fill-secondary);
+}

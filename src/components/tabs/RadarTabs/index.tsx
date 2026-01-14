@@ -32,6 +32,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { useI18n } from '@/locales'
 import { isTimelineRadar, isRegularRadar, type AnyRadarChart } from '@/types'
 import { isVersionTimeline } from '@/types/versionTimeline'
+import { isManpowerChart } from '@/types/manpower'
 import { TimeMarkerPicker, formatTimeMarker } from '@/components/settings/TimeMarkerPicker'
 import styles from './RadarTabs.module.css'
 
@@ -96,8 +97,12 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
     deleteVersionTimeline,
     renameVersionTimeline,
     duplicateVersionTimeline,
+    addManpowerChart,
+    deleteManpowerChart,
+    renameManpowerChart,
+    duplicateManpowerChart,
   } = useRadarStore()
-  const { appMode, lastRadarModeTabId, lastTimelineModeTabId, setLastTabForMode, shareMode, shareInfo } = useUIStore()
+  const { appMode, lastRadarModeTabId, lastTimelineModeTabId, lastManpowerModeTabId, setLastTabForMode, shareMode, shareInfo } = useUIStore()
   const { t, language } = useI18n()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -127,9 +132,12 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
     const { radarCharts, activeRadarId } = currentProject
 
     // 获取当前模式的 tab 列表
-    let currentModeCharts: AnyRadarChart[] = appMode === 'timeline'
-      ? radarCharts.filter(isVersionTimeline)
-      : radarCharts.filter(r => isRegularRadar(r) || isTimelineRadar(r))
+    let currentModeCharts: AnyRadarChart[] =
+      appMode === 'timeline'
+        ? radarCharts.filter(isVersionTimeline)
+        : appMode === 'manpower'
+          ? radarCharts.filter(isManpowerChart)
+          : radarCharts.filter(r => isRegularRadar(r) || isTimelineRadar(r))
 
     // 在分享模式下，进一步过滤只显示分享的 Tab
     if (shareMode && shareInfo?.sharedTabIds && shareInfo.sharedTabIds.length > 0) {
@@ -147,7 +155,12 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
     // 如果当前 activeRadarId 不属于当前模式（或为空），需要切换
     if (!isActiveInCurrentMode) {
       // 获取目标模式上次选中的 tab
-      const lastTabId = appMode === 'timeline' ? lastTimelineModeTabId : lastRadarModeTabId
+      const lastTabId =
+        appMode === 'timeline'
+          ? lastTimelineModeTabId
+          : appMode === 'manpower'
+            ? lastManpowerModeTabId
+            : lastRadarModeTabId
 
       // 检查上次的 tab 是否还在目标模式的列表中，否则用第一个
       const targetTab = lastTabId && currentModeCharts.find(c => c.id === lastTabId)
@@ -156,7 +169,7 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
 
       setActiveRadar(targetTab)
     }
-  }, [appMode, currentProject, lastRadarModeTabId, lastTimelineModeTabId, setActiveRadar, shareMode, shareInfo])
+  }, [appMode, currentProject, lastRadarModeTabId, lastTimelineModeTabId, lastManpowerModeTabId, setActiveRadar, shareMode, shareInfo])
 
   // 当 activeRadarId 变化时，保存到对应模式的记忆
   useEffect(() => {
@@ -169,6 +182,8 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
       // 根据 tab 的实际类型来更新对应模式的记忆
       if (isVersionTimeline(activeChart)) {
         setLastTabForMode('timeline', activeRadarId)
+      } else if (isManpowerChart(activeChart)) {
+        setLastTabForMode('manpower', activeRadarId)
       } else {
         setLastTabForMode('radar', activeRadarId)
       }
@@ -180,9 +195,12 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
   const { radarCharts, activeRadarId } = currentProject
 
   // 根据 appMode 过滤显示的 Tab
-  let filteredCharts: AnyRadarChart[] = appMode === 'timeline'
-    ? radarCharts.filter(isVersionTimeline)
-    : radarCharts.filter(r => isRegularRadar(r) || isTimelineRadar(r))
+  let filteredCharts: AnyRadarChart[] =
+    appMode === 'timeline'
+      ? radarCharts.filter(isVersionTimeline)
+      : appMode === 'manpower'
+        ? radarCharts.filter(isManpowerChart)
+        : radarCharts.filter(r => isRegularRadar(r) || isTimelineRadar(r))
 
   // 在分享模式下，进一步过滤只显示分享的 Tab
   if (shareMode && shareInfo?.sharedTabIds && shareInfo.sharedTabIds.length > 0) {
@@ -215,6 +233,8 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
     if (editingId && editValue.trim()) {
       if (appMode === 'timeline') {
         renameVersionTimeline(editingId, editValue.trim())
+      } else if (appMode === 'manpower') {
+        renameManpowerChart(editingId, editValue.trim())
       } else {
         renameRadarChart(editingId, editValue.trim())
       }
@@ -230,6 +250,31 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
   const handleDelete = (id: string) => {
     const chart = radarCharts.find((r) => r.id === id)
     if (!chart) return
+
+    // 人力排布图
+    if (isManpowerChart(chart)) {
+      const manpowerCharts = radarCharts.filter(isManpowerChart)
+      if (manpowerCharts.length <= 1) {
+        Modal.warning({
+          title: t.common.delete,
+          content: t.tabs.confirmDelete,
+        })
+        return
+      }
+      Modal.confirm({
+        title: t.common.confirm,
+        content: t.tabs.confirmDelete,
+        okText: t.common.confirm,
+        cancelText: t.common.cancel,
+        onOk: async () => {
+          const success = await deleteManpowerChart(id)
+          if (!success) {
+            message.error(t.common?.saveFailed || '删除失败')
+          }
+        },
+      })
+      return
+    }
 
     // 版本时间轴模式
     if (isVersionTimeline(chart)) {
@@ -293,8 +338,9 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
     if (!chart) return []
 
     const isVersionTimelineChart = isVersionTimeline(chart)
+    const isManpowerChartType = isManpowerChart(chart)
     const isTimeline = isTimelineRadar(chart)
-    const isReferenced = !isTimeline && !isVersionTimelineChart && isRadarReferencedByTimeline(id)
+    const isReferenced = !isTimeline && !isVersionTimelineChart && !isManpowerChartType && isRadarReferencedByTimeline(id)
 
     const baseItems = [
       {
@@ -305,8 +351,21 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
       },
     ]
 
-    // 版本时间轴只有复制和删除
-    if (isVersionTimelineChart) {
+    // 人力排布图只有复制和删除
+    if (isManpowerChartType) {
+      baseItems.push({
+        key: 'duplicate',
+        icon: <CopyOutlined />,
+        label: t.tabs.duplicate,
+        onClick: async () => {
+          const success = await duplicateManpowerChart(id)
+          if (!success) {
+            message.error(t.common?.saveFailed || '复制失败')
+          }
+        },
+      })
+    } else if (isVersionTimelineChart) {
+      // 版本时间轴只有复制和删除
       baseItems.push({
         key: 'duplicate',
         icon: <CopyOutlined />,
@@ -454,9 +513,14 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
   })
 
   // 处理添加按钮点击
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (appMode === 'timeline') {
       addVersionTimeline()
+    } else if (appMode === 'manpower') {
+      const success = await addManpowerChart()
+      if (!success) {
+        message.error(t.common?.saveFailed || '保存失败')
+      }
     } else {
       addRadarChart()
     }

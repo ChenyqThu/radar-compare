@@ -209,7 +209,7 @@ export function createRadarChartActions(set: StoreSetter, get: StoreGetter) {
       reorderCharts(orderUpdates)
     },
 
-    importRadarChart: async (data: RadarChart) => {
+    importRadarChart: async (data: AnyRadarChart) => {
       const { currentProject, currentProjectId } = get()
       if (!currentProject || !currentProjectId) return
 
@@ -217,14 +217,15 @@ export function createRadarChartActions(set: StoreSetter, get: StoreGetter) {
       if (!user || !isSupabaseConfigured) return
 
       const now = Date.now()
-      const imported: RadarChart = {
+      // Use type assertion to handle union type spread
+      const imported = {
         ...data,
         id: nanoid(),
         name: `${data.name} (导入)`,
         order: currentProject.radarCharts.length,
         createdAt: now,
         updatedAt: now,
-      }
+      } as AnyRadarChart
 
       // Create in database first
       const success = await createChart(currentProjectId, imported)
@@ -244,7 +245,7 @@ export function createRadarChartActions(set: StoreSetter, get: StoreGetter) {
       await updateProjectMeta(currentProjectId, { activeChartId: imported.id })
     },
 
-    importMultipleRadarCharts: async (data: RadarChart[]) => {
+    importMultipleRadarCharts: async (data: AnyRadarChart[]) => {
       const { currentProject, currentProjectId } = get()
       if (!currentProject || !currentProjectId || data.length === 0) return
 
@@ -252,14 +253,14 @@ export function createRadarChartActions(set: StoreSetter, get: StoreGetter) {
       if (!user || !isSupabaseConfigured) return
 
       const now = Date.now()
-      const importedRadars: RadarChart[] = data.map((radar, idx) => ({
+      const importedRadars: AnyRadarChart[] = data.map((radar, idx) => ({
         ...radar,
         id: nanoid(),
         name: radar.name,
         order: currentProject.radarCharts.length + idx,
         createdAt: now,
         updatedAt: now,
-      }))
+      } as AnyRadarChart))
 
       // Create all charts in database
       for (const chart of importedRadars) {

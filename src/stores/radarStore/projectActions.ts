@@ -366,9 +366,157 @@ export function createProjectActions(set: StoreSetter, get: StoreGetter) {
           updatedAt: now,
         }
 
+        // Create default manpower chart with sample data
+        const teamIds = [nanoid(), nanoid(), nanoid(), nanoid()]
+        const projectIds = [nanoid(), nanoid(), nanoid(), nanoid()]
+        const timePointIds = [nanoid(), nanoid(), nanoid(), nanoid()]
+
+        const defaultManpower: AnyRadarChart = {
+          id: nanoid(),
+          name: '人力排布示例',
+          isManpowerChart: true,
+          order: 2,
+          metadata: {
+            title: '研发人力排布',
+            version: '1.0.0',
+            totalPersons: 32,
+          },
+          teams: [
+            { id: teamIds[0], name: '前端团队', capacity: 8, color: '#5470c6', badge: 'FE' },
+            { id: teamIds[1], name: '后端团队', capacity: 10, color: '#91cc75', badge: 'BE' },
+            { id: teamIds[2], name: '测试团队', capacity: 6, color: '#fac858', badge: 'QA' },
+            { id: teamIds[3], name: 'UI团队', capacity: 4, color: '#ee6666', badge: 'UI' },
+          ],
+          projects: [
+            { id: projectIds[0], name: 'CRM 系统', status: 'development', color: '#5470c6' },
+            { id: projectIds[1], name: 'ERP 升级', status: 'planning', color: '#91cc75' },
+            { id: projectIds[2], name: '移动 App', status: 'development', color: '#fac858' },
+            { id: projectIds[3], name: '数据平台', status: 'release', color: '#73c0de' },
+          ],
+          timePoints: [
+            { id: timePointIds[0], name: '2024 Q1', date: '2024-01', type: 'current' },
+            { id: timePointIds[1], name: '2024 Q2', date: '2024-04', type: 'planning' },
+            { id: timePointIds[2], name: '2024 Q3', date: '2024-07', type: 'planning' },
+            { id: timePointIds[3], name: '2024 Q4', date: '2024-10', type: 'release' },
+          ],
+          allocations: {
+            // Q1 allocations
+            [timePointIds[0]]: {
+              [projectIds[0]]: {
+                [teamIds[0]]: { occupied: 4, prerelease: 1 },
+                [teamIds[1]]: { occupied: 5, prerelease: 2 },
+                [teamIds[2]]: { occupied: 3, prerelease: 1 },
+                [teamIds[3]]: { occupied: 2, prerelease: 0 },
+              },
+              [projectIds[1]]: {
+                [teamIds[0]]: { occupied: 2, prerelease: 0 },
+                [teamIds[1]]: { occupied: 3, prerelease: 0 },
+                [teamIds[2]]: { occupied: 1, prerelease: 0 },
+                [teamIds[3]]: { occupied: 1, prerelease: 0 },
+              },
+              [projectIds[2]]: {
+                [teamIds[0]]: { occupied: 2, prerelease: 0 },
+                [teamIds[1]]: { occupied: 2, prerelease: 0 },
+                [teamIds[2]]: { occupied: 2, prerelease: 0 },
+                [teamIds[3]]: { occupied: 1, prerelease: 0 },
+              },
+              [projectIds[3]]: {
+                [teamIds[0]]: { occupied: 0, prerelease: 0 },
+                [teamIds[1]]: { occupied: 0, prerelease: 0 },
+                [teamIds[2]]: { occupied: 0, prerelease: 0 },
+                [teamIds[3]]: { occupied: 0, prerelease: 0 },
+              },
+            },
+            // Q2 allocations
+            [timePointIds[1]]: {
+              [projectIds[0]]: {
+                [teamIds[0]]: { occupied: 3, prerelease: 2 },
+                [teamIds[1]]: { occupied: 3, prerelease: 2 },
+                [teamIds[2]]: { occupied: 4, prerelease: 2 },
+                [teamIds[3]]: { occupied: 1, prerelease: 1 },
+              },
+              [projectIds[1]]: {
+                [teamIds[0]]: { occupied: 3, prerelease: 0 },
+                [teamIds[1]]: { occupied: 4, prerelease: 0 },
+                [teamIds[2]]: { occupied: 1, prerelease: 0 },
+                [teamIds[3]]: { occupied: 2, prerelease: 0 },
+              },
+              [projectIds[2]]: {
+                [teamIds[0]]: { occupied: 2, prerelease: 1 },
+                [teamIds[1]]: { occupied: 3, prerelease: 1 },
+                [teamIds[2]]: { occupied: 1, prerelease: 0 },
+                [teamIds[3]]: { occupied: 1, prerelease: 0 },
+              },
+              [projectIds[3]]: {
+                [teamIds[0]]: { occupied: 0, prerelease: 0 },
+                [teamIds[1]]: { occupied: 0, prerelease: 0 },
+                [teamIds[2]]: { occupied: 0, prerelease: 0 },
+                [teamIds[3]]: { occupied: 0, prerelease: 0 },
+              },
+            },
+            // Q3 allocations
+            [timePointIds[2]]: {
+              [projectIds[0]]: {
+                [teamIds[0]]: { occupied: 1, prerelease: 1 },
+                [teamIds[1]]: { occupied: 1, prerelease: 1 },
+                [teamIds[2]]: { occupied: 2, prerelease: 2 },
+                [teamIds[3]]: { occupied: 0, prerelease: 0 },
+              },
+              [projectIds[1]]: {
+                [teamIds[0]]: { occupied: 4, prerelease: 1 },
+                [teamIds[1]]: { occupied: 6, prerelease: 2 },
+                [teamIds[2]]: { occupied: 2, prerelease: 0 },
+                [teamIds[3]]: { occupied: 2, prerelease: 1 },
+              },
+              [projectIds[2]]: {
+                [teamIds[0]]: { occupied: 2, prerelease: 2 },
+                [teamIds[1]]: { occupied: 2, prerelease: 2 },
+                [teamIds[2]]: { occupied: 2, prerelease: 2 },
+                [teamIds[3]]: { occupied: 1, prerelease: 1 },
+              },
+              [projectIds[3]]: {
+                [teamIds[0]]: { occupied: 1, prerelease: 0 },
+                [teamIds[1]]: { occupied: 1, prerelease: 0 },
+                [teamIds[2]]: { occupied: 0, prerelease: 0 },
+                [teamIds[3]]: { occupied: 1, prerelease: 0 },
+              },
+            },
+            // Q4 allocations
+            [timePointIds[3]]: {
+              [projectIds[0]]: {
+                [teamIds[0]]: { occupied: 0, prerelease: 0 },
+                [teamIds[1]]: { occupied: 0, prerelease: 0 },
+                [teamIds[2]]: { occupied: 0, prerelease: 0 },
+                [teamIds[3]]: { occupied: 0, prerelease: 0 },
+              },
+              [projectIds[1]]: {
+                [teamIds[0]]: { occupied: 3, prerelease: 2 },
+                [teamIds[1]]: { occupied: 4, prerelease: 3 },
+                [teamIds[2]]: { occupied: 4, prerelease: 2 },
+                [teamIds[3]]: { occupied: 1, prerelease: 1 },
+              },
+              [projectIds[2]]: {
+                [teamIds[0]]: { occupied: 0, prerelease: 0 },
+                [teamIds[1]]: { occupied: 0, prerelease: 0 },
+                [teamIds[2]]: { occupied: 0, prerelease: 0 },
+                [teamIds[3]]: { occupied: 0, prerelease: 0 },
+              },
+              [projectIds[3]]: {
+                [teamIds[0]]: { occupied: 5, prerelease: 0 },
+                [teamIds[1]]: { occupied: 6, prerelease: 0 },
+                [teamIds[2]]: { occupied: 2, prerelease: 0 },
+                [teamIds[3]]: { occupied: 3, prerelease: 0 },
+              },
+            },
+          },
+          createdAt: now,
+          updatedAt: now,
+        }
+
         await createChart(projectId, defaultRadarChart)
         await createChart(projectId, defaultTimeline)
-        charts = [defaultRadarChart, defaultTimeline]
+        await createChart(projectId, defaultManpower)
+        charts = [defaultRadarChart, defaultTimeline, defaultManpower]
         // Update active_chart_id
         await updateProjectMeta(projectId, { activeChartId: defaultRadarChart.id })
       }
@@ -724,6 +872,149 @@ export function createProjectActions(set: StoreSetter, get: StoreGetter) {
         updatedAt: now,
       }
 
+      // Create default manpower chart with sample data
+      const teamIds = [nanoid(), nanoid(), nanoid(), nanoid()]
+      const projectIdsManpower = [nanoid(), nanoid(), nanoid(), nanoid()]
+      const timePointIds = [nanoid(), nanoid(), nanoid(), nanoid()]
+
+      const defaultManpower: AnyRadarChart = {
+        id: nanoid(),
+        name: '人力排布示例',
+        isManpowerChart: true,
+        order: 2,
+        metadata: {
+          title: '研发人力排布',
+          version: '1.0.0',
+          totalPersons: 32,
+        },
+        teams: [
+          { id: teamIds[0], name: '前端团队', capacity: 8, color: '#5470c6', badge: 'FE' },
+          { id: teamIds[1], name: '后端团队', capacity: 10, color: '#91cc75', badge: 'BE' },
+          { id: teamIds[2], name: '测试团队', capacity: 6, color: '#fac858', badge: 'QA' },
+          { id: teamIds[3], name: 'UI团队', capacity: 4, color: '#ee6666', badge: 'UI' },
+        ],
+        projects: [
+          { id: projectIdsManpower[0], name: 'CRM 系统', status: 'development', color: '#5470c6' },
+          { id: projectIdsManpower[1], name: 'ERP 升级', status: 'planning', color: '#91cc75' },
+          { id: projectIdsManpower[2], name: '移动 App', status: 'development', color: '#fac858' },
+          { id: projectIdsManpower[3], name: '数据平台', status: 'release', color: '#73c0de' },
+        ],
+        timePoints: [
+          { id: timePointIds[0], name: '2024 Q1', date: '2024-01', type: 'current' },
+          { id: timePointIds[1], name: '2024 Q2', date: '2024-04', type: 'planning' },
+          { id: timePointIds[2], name: '2024 Q3', date: '2024-07', type: 'planning' },
+          { id: timePointIds[3], name: '2024 Q4', date: '2024-10', type: 'release' },
+        ],
+        allocations: {
+          [timePointIds[0]]: {
+            [projectIdsManpower[0]]: {
+              [teamIds[0]]: { occupied: 4, prerelease: 1 },
+              [teamIds[1]]: { occupied: 5, prerelease: 2 },
+              [teamIds[2]]: { occupied: 3, prerelease: 1 },
+              [teamIds[3]]: { occupied: 2, prerelease: 0 },
+            },
+            [projectIdsManpower[1]]: {
+              [teamIds[0]]: { occupied: 2, prerelease: 0 },
+              [teamIds[1]]: { occupied: 3, prerelease: 0 },
+              [teamIds[2]]: { occupied: 1, prerelease: 0 },
+              [teamIds[3]]: { occupied: 1, prerelease: 0 },
+            },
+            [projectIdsManpower[2]]: {
+              [teamIds[0]]: { occupied: 2, prerelease: 0 },
+              [teamIds[1]]: { occupied: 2, prerelease: 0 },
+              [teamIds[2]]: { occupied: 2, prerelease: 0 },
+              [teamIds[3]]: { occupied: 1, prerelease: 0 },
+            },
+            [projectIdsManpower[3]]: {
+              [teamIds[0]]: { occupied: 0, prerelease: 0 },
+              [teamIds[1]]: { occupied: 0, prerelease: 0 },
+              [teamIds[2]]: { occupied: 0, prerelease: 0 },
+              [teamIds[3]]: { occupied: 0, prerelease: 0 },
+            },
+          },
+          [timePointIds[1]]: {
+            [projectIdsManpower[0]]: {
+              [teamIds[0]]: { occupied: 3, prerelease: 2 },
+              [teamIds[1]]: { occupied: 3, prerelease: 2 },
+              [teamIds[2]]: { occupied: 4, prerelease: 2 },
+              [teamIds[3]]: { occupied: 1, prerelease: 1 },
+            },
+            [projectIdsManpower[1]]: {
+              [teamIds[0]]: { occupied: 3, prerelease: 0 },
+              [teamIds[1]]: { occupied: 4, prerelease: 0 },
+              [teamIds[2]]: { occupied: 1, prerelease: 0 },
+              [teamIds[3]]: { occupied: 2, prerelease: 0 },
+            },
+            [projectIdsManpower[2]]: {
+              [teamIds[0]]: { occupied: 2, prerelease: 1 },
+              [teamIds[1]]: { occupied: 3, prerelease: 1 },
+              [teamIds[2]]: { occupied: 1, prerelease: 0 },
+              [teamIds[3]]: { occupied: 1, prerelease: 0 },
+            },
+            [projectIdsManpower[3]]: {
+              [teamIds[0]]: { occupied: 0, prerelease: 0 },
+              [teamIds[1]]: { occupied: 0, prerelease: 0 },
+              [teamIds[2]]: { occupied: 0, prerelease: 0 },
+              [teamIds[3]]: { occupied: 0, prerelease: 0 },
+            },
+          },
+          [timePointIds[2]]: {
+            [projectIdsManpower[0]]: {
+              [teamIds[0]]: { occupied: 1, prerelease: 1 },
+              [teamIds[1]]: { occupied: 1, prerelease: 1 },
+              [teamIds[2]]: { occupied: 2, prerelease: 2 },
+              [teamIds[3]]: { occupied: 0, prerelease: 0 },
+            },
+            [projectIdsManpower[1]]: {
+              [teamIds[0]]: { occupied: 4, prerelease: 1 },
+              [teamIds[1]]: { occupied: 6, prerelease: 2 },
+              [teamIds[2]]: { occupied: 2, prerelease: 0 },
+              [teamIds[3]]: { occupied: 2, prerelease: 1 },
+            },
+            [projectIdsManpower[2]]: {
+              [teamIds[0]]: { occupied: 2, prerelease: 2 },
+              [teamIds[1]]: { occupied: 2, prerelease: 2 },
+              [teamIds[2]]: { occupied: 2, prerelease: 2 },
+              [teamIds[3]]: { occupied: 1, prerelease: 1 },
+            },
+            [projectIdsManpower[3]]: {
+              [teamIds[0]]: { occupied: 1, prerelease: 0 },
+              [teamIds[1]]: { occupied: 1, prerelease: 0 },
+              [teamIds[2]]: { occupied: 0, prerelease: 0 },
+              [teamIds[3]]: { occupied: 1, prerelease: 0 },
+            },
+          },
+          [timePointIds[3]]: {
+            [projectIdsManpower[0]]: {
+              [teamIds[0]]: { occupied: 0, prerelease: 0 },
+              [teamIds[1]]: { occupied: 0, prerelease: 0 },
+              [teamIds[2]]: { occupied: 0, prerelease: 0 },
+              [teamIds[3]]: { occupied: 0, prerelease: 0 },
+            },
+            [projectIdsManpower[1]]: {
+              [teamIds[0]]: { occupied: 3, prerelease: 2 },
+              [teamIds[1]]: { occupied: 4, prerelease: 3 },
+              [teamIds[2]]: { occupied: 4, prerelease: 2 },
+              [teamIds[3]]: { occupied: 1, prerelease: 1 },
+            },
+            [projectIdsManpower[2]]: {
+              [teamIds[0]]: { occupied: 0, prerelease: 0 },
+              [teamIds[1]]: { occupied: 0, prerelease: 0 },
+              [teamIds[2]]: { occupied: 0, prerelease: 0 },
+              [teamIds[3]]: { occupied: 0, prerelease: 0 },
+            },
+            [projectIdsManpower[3]]: {
+              [teamIds[0]]: { occupied: 5, prerelease: 0 },
+              [teamIds[1]]: { occupied: 6, prerelease: 0 },
+              [teamIds[2]]: { occupied: 2, prerelease: 0 },
+              [teamIds[3]]: { occupied: 3, prerelease: 0 },
+            },
+          },
+        },
+        createdAt: now,
+        updatedAt: now,
+      }
+
       const chartCreated = await createChart(projectId, defaultRadarChart)
       if (!chartCreated) {
         console.error('[Project] Failed to create default chart')
@@ -732,6 +1023,11 @@ export function createProjectActions(set: StoreSetter, get: StoreGetter) {
       const timelineCreated = await createChart(projectId, defaultTimeline)
       if (!timelineCreated) {
         console.error('[Project] Failed to create default timeline')
+      }
+
+      const manpowerCreated = await createChart(projectId, defaultManpower)
+      if (!manpowerCreated) {
+        console.error('[Project] Failed to create default manpower chart')
       }
 
       // Update active_chart_id

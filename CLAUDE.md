@@ -50,6 +50,18 @@ src/
 │   ├── common/
 │   │   ├── Navbar/           # 顶部导航栏
 │   │   └── GlobalControls/   # 全局控制组件(备用)
+│   ├── manpower/              # 人力排布模块 (Ant Design v5)
+│   │   ├── ManpowerView.tsx  # 主视图 (Tab 容器)
+│   │   ├── TeamBadge.tsx     # 团队徽章
+│   │   ├── ProjectBadge.tsx  # 项目徽章
+│   │   ├── stores/           # Zustand store 适配器
+│   │   ├── hooks/            # useI18n 等
+│   │   ├── modules/
+│   │   │   ├── allocation/   # 人力分配表格
+│   │   │   ├── config/       # 配置管理 (Team/Project/Time/Excel)
+│   │   │   └── visualization/ # 可视化图表 (Sankey/Distribution/Bar)
+│   │   ├── styles.module.css # CSS Modules 样式
+│   │   └── types/            # 类型兼容层
 │   ├── share/                 # 分享相关组件
 │   │   ├── ShareModal/       # 分享设置弹窗
 │   │   └── CollaborationsModal/ # 我的协作弹窗
@@ -317,6 +329,62 @@ radar_charts 表
 - `shares` 表: 存储分享链接配置，支持 `share_scope` (project/tabs) 和 `shared_tab_ids`
 - `collaborators` 表: 存储协作关系，关联 `share_id` 记录加入来源
 
+### 11. 人力排布 (Manpower Planning)
+
+> 新增于 2026-01 | 基于 Ant Design v5
+
+**功能概述**:
+- **多维配置**: 支持团队、项目、时间点三维配置
+- **分配矩阵**: 可视化编辑团队在不同项目和时间点的人力投入
+- **可视化分析**: Sankey 流动图、分布趋势图、柱状图多维度分析
+- **Excel 集成**: 支持完整的 Excel 导入导出功能
+
+**核心模块**:
+1. **配置管理**:
+   - 团队配置: 名称、容量、颜色、标号
+   - 项目配置: 名称、状态、发布日期、颜色、图案
+   - 时间点配置: 名称、日期、类型
+
+2. **分配表格** (AllocationGrid):
+   - 多级表头: 时间点 → 投入/预释
+   - 冻结列: 项目/团队列固定
+   - 可编辑单元格: InputNumber 实时编辑
+   - 利用率提示: 颜色标识团队负载 (绿/黄/橙/红)
+   - 自动计算: 预释值自动更新下个时间点的投入
+
+3. **可视化分析**:
+   - **Sankey 流动图**: 展示人力在不同时间点的流动和分配
+   - **分布趋势图**: 饼图 + 折线图联动展示项目人力投入趋势
+   - **项目柱状图**: 按时间段分组的版本人力投入总览
+
+4. **Excel 数据集成**:
+   - 导出: 5 个工作表 (分配表/团队配置/项目配置/时间点配置/统计汇总)
+   - 导入: 智能识别，支持配置和分配数据同时导入
+   - 模板下载: 提供标准 Excel 模板
+
+**设计规范**:
+- 完全遵循主项目的 CSS 变量系统
+- 深色/浅色主题无缝切换
+- Spring 动画: `cubic-bezier(0.34, 1.56, 0.64, 1)`
+- 完整的 i18n 支持 (中英文)
+
+**技术实现**:
+- UI 框架: Ant Design v5 (Table, Form, Modal, ColorPicker, DatePicker)
+- 图表: ECharts 5 (Sankey, Pie, Bar)
+- 样式: CSS Modules + CSS Variables
+- 状态: Zustand Store Adapters (configStore, dataStore)
+- 数据类型: `ManpowerChart` (chart_type: 'manpower')
+- 持久化: Supabase (radar_charts 表)
+- ID 生成: 统一的 nanoid 策略 (`utils/idGenerator.ts`)
+- 配置管理: 中心化常量配置 (`manpower/constants.ts`)
+
+**代码质量**:
+- ✅ **无代码重复**: Excel 导入导出使用统一 service 层
+- ✅ **统一 ID 生成**: 消除了 3 种不同的 ID 生成方式
+- ✅ **配置中心化**: 所有魔法数字和样式配置统一管理
+- ✅ **功能完整**: 验证、导入、错误处理全面实现
+- ✅ **只读模式**: 支持分享视图的只读展示
+
 ## 开发命令
 
 ```bash
@@ -367,11 +435,30 @@ npm run lint
 | `src/components/settings/VendorManager/index.tsx` | 系列管理表格 |
 | `src/components/settings/TimeMarkerPicker/index.tsx` | 时间标记选择器 |
 | `src/utils/calculation.ts` | 分数计算核心逻辑 |
+| `src/utils/idGenerator.ts` | 统一的 ID 生成工具 (nanoid) |
 | `src/services/excel/exporter.ts` | Excel 导出(单/多 Tab) |
 | `src/services/excel/importer.ts` | Excel 导入(单/多 Sheet) |
+| `src/services/excel/manpowerExporter.ts` | Manpower Excel 导出服务 |
+| `src/services/excel/manpowerImporter.ts` | Manpower Excel 导入服务 |
 | `src/components/versionTimeline/layoutUtils.ts` | 时间轴布局计算核心逻辑 (断轴/碰撞检测) |
+| `src/components/manpower/ManpowerView.tsx` | 人力排布主视图 |
+| `src/components/manpower/ManpowerToolbar.tsx` | 人力排布工具栏 (导入导出) |
+| `src/components/manpower/constants.ts` | Manpower 配置常量 (颜色/阈值/样式) |
+| `src/components/manpower/modules/allocation/AllocationGrid.tsx` | 人力分配表格 (支持只读模式) |
+| `src/components/manpower/modules/config/TeamConfig.tsx` | 团队配置管理 |
+| `src/components/manpower/modules/config/ProjectConfig.tsx` | 项目配置管理 |
+| `src/components/manpower/modules/config/TimeConfig.tsx` | 时间点配置管理 |
+| `src/components/manpower/modules/visualization/SankeyChart.tsx` | Sankey 流动图 |
+| `src/components/manpower/modules/visualization/DistributionChart.tsx` | 分布趋势图 |
+| `src/components/manpower/modules/visualization/ProjectBarChart.tsx` | 项目柱状图 |
+| `src/components/manpower/stores/configStore.ts` | Manpower 配置 Store 适配器 |
+| `src/components/manpower/stores/dataStore.ts` | Manpower 数据 Store 适配器 (真实验证) |
+| `src/components/manpower/styles.module.css` | Manpower CSS Modules 样式 |
+| `src/types/manpower.ts` | Manpower 类型定义 (使用统一 ID 生成) |
+| `src/stores/radarStore/manpowerActions.ts` | Manpower Store Actions (CRUD + 统计) |
 | `src/styles/global.css` | CSS 变量和全局样式 |
 | `docs/database/schema.sql` | Supabase 数据库 schema |
+| `docs/manpower/OPTIMIZATION_2026_01.md` | Manpower 模块优化记录 (2026-01) |
 
 ## 时间轴断轴功能 (Axis Break Implementation)
 

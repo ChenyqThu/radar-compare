@@ -9,6 +9,16 @@ import type {
   AnyRadarChart,
 } from '@/types'
 import type { VersionTimeline, VersionEvent, TimelineInfo, EventTypeConfig } from '@/types/versionTimeline'
+import type {
+  ManpowerChart,
+  ManpowerTeam,
+  ManpowerProject,
+  ManpowerTimePoint,
+  AllocationEntry,
+  ManpowerValidationResult,
+  TeamUtilization,
+  ManpowerStatistics,
+} from '@/types/manpower'
 
 // 校验结果类型
 export interface ValidationResult {
@@ -99,8 +109,8 @@ export interface RadarState {
   setSubDimensionScore: (dimensionId: UUID, subDimensionId: UUID, vendorId: UUID, score: number) => void
 
   // 导入
-  importRadarChart: (data: RadarChart) => void
-  importMultipleRadarCharts: (data: RadarChart[]) => void
+  importRadarChart: (data: AnyRadarChart) => void
+  importMultipleRadarCharts: (data: AnyRadarChart[]) => void
 
   // 时间标记操作
   setRadarTimeMarker: (radarId: UUID, year: number, month?: number) => void
@@ -139,6 +149,51 @@ export interface RadarState {
 
   // 版本时间轴导入
   importVersionTimeline: (data: VersionTimeline) => void
+
+  // ==================== 人力排布操作 ====================
+
+  // 人力排布图 CRUD
+  getActiveManpowerChart: () => ManpowerChart | null
+  getManpowerChartById: (id: UUID) => ManpowerChart | null
+  addManpowerChart: (name?: string) => Promise<boolean>
+  deleteManpowerChart: (id: UUID) => Promise<boolean>
+  renameManpowerChart: (id: UUID, name: string) => void
+  duplicateManpowerChart: (id: UUID) => Promise<boolean>
+
+  // 团队操作
+  addManpowerTeam: (chartId: UUID, team?: Partial<ManpowerTeam>) => void
+  updateManpowerTeam: (chartId: UUID, teamId: UUID, updates: Partial<ManpowerTeam>) => void
+  deleteManpowerTeam: (chartId: UUID, teamId: UUID) => void
+  reorderManpowerTeams: (chartId: UUID, fromIndex: number, toIndex: number) => void
+
+  // 项目操作
+  addManpowerProject: (chartId: UUID, project?: Partial<ManpowerProject>) => void
+  updateManpowerProject: (chartId: UUID, projectId: UUID, updates: Partial<ManpowerProject>) => void
+  deleteManpowerProject: (chartId: UUID, projectId: UUID) => void
+  reorderManpowerProjects: (chartId: UUID, fromIndex: number, toIndex: number) => void
+
+  // 时间点操作
+  addManpowerTimePoint: (chartId: UUID, timePoint?: Partial<ManpowerTimePoint>) => void
+  updateManpowerTimePoint: (chartId: UUID, timePointId: UUID, updates: Partial<ManpowerTimePoint>) => void
+  deleteManpowerTimePoint: (chartId: UUID, timePointId: UUID) => void
+  reorderManpowerTimePoints: (chartId: UUID, fromIndex: number, toIndex: number) => void
+
+  // 分配操作
+  updateAllocation: (chartId: UUID, timePointId: UUID, projectId: UUID, teamId: UUID, data: Partial<AllocationEntry>) => void
+  updateMultipleAllocations: (chartId: UUID, updates: Array<{ timePointId: UUID; projectId: UUID; teamId: UUID; data: Partial<AllocationEntry> }>) => void
+  resetAllocations: (chartId: UUID) => void
+  autoCalculatePrerelease: (chartId: UUID) => void
+
+  // 验证和统计
+  validateManpowerChart: (chartId: UUID) => ManpowerValidationResult
+  getTeamUtilization: (chartId: UUID, teamId: UUID, timePointId: UUID) => TeamUtilization | null
+  getManpowerStatistics: (chartId: UUID) => ManpowerStatistics | null
+
+  // 人力排布导入
+  importManpowerChart: (data: ManpowerChart) => Promise<boolean>
+
+  // 元数据更新
+  updateManpowerMetadata: (chartId: UUID, updates: Partial<ManpowerChart['metadata']>) => void
 }
 
 // Store setter type for actions

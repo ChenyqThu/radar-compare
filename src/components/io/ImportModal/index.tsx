@@ -6,6 +6,8 @@ import { useUIStore } from '@/stores/uiStore'
 import { useRadarStore } from '@/stores/radarStore'
 import { useI18n } from '@/locales'
 import { importFromExcel, importMultipleFromExcel, importFromJson } from '@/services/excel/importer'
+import { importManpowerFromExcel, importManpowerFromJson } from '@/services/excel/manpowerImporter'
+import { createDefaultManpowerChart } from '@/types/manpower'
 import type { MultiSheetImportResult } from '@/services/excel/importer'
 import type { ValidationResult } from '@/types'
 import styles from './ImportModal.module.css'
@@ -13,14 +15,28 @@ import styles from './ImportModal.module.css'
 const { Dragger } = Upload
 const { Text, Title } = Typography
 
-type ImportResult = ValidationResult | MultiSheetImportResult
+type ImportResult = ValidationResult | MultiSheetImportResult | ManpowerImportResult
+
+interface ManpowerImportResult extends ValidationResult {
+  data?: {
+    teams: any[]
+    projects: any[]
+    timePoints: any[]
+    allocations: any
+  }
+  configOnly?: boolean
+}
 
 function isMultiSheetResult(result: ImportResult): result is MultiSheetImportResult {
   return 'radars' in result
 }
 
+function isManpowerResult(result: ImportResult): result is ManpowerImportResult {
+  return 'data' in result && result.data !== undefined && 'teams' in result.data
+}
+
 export function ImportModal() {
-  const { importModalVisible, setImportModalVisible } = useUIStore()
+  const { importModalVisible, setImportModalVisible, appMode } = useUIStore()
   const { importRadarChart, importMultipleRadarCharts } = useRadarStore()
   const { t } = useI18n()
   const [loading, setLoading] = useState(false)
@@ -37,11 +53,23 @@ export function ImportModal() {
     setLoading(true)
     try {
       let res: ImportResult
-      if (type === 'excel') {
-        res = importAllSheets ? await importMultipleFromExcel(file) : await importFromExcel(file)
+
+      // In manpower mode, always use manpower importers
+      if (appMode === 'manpower') {
+        if (type === 'excel') {
+          res = await importManpowerFromExcel(file, t)
+        } else {
+          res = await importManpowerFromJson(file, t)
+        }
       } else {
-        res = await importFromJson(file)
+        // In radar mode, try radar import first
+        if (type === 'excel') {
+          res = importAllSheets ? await importMultipleFromExcel(file) : await importFromExcel(file)
+        } else {
+          res = await importFromJson(file)
+        }
       }
+
       setResult(res)
     } catch (error) {
       message.error(t.toolbar.importFailed || '导入失败')
@@ -54,7 +82,32 @@ export function ImportModal() {
   const handleConfirm = () => {
     if (!result) return
 
-    if (isMultiSheetResult(result)) {
+    if (isManpowerResult(result)) {
+      // Handle manpower data import
+      if (result.data) {
+        const { teams, projects, timePoints, allocations } = result.data
+
+        // Create a new Manpower chart
+        const newChart = createDefaultManpowerChart({
+          name: `人力排布 (导入)`,
+          teams,
+          projects,
+          timePoints,
+          allocations,
+        })
+
+        // Import as a new chart
+        importRadarChart(newChart)
+
+        const messages = []
+        if (teams.length > 0) messages.push(`${teams.length} ${t.manpower?.teamConfig || '团队'}`)
+        if (projects.length > 0) messages.push(`${projects.length} ${t.manpower?.projectConfig || '项目'}`)
+        if (timePoints.length > 0) messages.push(`${timePoints.length} ${t.manpower?.timePointConfig || '时间点'}`)
+
+        message.success(`${t.toolbar.importSuccess || '导入成功'}: ${messages.join(', ')}`)
+        handleClose()
+      }
+    } else if (isMultiSheetResult(result)) {
       if (result.radars.length > 0) {
         importMultipleRadarCharts(result.radars)
         message.success(`${t.toolbar.importSuccess || '导入成功'} (${result.radars.length} ${t.tabs.newTab || 'Tab'})`)
@@ -83,6 +136,77 @@ export function ImportModal() {
 
   const renderPreview = () => {
     if (!result) return null
+
+    if (isManpowerResult(result)) {
+      // Manpower data preview
+      if (!result.data) return null
+
+      const { teams, projects, timePoints, allocations } = result.data
+      const allocationCount = Object.keys(allocations).reduce((sum, timeId) => {
+        return (
+          sum +
+          Object.keys(allocations[timeId]).reduce((projectSum, projectId) => {
+            return projectSum + Object.keys(allocations[timeId][projectId]).length
+          }, 0)
+        )
+      }, 0)
+
+      return (
+        <div className={styles.preview}>
+          <Title level={5}>{t.toolbar.dataPreview || '数据预览'}</Title>
+          <Space direction="vertical" style={{ width: '100%', gap: 16 }}>
+            {teams.length > 0 && (
+              <div>
+                <Text strong>{t.manpower?.teamConfig || '团队配置'}: </Text>
+                <Text type="secondary">{teams.length} {t.manpower?.teamConfig || '个团队'}</Text>
+                <div style={{ marginTop: 8 }}>
+                  {teams.slice(0, 3).map((team) => (
+                    <div key={team.id} style={{ marginLeft: 16 }}>
+                      <Text>• {team.name} ({team.capacity} {t.manpower?.columnCapacity || '人'})</Text>
+                    </div>
+                  ))}
+                  {teams.length > 3 && <Text type="secondary" style={{ marginLeft: 16 }}>...</Text>}
+                </div>
+              </div>
+            )}
+            {projects.length > 0 && (
+              <div>
+                <Text strong>{t.manpower?.projectConfig || '项目配置'}: </Text>
+                <Text type="secondary">{projects.length} {t.manpower?.projectConfig || '个项目'}</Text>
+                <div style={{ marginTop: 8 }}>
+                  {projects.slice(0, 3).map((project) => (
+                    <div key={project.id} style={{ marginLeft: 16 }}>
+                      <Text>• {project.name} ({project.status})</Text>
+                    </div>
+                  ))}
+                  {projects.length > 3 && <Text type="secondary" style={{ marginLeft: 16 }}>...</Text>}
+                </div>
+              </div>
+            )}
+            {timePoints.length > 0 && (
+              <div>
+                <Text strong>{t.manpower?.timePointConfig || '时间点配置'}: </Text>
+                <Text type="secondary">{timePoints.length} {t.manpower?.timePointConfig || '个时间点'}</Text>
+                <div style={{ marginTop: 8 }}>
+                  {timePoints.slice(0, 3).map((tp) => (
+                    <div key={tp.id} style={{ marginLeft: 16 }}>
+                      <Text>• {tp.name} ({tp.date})</Text>
+                    </div>
+                  ))}
+                  {timePoints.length > 3 && <Text type="secondary" style={{ marginLeft: 16 }}>...</Text>}
+                </div>
+              </div>
+            )}
+            {allocationCount > 0 && (
+              <div>
+                <Text strong>{t.manpower?.allocationGrid || '人力分配'}: </Text>
+                <Text type="secondary">{allocationCount} {t.manpower?.records || '条记录'}</Text>
+              </div>
+            )}
+          </Space>
+        </div>
+      )
+    }
 
     if (isMultiSheetResult(result)) {
       // 多sheet预览
@@ -154,10 +278,12 @@ export function ImportModal() {
       ),
       children: (
         <>
-          <div className={styles.importOption}>
-            <Text>{t.toolbar.importAllSheets || '导入所有工作表'}</Text>
-            <Switch checked={importAllSheets} onChange={setImportAllSheets} />
-          </div>
+          {appMode !== 'manpower' && (
+            <div className={styles.importOption}>
+              <Text>{t.toolbar.importAllSheets || '导入所有工作表'}</Text>
+              <Switch checked={importAllSheets} onChange={setImportAllSheets} />
+            </div>
+          )}
           <Dragger {...excelUploadProps} className={styles.dragger}>
             <p className="ant-upload-drag-icon">
               <InboxOutlined />
@@ -197,18 +323,18 @@ export function ImportModal() {
       footer={
         isValid
           ? [
-              <Button key="cancel" onClick={handleClose}>
-                {t.common.cancel || '取消'}
-              </Button>,
-              <Button key="confirm" type="primary" onClick={handleConfirm}>
-                {t.toolbar.confirmImport || '确认导入'}
-              </Button>,
-            ]
+            <Button key="cancel" onClick={handleClose}>
+              {t.common.cancel || '取消'}
+            </Button>,
+            <Button key="confirm" type="primary" onClick={handleConfirm}>
+              {t.toolbar.confirmImport || '确认导入'}
+            </Button>,
+          ]
           : [
-              <Button key="cancel" onClick={handleClose}>
-                {t.common.cancel || '关闭'}
-              </Button>,
-            ]
+            <Button key="cancel" onClick={handleClose}>
+              {t.common.cancel || '关闭'}
+            </Button>,
+          ]
       }
       width={600}
     >

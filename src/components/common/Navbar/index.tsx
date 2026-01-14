@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Space, Tooltip, Tag, Popconfirm, message, Modal } from 'antd'
-import { SunOutlined, MoonOutlined, RadarChartOutlined, HistoryOutlined, ShareAltOutlined, EyeOutlined, EditOutlined, HomeOutlined, LogoutOutlined, CopyOutlined, TeamOutlined } from '@ant-design/icons'
+import { SunOutlined, MoonOutlined, RadarChartOutlined, HistoryOutlined, ShareAltOutlined, EyeOutlined, EditOutlined, HomeOutlined, LogoutOutlined, CopyOutlined, TeamOutlined, UsergroupAddOutlined } from '@ant-design/icons'
 import { useUIStore } from '@/stores/uiStore'
 import { useRadarStore } from '@/stores/radarStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -98,7 +98,12 @@ export function Navbar() {
                 const firstTab = project.radarCharts.find((c) => c.id === firstTabId)
                 if (firstTab) {
                   const { isVersionTimeline } = await import('@/types/versionTimeline')
-                  const appMode = isVersionTimeline(firstTab) ? 'timeline' : 'radar'
+                  const { isManpowerChart } = await import('@/types/manpower')
+                  const appMode = isVersionTimeline(firstTab)
+                    ? 'timeline'
+                    : isManpowerChart(firstTab)
+                      ? 'manpower'
+                      : 'radar'
                   useUIStore.getState().setAppMode(appMode)
                 }
               }
@@ -128,7 +133,8 @@ export function Navbar() {
 
   const navItems: Array<{ key: AppMode; icon: React.ReactNode; label: string }> = [
     { key: 'radar', icon: <RadarChartOutlined />, label: t.app.radarMode || '雷达图' },
-    { key: 'timeline', icon: <HistoryOutlined />, label: t.app.timelineMode || '时间轴' },
+    { key: 'timeline', icon: <HistoryOutlined />, label: t.versionTimeline?.title || '大事记' },
+    { key: 'manpower', icon: <UsergroupAddOutlined />, label: t.manpower?.title || '人力排布' },
   ]
 
   return (

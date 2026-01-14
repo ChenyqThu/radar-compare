@@ -29,8 +29,9 @@ import {
   isShareLinkValid,
   joinCollaboration,
 } from '@/services/supabase'
-import { isTimelineRadar } from '@/types'
+import { isTimelineRadar, isManpowerChart } from '@/types'
 import { isVersionTimeline } from '@/types/versionTimeline'
+import { ManpowerView } from '@/components/manpower/ManpowerView'
 import { useI18n } from '@/locales'
 import type { VersionEvent } from '@/types/versionTimeline'
 import styles from './ShareView.module.css'
@@ -143,7 +144,13 @@ export function ShareView() {
       })
 
       // Set correct app mode based on shared tab type
-      useUIStore.getState().setAppMode(isVersionTimelineTab ? 'timeline' : 'radar')
+      if (isVersionTimelineTab) {
+        useUIStore.getState().setAppMode('timeline')
+      } else if (sharedTab && isManpowerChart(sharedTab)) {
+        useUIStore.getState().setAppMode('manpower')
+      } else {
+        useUIStore.getState().setAppMode('radar')
+      }
 
       // Set share mode with sharedTabIds for UI filtering
       setShareMode(true, {
@@ -381,7 +388,19 @@ export function ShareView() {
     <Layout className={styles.layout}>
       <Navbar />
       <Content className={styles.content}>
-        {appMode === 'timeline' ? (
+        {appMode === 'manpower' ? (
+          // Manpower mode
+          <div className={styles.manpowerMode}>
+            <div className={styles.header}>
+              <RadarTabs readonly={hideCreateActions} />
+              <Toolbar hideTimeCompare hideImport={isReadonly} hideExport={isReadonly} />
+            </div>
+            <div className={styles.chartArea}>
+              <ManpowerView />
+            </div>
+            {!isReadonly && <SettingsDrawer />}
+          </div>
+        ) : appMode === 'timeline' ? (
           // Version Timeline mode
           <div className={styles.timelineMode}>
             <div className={styles.header}>
@@ -430,7 +449,7 @@ export function ShareView() {
               {/* Always hide new tab button in share mode */}
               <RadarTabs readonly={hideCreateActions} />
               {/* Show toolbar: hide time compare, hide import for readonly */}
-              <Toolbar hideTimeCompare hideImport={isReadonly} />
+              <Toolbar hideTimeCompare hideImport={isReadonly} hideExport={isReadonly} />
             </div>
             <div className={styles.chartArea}>
               {isTimeline ? (
