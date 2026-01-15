@@ -9,6 +9,7 @@
     pointer-events: none;
     z-index: 9999;
     mix-blend-mode: difference;
+    will-change: transform, width, height, border-radius;
 }
 
 @media (hover: none) {

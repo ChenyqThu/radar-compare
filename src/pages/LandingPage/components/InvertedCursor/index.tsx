@@ -1,136 +1,193 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, useMotionValue, useSpring, useAnimationFrame } from 'framer-motion'
+import { motion, useSpring, useMotionValue, useTransform } from 'framer-motion'
 import styles from './styles.module.css'
 
+// 统一的 spring 配置，确保所有属性动画曲线一致
+const SPRING_CONFIG = {
+    stiffness: 300,
+    damping: 28,
+    mass: 0.8,
+}
+
+// 快速跟随配置（用于普通鼠标跟随）
+const FOLLOW_CONFIG = {
+    stiffness: 800,
+    damping: 40,
+    mass: 0.2,
+}
+
+// 默认光标尺寸
+const DEFAULT_SIZE = 32
+const DEFAULT_RADIUS = 16
+
 export function InvertedCursor() {
-    const [isHovering, setIsHovering] = useState(false)
+    // 目标位置（中心点坐标）
+    const targetX = useMotionValue(0)
+    const targetY = useMotionValue(0)
 
-    const mouseX = useMotionValue(0)
-    const mouseY = useMotionValue(0)
-    const [cursorVariant, setCursorVariant] = useState('default')
-    const [targetBounds, setTargetBounds] = useState({ width: 32, height: 32, x: 0, y: 0, borderRadius: '50%' })
+    // 目标尺寸
+    const targetWidth = useMotionValue(DEFAULT_SIZE)
+    const targetHeight = useMotionValue(DEFAULT_SIZE)
+    const targetRadius = useMotionValue(DEFAULT_RADIUS)
+
+    // 当前是否为 magnetic 模式
     const isMagneticRef = useRef(false)
-    const currentMagneticTargetRef = useRef<HTMLElement | null>(null)
-    const lastBoundsRef = useRef({ width: 0, height: 0, borderRadius: '' })
+    const currentTargetRef = useRef<HTMLElement | null>(null)
 
-    const springConfig = cursorVariant === 'magnetic'
-        ? { stiffness: 800, damping: 50, mass: 1 } // Stiff and damped (no bounce)
-        : { stiffness: 1500, damping: 60, mass: 0.1 } // Fast follow
+    // 使用 spring 实现平滑动画
+    // 位置 spring - 根据模式动态切换配置
+    const springConfigRef = useRef(FOLLOW_CONFIG)
 
-    const cursorX = useSpring(mouseX, springConfig)
-    const cursorY = useSpring(mouseY, springConfig)
+    // 中心点位置的 spring 动画
+    const centerX = useSpring(targetX, springConfigRef.current)
+    const centerY = useSpring(targetY, springConfigRef.current)
+
+    // 尺寸和圆角也使用 spring，保证动画曲线统一
+    const cursorWidth = useSpring(targetWidth, SPRING_CONFIG)
+    const cursorHeight = useSpring(targetHeight, SPRING_CONFIG)
+    const cursorRadius = useSpring(targetRadius, SPRING_CONFIG)
+
+    // 动态计算左上角位置：中心点 - 尺寸/2
+    // 这样无论尺寸如何变化，光标始终以中心点为基准
+    const cursorX = useTransform(
+        [centerX, cursorWidth],
+        ([x, w]: number[]) => x - w / 2
+    )
+    const cursorY = useTransform(
+        [centerY, cursorHeight],
+        ([y, h]: number[]) => y - h / 2
+    )
+
+    // 将数字圆角转换为 CSS 字符串
+    const borderRadiusStyle = useTransform(cursorRadius, (v) => `${v}px`)
+
+    // 更新 spring 配置
+    const updateSpringConfig = useCallback((config: typeof SPRING_CONFIG) => {
+        springConfigRef.current = config
+        // Framer Motion 的 spring 会自动响应配置变化
+        centerX.set(targetX.get())
+        centerY.set(targetY.get())
+    }, [centerX, centerY, targetX, targetY])
+
+    // 进入 magnetic 模式
+    const enterMagnetic = useCallback((element: HTMLElement) => {
+        if (currentTargetRef.current === element) return
+
+        const bounds = element.getBoundingClientRect()
+        const style = getComputedStyle(element)
+
+        // 计算元素中心点
+        const elCenterX = bounds.left + bounds.width / 2
+        const elCenterY = bounds.top + bounds.height / 2
+
+        // 解析 border-radius（可能是 "12px" 或 "50%" 等）
+        let radius = DEFAULT_RADIUS
+        const radiusStr = style.borderRadius
+        if (radiusStr.includes('%')) {
+            // 百分比转换为像素（取较小边的百分比）
+            const percent = parseFloat(radiusStr) / 100
+            radius = Math.min(bounds.width, bounds.height) * percent / 2
+        } else {
+            radius = parseFloat(radiusStr) || DEFAULT_RADIUS
+        }
+
+        // 设置目标值（spring 会自动平滑过渡）
+        targetX.set(elCenterX)
+        targetY.set(elCenterY)
+        targetWidth.set(bounds.width)
+        targetHeight.set(bounds.height)
+        targetRadius.set(radius)
+
+        // 切换到 magnetic spring 配置
+        updateSpringConfig(SPRING_CONFIG)
+
+        isMagneticRef.current = true
+        currentTargetRef.current = element
+    }, [targetX, targetY, targetWidth, targetHeight, targetRadius, updateSpringConfig])
+
+    // 退出 magnetic 模式
+    const exitMagnetic = useCallback((mouseX: number, mouseY: number) => {
+        if (!isMagneticRef.current) return
+
+        // 设置回默认尺寸，位置跟随鼠标
+        targetX.set(mouseX)
+        targetY.set(mouseY)
+        targetWidth.set(DEFAULT_SIZE)
+        targetHeight.set(DEFAULT_SIZE)
+        targetRadius.set(DEFAULT_RADIUS)
+
+        // 切换回快速跟随配置
+        updateSpringConfig(FOLLOW_CONFIG)
+
+        isMagneticRef.current = false
+        currentTargetRef.current = null
+    }, [targetX, targetY, targetWidth, targetHeight, targetRadius, updateSpringConfig])
 
     useEffect(() => {
-        // Hide default cursor
+        // 隐藏默认光标
         document.body.style.cursor = 'none'
 
-        const moveCursor = (e: MouseEvent) => {
-            if (!isMagneticRef.current) {
-                mouseX.set(e.clientX - 16)
-                mouseY.set(e.clientY - 16)
+        // 鼠标移动处理
+        const handleMouseMove = (e: MouseEvent) => {
+            if (isMagneticRef.current && currentTargetRef.current) {
+                // Magnetic 模式：持续追踪元素位置（处理滚动等情况）
+                const bounds = currentTargetRef.current.getBoundingClientRect()
+                const elCenterX = bounds.left + bounds.width / 2
+                const elCenterY = bounds.top + bounds.height / 2
+                targetX.set(elCenterX)
+                targetY.set(elCenterY)
+            } else {
+                // 普通模式：跟随鼠标（使用中心点坐标）
+                targetX.set(e.clientX)
+                targetY.set(e.clientY)
             }
         }
 
+        // 鼠标悬停检测
         const handleMouseOver = (e: MouseEvent) => {
             const target = e.target as HTMLElement
             const magneticTarget = target.closest('[data-magnetic]') as HTMLElement
 
             if (magneticTarget) {
-                // If already locked to this target, skip updates to prevent jitter
-                if (currentMagneticTargetRef.current === magneticTarget) return
-
-                const bounds = magneticTarget.getBoundingClientRect()
-                const style = getComputedStyle(magneticTarget)
-
-                const newBounds = {
-                    width: bounds.width,
-                    height: bounds.height,
-                    x: bounds.left,
-                    y: bounds.top,
-                    borderRadius: style.borderRadius
-                }
-                setTargetBounds(newBounds)
-                lastBoundsRef.current = {
-                    width: bounds.width,
-                    height: bounds.height,
-                    borderRadius: style.borderRadius
-                }
-
-                setCursorVariant('magnetic')
-                isMagneticRef.current = true
-                currentMagneticTargetRef.current = magneticTarget
-
-                // Snap to target position
-                mouseX.set(bounds.left)
-                mouseY.set(bounds.top)
-            } else {
-                // Only reset if we were previously magnetic
-                if (currentMagneticTargetRef.current) {
-                    setCursorVariant('default')
-                    isMagneticRef.current = false
-                    currentMagneticTargetRef.current = null
-
-                    // Update position immediately to ensure smooth return
-                    mouseX.set(e.clientX - 16)
-                    mouseY.set(e.clientY - 16)
-                }
+                enterMagnetic(magneticTarget)
+            } else if (isMagneticRef.current) {
+                exitMagnetic(e.clientX, e.clientY)
             }
-
-            // Check if hovering over clickable elements (for scale effect if not magnetic)
-            const isClickable =
-                target.tagName === 'BUTTON' ||
-                target.tagName === 'A' ||
-                target.closest('button') ||
-                target.closest('a') ||
-                target.classList.contains('clickable')
-
-            setIsHovering(!!isClickable && !magneticTarget)
         }
 
-        window.addEventListener('mousemove', moveCursor)
+        // 鼠标离开元素检测（防止快速移动时遗漏）
+        const handleMouseOut = (e: MouseEvent) => {
+            const relatedTarget = e.relatedTarget as HTMLElement
+            if (!relatedTarget?.closest('[data-magnetic]') && isMagneticRef.current) {
+                exitMagnetic(e.clientX, e.clientY)
+            }
+        }
+
+        // 滚动时更新 magnetic 元素位置
+        const handleScroll = () => {
+            if (isMagneticRef.current && currentTargetRef.current) {
+                const bounds = currentTargetRef.current.getBoundingClientRect()
+                const elCenterX = bounds.left + bounds.width / 2
+                const elCenterY = bounds.top + bounds.height / 2
+                targetX.set(elCenterX)
+                targetY.set(elCenterY)
+            }
+        }
+
+        window.addEventListener('mousemove', handleMouseMove)
         window.addEventListener('mouseover', handleMouseOver)
-        window.addEventListener('scroll', () => { }, { passive: true })
+        window.addEventListener('mouseout', handleMouseOut)
+        window.addEventListener('scroll', handleScroll, { passive: true })
 
         return () => {
             document.body.style.cursor = 'auto'
-            window.removeEventListener('mousemove', moveCursor)
+            window.removeEventListener('mousemove', handleMouseMove)
             window.removeEventListener('mouseover', handleMouseOver)
+            window.removeEventListener('mouseout', handleMouseOut)
+            window.removeEventListener('scroll', handleScroll)
         }
-    }, [])
-
-    useAnimationFrame(() => {
-        if (isMagneticRef.current && currentMagneticTargetRef.current) {
-            const target = currentMagneticTargetRef.current
-            const bounds = target.getBoundingClientRect()
-            const style = getComputedStyle(target)
-
-            // Update position continuously to handle scroll/animation
-            mouseX.set(bounds.left)
-            mouseY.set(bounds.top)
-
-            // Check if dimensions or style changed
-            if (
-                Math.abs(bounds.width - lastBoundsRef.current.width) > 0.5 ||
-                Math.abs(bounds.height - lastBoundsRef.current.height) > 0.5 ||
-                style.borderRadius !== lastBoundsRef.current.borderRadius
-            ) {
-                const newBounds = {
-                    width: bounds.width,
-                    height: bounds.height,
-                    x: bounds.left,
-                    y: bounds.top,
-                    borderRadius: style.borderRadius
-                }
-                setTargetBounds(newBounds)
-                lastBoundsRef.current = {
-                    width: bounds.width,
-                    height: bounds.height,
-                    borderRadius: style.borderRadius
-                }
-            }
-        }
-    })
+    }, [targetX, targetY, enterMagnetic, exitMagnetic])
 
     return createPortal(
         <motion.div
@@ -138,18 +195,9 @@ export function InvertedCursor() {
             style={{
                 x: cursorX,
                 y: cursorY,
-            }}
-            animate={{
-                width: cursorVariant === 'magnetic' ? targetBounds.width : 32,
-                height: cursorVariant === 'magnetic' ? targetBounds.height : 32,
-                borderRadius: cursorVariant === 'magnetic' ? targetBounds.borderRadius : '50%',
-                scale: isHovering ? 2.5 : 1,
-            }}
-            transition={{
-                width: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
-                height: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
-                borderRadius: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
-                scale: { duration: 0.2 }
+                width: cursorWidth,
+                height: cursorHeight,
+                borderRadius: borderRadiusStyle,
             }}
         />,
         document.body
