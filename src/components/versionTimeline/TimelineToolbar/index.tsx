@@ -55,6 +55,7 @@ export function TimelineToolbar({ onAddEvent, onEditInfo, onImport }: TimelineTo
             logo: 'Logo 图片 URL（可选）',
             theme: '主题颜色：teal(青色)/blue(蓝色)/purple(紫色)/orange(橙色)/green(绿色)/rainbow(彩虹)/monochrome(单色)',
             themeColor: '自定义主题色（HEX 格式，可选）',
+            cardStyle: '卡片样式（可选，classic 或 glass，默认 classic）',
             eventTypes: '事件类型定义（可选）'
           },
           events: {
@@ -74,6 +75,7 @@ export function TimelineToolbar({ onAddEvent, onEditInfo, onImport }: TimelineTo
         company: 'Your Company',
         theme: 'teal',
         themeColor: '#0A7171',
+        cardStyle: 'classic',
         eventTypes: {
           milestone: {
             label: '里程碑',

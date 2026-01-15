@@ -400,12 +400,12 @@
 
 .eventsLayerBottom.layer0 {
   top: 50px;
-  /* Was transform: translateY(50px) */
+  /* Card starts closer to axis */
 }
 
 .eventsLayerBottom.layer1 {
   top: 160px;
-  /* Was transform: translateY(160px) */
+  /* Layer 1 starts further down */
 }
 
 /* Event card */
@@ -440,11 +440,8 @@
   }
 }
 
-/* Event content - compact card */
+/* Event content - base card styles (shared) */
 .eventContent {
-  padding: 12px 12px 14px 16px;
-  background-color: var(--bg-secondary, #ffffff);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
   cursor: pointer;
   min-height: 50px;
@@ -456,13 +453,6 @@
   display: flex;
   flex-direction: column;
   z-index: 2;
-  /* Higher than connector (1), ensures content is always above lines */
-  clip-path: polygon(0 6px,
-      6px 0,
-      100% 0,
-      100% calc(100% - 6px),
-      calc(100% - 6px) 100%,
-      0 100%);
 }
 
 /* Layered cards have reduced max height */
@@ -470,11 +460,42 @@
   max-height: 100px;
 }
 
-.eventContent::before {
+.eventContent:hover {
+  transform: translateY(-2px);
+  max-height: 240px;
+  z-index: 10;
+}
+
+/* Layered cards have smaller max height on hover */
+.eventContentLayered:hover {
+  max-height: 180px;
+}
+
+/* ============================================
+   Classic Style - 经典切角卡片
+   ============================================ */
+.eventContentClassic {
+  padding: 12px 12px 14px 16px;
+  background-color: var(--bg-secondary, #ffffff);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  /* Chamfered corners using clip-path */
+  clip-path: polygon(0 6px,
+      6px 0,
+      100% 0,
+      100% calc(100% - 6px),
+      calc(100% - 6px) 100%,
+      0 100%);
+}
+
+/* Classic style - outer border pseudo-element */
+.eventContentClassic::before {
   content: '';
   position: absolute;
   inset: 0;
-  background-color: var(--border-color, #d9d9d9);
+  /* Gradient border: event color at top, fading to border color */
+  background: linear-gradient(to bottom,
+      var(--event-color, var(--border-color, #d9d9d9)) 0%,
+      var(--border-color, #d9d9d9) 50%);
   clip-path: polygon(0 6px,
       6px 0,
       100% 0,
@@ -482,9 +503,11 @@
       calc(100% - 6px) 100%,
       0 100%);
   z-index: -2;
+  transition: opacity 0.3s ease, background 0.3s ease;
 }
 
-.eventContent::after {
+/* Classic style - inner fill pseudo-element */
+.eventContentClassic::after {
   content: '';
   position: absolute;
   inset: 1px;
@@ -498,16 +521,40 @@
   z-index: -1;
 }
 
-.eventContent:hover {
+.eventContentClassic:hover {
   box-shadow: 0 4px 16px rgba(10, 113, 113, 0.2);
-  transform: translateY(-2px);
-  max-height: 240px;
-  z-index: 10;
 }
 
-/* Layered cards have smaller max height on hover */
-.eventContentLayered:hover {
-  max-height: 180px;
+.eventContentClassic:hover::before {
+  /* On hover, extend the event color gradient */
+  background: linear-gradient(to bottom,
+      var(--event-color, var(--theme-color, var(--color-primary, #0A7171))) 0%,
+      var(--border-color, #d9d9d9) 80%);
+  opacity: 1;
+}
+
+/* ============================================
+   Glass Style - 玻璃态卡片
+   ============================================ */
+.eventContentGlass {
+  padding: 12px 16px;
+  background-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Glass style - disable pseudo-elements */
+.eventContentGlass::before,
+.eventContentGlass::after {
+  display: none;
+}
+
+.eventContentGlass:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border-color: var(--event-color, var(--theme-color, var(--color-primary, #0A7171)));
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Custom scrollbar for description - always reserve space, only show color on hover */
@@ -533,33 +580,7 @@
   background-color: var(--event-color, var(--theme-color, var(--color-primary, #0A7171)));
 }
 
-.eventContent::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  /* Default border color */
-  background: var(--border-color, #d9d9d9);
-  /* Gradient overlay for the "border" - giving it a colored top fading down */
-  background: linear-gradient(to bottom,
-      var(--event-color, var(--border-color, #d9d9d9)) 0%,
-      var(--border-color, #d9d9d9) 50%);
-  clip-path: polygon(0 6px,
-      6px 0,
-      100% 0,
-      100% calc(100% - 6px),
-      calc(100% - 6px) 100%,
-      0 100%);
-  z-index: -2;
-  transition: opacity 0.3s ease, background 0.3s ease;
-}
-
-.eventContent:hover::before {
-  /* On hover, make the color slightly more prominent or solid at top */
-  background: linear-gradient(to bottom,
-      var(--event-color, var(--theme-color, var(--color-primary, #0A7171))) 0%,
-      var(--border-color, #d9d9d9) 80%);
-  opacity: 1;
-}
+/* Removed hover effect on pseudo-elements */
 
 /* Connector lines - Using mask-image for reliable fading with dynamic colors */
 .eventConnector {
@@ -584,11 +605,12 @@
 
 .eventConnectorBottom {
   top: -50px;
+  /* Connector starts at bottom of card */
   height: 50px;
-  /* Bottom connector: stick up from card to axis */
-  /* Reversed: Transparent near Card (Bottom), Solid near Axis (Top) */
-  -webkit-mask-image: linear-gradient(to top, transparent 0%, black 100%);
-  mask-image: linear-gradient(to top, transparent 0%, black 100%);
+  /* Extends downwards */
+  /* Reversed: Solid near Card (Top), Transparent near End (Bottom) */
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
 }
 
 .eventConnectorTop.connectorLong {
@@ -601,8 +623,8 @@
 .eventConnectorBottom.connectorLong {
   top: -160px;
   height: 160px;
-  -webkit-mask-image: linear-gradient(to top, transparent 0%, black 100%);
-  mask-image: linear-gradient(to top, transparent 0%, black 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
 }
 
 .eventCard:hover .eventConnector,
@@ -771,12 +793,24 @@
       transparent 70%);
 }
 
-:global([data-theme='dark']) .eventContent::after {
+/* Dark mode - Classic style */
+:global([data-theme='dark']) .eventContentClassic::after {
   background-color: #262626;
 }
 
-:global([data-theme='dark']) .eventContent:hover {
+:global([data-theme='dark']) .eventContentClassic:hover {
   box-shadow: 0 4px 12px rgba(18, 161, 161, 0.2);
+}
+
+/* Dark mode - Glass style */
+:global([data-theme='dark']) .eventContentGlass {
+  background-color: rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+:global([data-theme='dark']) .eventContentGlass:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 :global([data-theme='dark']) .eventDot {
@@ -1045,5 +1079,6 @@
 /* Highlight text styles */
 .highlight {
   font-weight: 700;
-  color: inherit; /* Color will be set inline via style attribute */
+  color: inherit;
+  /* Color will be set inline via style attribute */
 }

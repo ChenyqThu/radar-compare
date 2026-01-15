@@ -83,6 +83,18 @@ src/
 │       └── ImportModal/      # 导入弹窗
 ├── pages/
 │   ├── LandingPage/          # 首页 (产品介绍 + 登录)
+│   │   ├── index.tsx         # 主页面组件
+│   │   ├── LandingPage.module.css # 页面样式
+│   │   └── components/       # Landing 专属组件
+│   │       ├── ParticleBackground/ # Unicorn Studio 粒子效果
+│   │       ├── ShinyButton/  # 旋转光效 CTA 按钮
+│   │       ├── TabDemo/      # 实时演示 Tab (Radar/Timeline/Sankey)
+│   │       │   ├── DemoRadar.tsx      # 雷达图演示
+│   │       │   ├── DemoTimeline.tsx   # 时间轴演示
+│   │       │   ├── DemoSankey.tsx     # 桑基图演示
+│   │       │   ├── DemoTimeline.module.css # 时间轴样式
+│   │       │   └── TabDemo.module.css     # Tab 容器样式
+│   │       └── ProjectShowcase/ # 其他项目展示卡片
 │   ├── MainApp/              # 主应用 (需登录)
 │   ├── ShareView/            # 分享链接访问页面
 │   └── AuthCallback/         # OAuth 回调处理页面
@@ -218,6 +230,32 @@ radar_charts 表
 - **总分**: Σ(维度分数 × 维度权重) / Σ维度权重
 
 ## 核心功能
+
+### 0. Landing Page (首页)
+
+> 新增于 2026-01 | 现代化产品介绍页
+
+**设计特点**:
+- **Unicorn Studio 粒子效果**: WebGL 驱动的从中心向下扩散的粒子动画背景
+- **Shiny Button**: 使用 CSS `@property` 和 `conic-gradient` 实现的旋转光束边框动画
+- **左右分屏布局**: 左侧产品介绍 + 右侧实时演示 (450px) + 中间 150px 间隙展示粒子
+- **强制深色主题**: Landing Page 固定使用深色主题，隐藏主题切换按钮
+- **实时演示 Tab**:
+  - Radar: 雷达图演示 (3 个产品 × 6 个维度，径向渐变填充)
+  - Timeline: 时间轴演示 (5 个事件，模拟产品发布历史，复刻实际模块样式)
+  - Sankey: 桑基图演示 (人力流转可视化)
+- **玻璃态设计**: Demo 区域使用半透明背景 + backdrop-filter 模糊效果
+
+**技术实现**:
+- **Unicorn Studio**: 外部脚本 `hiunicornstudio/unicornstudio.js@v2.0.0`，项目 ID `vLGJIxHINq2tCeLOR9Dt`
+- **Shiny Button**: CSS `@property --angle` + `conic-gradient` + `animation: borderRotate 3s linear infinite`
+- **Timeline Demo**: 复刻 VersionTimelineView 视觉风格 (水平轴 + 渐变线 + 脉冲球体 + 上下交错卡片)
+- **强制主题**: `useEffect(() => setTheme('dark'), [])` 在组件挂载时设置深色主题
+
+**关键文件**:
+- `src/pages/LandingPage/index.tsx` - 页面主组件
+- `src/pages/LandingPage/components/TabDemo/DemoTimeline.tsx` - 时间轴演示
+- `src/pages/LandingPage/components/ShinyButton/ShinyButton.module.css` - 旋转光效动画
 
 ### 1. 雷达图
 
@@ -542,6 +580,22 @@ perfectZoom = max(minZoom, fitZoom >= 100 ? fitZoom : 100)
   - 底部显示事件类型图例 (Legend)。
   - 点击图例可隐藏/显示特定类型的事件。
   - **自动重排**: 隐藏事件后，时间轴布局会自动重新计算 (Re-layout) 以填补空位。
+
+### 6. 卡片样式切换 (Card Style)
+
+> 新增于 2026-01
+
+支持两种事件卡片样式，通过「编辑信息」设置，整个时间轴统一应用：
+
+| 样式 | 特点 |
+|------|------|
+| **Classic (经典)** | 科技感切角卡片，使用 `clip-path: polygon()` 实现左上/右下 6px 斜切，双层伪元素边框，顶部事件颜色渐变 |
+| **Glass (玻璃态)** | 圆角毛玻璃卡片，12px 圆角，`backdrop-filter: blur(8px)` 模糊效果，半透明背景 |
+
+**技术实现**:
+- 样式存储在 `TimelineInfo.cardStyle` (时间轴级别，非事件级别)
+- CSS 类：`.eventContentClassic` / `.eventContentGlass`
+- 默认值：`'classic'` (向后兼容已有数据)
 
 
 ## ECharts 开发规范

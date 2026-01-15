@@ -40,6 +40,9 @@ export type TimelineTheme =
   | 'rainbow'       // 彩虹渐变
   | 'monochrome'    // 单色渐变
 
+// 卡片样式类型
+export type CardStyle = 'classic' | 'glass'
+
 // 产品线/公司信息
 export interface TimelineInfo {
   logo?: string                    // Logo URL
@@ -47,6 +50,7 @@ export interface TimelineInfo {
   company?: string                 // 公司名称
   themeColor?: string              // 主题色（HEX格式，如 #0A7171，作为未定义类型的回退颜色）
   theme?: TimelineTheme            // 时间轴主题样式
+  cardStyle?: CardStyle            // 卡片样式（可选，默认 'classic'）
   eventTypes?: Record<string, EventTypeConfig>  // 事件类型注册表（Key: 类型ID, Value: 配置）
 }
 

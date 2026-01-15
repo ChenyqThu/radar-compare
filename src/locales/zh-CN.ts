@@ -207,8 +207,8 @@ export const zhCN = {
 
   // Landing Page
   landing: {
-    title: '竞品能力对比可视化工具',
-    subtitle: '通过雷达图直观对比产品能力，支持团队协作与时间轴追踪',
+    title: '可视化工具',
+    subtitle: '多维洞察，见证产品演进',
     signIn: '登录',
     getStarted: '立即开始',
     signInWithGoogle: '使用 Google 账号登录',
@@ -219,6 +219,25 @@ export const zhCN = {
     feature2Desc: '实时云端同步，支持多人协作编辑',
     feature3Title: '时间轴追踪',
     feature3Desc: '记录产品演进历程，对比不同时间节点的能力变化',
+    // New keys for refactored landing page
+    heroTagline: 'v2.0 全新发布',
+    learnMore: '了解更多',
+    liveDemoTitle: '实时演示',
+    liveDemoDesc: '交互式雷达图，展示竞品分析示例数据',
+    tryItYourself: '使用您的数据试试',
+    radarShowcaseTitle: '无与伦比的雷达分析',
+    radarShowcaseDesc: '创建深度多层次评估模型，拖拽打分，旭日图可视化权重分布',
+    radarFeature1: '层级维度',
+    radarFeature2: '智能双布局',
+    radarFeature3: 'Excel/JSON 导入',
+    timelineShowcaseTitle: '穿越产品历史',
+    timelineShowcaseDesc: '了解产品如何演进，智能布局算法将密集历史呈现为优美的时间流',
+    timelineFeature1: '智能无重叠布局',
+    timelineFeature2: '完美缩放技术',
+    timelineFeature3: '关键路径高亮',
+    otherProjectsTitle: '探索更多工具',
+    otherProjectsDesc: '查看我们的其他效率工具',
+    whyChooseTitle: '为什么选择 Prism？',
   },
 
   // Sync
@@ -361,6 +380,10 @@ export const zhCN = {
     enableAxisBreak: '启用断轴优化',
     disableAxisBreak: '禁用断轴优化',
     doubleClickToReorder: '双击置顶',
+    // Card Style
+    cardStyle: '卡片样式',
+    cardStyle_classic: '经典',
+    cardStyle_glass: '玻璃态',
     // Event Types Management
     eventTypes: '事件类型',
     showAll: '显示全部',

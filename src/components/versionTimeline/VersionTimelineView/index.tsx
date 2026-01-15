@@ -3,7 +3,7 @@ import { Empty, Slider, Tooltip } from 'antd'
 import { PlusOutlined, LeftOutlined, RightOutlined, ZoomInOutlined, ZoomOutOutlined, CompressOutlined, DisconnectOutlined, LinkOutlined } from '@ant-design/icons'
 import { useRadarStore } from '@/stores/radarStore'
 import { useI18n } from '@/locales'
-import type { VersionEvent, TimelineTheme, TimeSegment } from '@/types/versionTimeline'
+import type { VersionEvent, TimelineTheme, TimeSegment, CardStyle } from '@/types/versionTimeline'
 import { calculateSmartLayout, generateTimeSegments } from '../layoutUtils'
 import { EventTypeLegend } from '../EventTypeLegend'
 import styles from './VersionTimelineView.module.css'
@@ -18,6 +18,13 @@ interface LayoutEvent extends VersionEvent {
   color: string
   nodeColor?: string
   styleColor?: string
+}
+
+// Generate card class names based on card style
+function getCardContentClasses(cardStyle: CardStyle | undefined, hasMultipleLayers: boolean): string {
+  const styleClass = cardStyle === 'glass' ? styles.eventContentGlass : styles.eventContentClassic
+  const layeredClass = hasMultipleLayers ? styles.eventContentLayered : ''
+  return `${styles.eventContent} ${styleClass} ${layeredClass}`.trim()
 }
 
 // Format event time (e.g., "Mar 2025" or "2025")
@@ -864,7 +871,7 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
                       onMouseLeave={() => setHoveredEventId(null)}
                       title={t.versionTimeline.doubleClickToReorder}
                     >
-                      <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
+                      <div className={getCardContentClasses(timeline.info.cardStyle, hasMultipleLayers)}>
                         <div className={styles.eventTitle}>
                           {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
                         </div>
@@ -905,7 +912,7 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
                       onMouseLeave={() => setHoveredEventId(null)}
                       title={t.versionTimeline.doubleClickToReorder}
                     >
-                      <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
+                      <div className={getCardContentClasses(timeline.info.cardStyle, hasMultipleLayers)}>
                         <div className={styles.eventTitle}>
                           {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
                         </div>
@@ -946,7 +953,7 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
                       onMouseLeave={() => setHoveredEventId(null)}
                     >
                       <div className={`${styles.eventConnector} ${styles.eventConnectorBottom}`} />
-                      <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
+                      <div className={getCardContentClasses(timeline.info.cardStyle, hasMultipleLayers)}>
                         <div className={styles.eventTitle}>
                           {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
                         </div>
@@ -986,7 +993,7 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
                       onMouseLeave={() => setHoveredEventId(null)}
                     >
                       <div className={`${styles.eventConnector} ${styles.eventConnectorBottom} ${styles.connectorLong}`} />
-                      <div className={`${styles.eventContent} ${hasMultipleLayers ? styles.eventContentLayered : ''}`}>
+                      <div className={getCardContentClasses(timeline.info.cardStyle, hasMultipleLayers)}>
                         <div className={styles.eventTitle}>
                           {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
                         </div>

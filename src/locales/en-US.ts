@@ -209,8 +209,8 @@ export const enUS: Locale = {
 
   // Landing Page
   landing: {
-    title: 'Competitive Comparison Visualization Tool',
-    subtitle: 'Compare product capabilities through radar charts with team collaboration and timeline tracking',
+    title: 'Visualization Tool',
+    subtitle: 'Multi-Dimensional Insights for Product Evolution',
     signIn: 'Sign In',
     getStarted: 'Get Started Now',
     signInWithGoogle: 'Sign in with Google',
@@ -221,6 +221,25 @@ export const enUS: Locale = {
     feature2Desc: 'Real-time cloud sync with multi-user collaborative editing',
     feature3Title: 'Timeline Tracking',
     feature3Desc: 'Record product evolution and compare capability changes across time points',
+    // New keys for refactored landing page
+    heroTagline: 'v2.0 Now Available',
+    learnMore: 'Learn More',
+    liveDemoTitle: 'See It In Action',
+    liveDemoDesc: 'Interactive radar chart with sample competitive analysis data',
+    tryItYourself: 'Try with your own data',
+    radarShowcaseTitle: 'Unrivaled Radar Analysis',
+    radarShowcaseDesc: 'Create deep, multi-level evaluation models. Drag, drop, and score with precision. Visualize weights with Sunburst view.',
+    radarFeature1: 'Hierarchical Dimensions',
+    radarFeature2: 'Smart Dual-Layout',
+    radarFeature3: 'Excel/JSON Import',
+    timelineShowcaseTitle: 'Time-Travel Through History',
+    timelineShowcaseDesc: 'Understand how products evolve. Our smart layout algorithm packs dense history into a beautiful, readable stream.',
+    timelineFeature1: 'Smart Non-Overlap Layout',
+    timelineFeature2: 'Perfect Zoom Technology',
+    timelineFeature3: 'Critical Path Highlighting',
+    otherProjectsTitle: 'Explore More Tools',
+    otherProjectsDesc: 'Check out our other productivity tools',
+    whyChooseTitle: 'Why Choose Prism?',
   },
 
   // Sync
@@ -363,6 +382,10 @@ export const enUS: Locale = {
     enableAxisBreak: 'Enable Axis Break',
     disableAxisBreak: 'Disable Axis Break',
     doubleClickToReorder: 'Double-click to bring to front',
+    // Card Style
+    cardStyle: 'Card Style',
+    cardStyle_classic: 'Classic',
+    cardStyle_glass: 'Glass',
     // Event Types Management
     eventTypes: 'Event Types',
     showAll: 'Show All',

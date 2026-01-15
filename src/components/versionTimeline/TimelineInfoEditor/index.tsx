@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { Modal, Form, Input, Button, Upload, message, ColorPicker, Select, Divider, Popconfirm } from 'antd'
+import { Modal, Form, Input, Button, Upload, message, ColorPicker, Select, Divider, Popconfirm, Radio } from 'antd'
 import { UploadOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import type { UploadFile } from 'antd'
 import type { Color } from 'antd/es/color-picker'
 import { nanoid } from 'nanoid'
 import { useRadarStore } from '@/stores/radarStore'
 import { useI18n } from '@/locales'
-import type { TimelineInfo, TimelineTheme, EventTypeConfig } from '@/types/versionTimeline'
+import type { TimelineInfo, TimelineTheme, EventTypeConfig, CardStyle } from '@/types/versionTimeline'
 import styles from './TimelineInfoEditor.module.css'
 
 // Theme presets with their primary colors
@@ -54,6 +54,7 @@ export const TimelineInfoEditor: React.FC<TimelineInfoEditorProps> = ({
         logo: timeline.info.logo || '',
         themeColor: timeline.info.themeColor || '#0A7171',
         theme: timeline.info.theme || 'teal',
+        cardStyle: timeline.info.cardStyle || 'classic',
       })
     }
   }, [open, timeline, form])
@@ -71,6 +72,7 @@ export const TimelineInfoEditor: React.FC<TimelineInfoEditorProps> = ({
         logo: values.logo || undefined,
         themeColor: themeColorValue || undefined,
         theme: values.theme || undefined,
+        cardStyle: values.cardStyle as CardStyle || undefined,
       }
 
       updateTimelineInfo(timelineId, info)
@@ -254,6 +256,26 @@ export const TimelineInfoEditor: React.FC<TimelineInfoEditorProps> = ({
               },
             ]}
           />
+        </Form.Item>
+
+        <Form.Item
+          name="cardStyle"
+          label={t.versionTimeline.cardStyle}
+        >
+          <Radio.Group>
+            <Radio.Button value="classic">
+              <span className={styles.cardStyleOption}>
+                <span className={styles.cardStyleIconClassic} />
+                {t.versionTimeline.cardStyle_classic}
+              </span>
+            </Radio.Button>
+            <Radio.Button value="glass">
+              <span className={styles.cardStyleOption}>
+                <span className={styles.cardStyleIconGlass} />
+                {t.versionTimeline.cardStyle_glass}
+              </span>
+            </Radio.Button>
+          </Radio.Group>
         </Form.Item>
 
         <Divider />
