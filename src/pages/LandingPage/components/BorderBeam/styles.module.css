@@ -1,0 +1,60 @@
+.container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    overflow: hidden;
+    background: transparent;
+}
+
+.content {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    background: inherit;
+}
+
+.beam {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 1;
+    mask-image: linear-gradient(transparent, transparent), linear-gradient(#000, #000);
+    mask-clip: padding-box, border-box;
+    mask-composite: intersect;
+    padding: var(--border-width);
+}
+
+.beam::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    aspect-ratio: 1;
+    background: linear-gradient(var(--degree, 0deg),
+            transparent 50%,
+            var(--color-from) 80%,
+            var(--color-to) 100%);
+    transform: translate(-50%, -50%);
+    animation: spin var(--duration) linear infinite;
+}
+
+@property --degree {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+
+@keyframes spin {
+    from {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}

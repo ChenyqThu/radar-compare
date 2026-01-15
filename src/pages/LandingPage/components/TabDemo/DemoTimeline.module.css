@@ -1,0 +1,197 @@
+.container {
+  width: 100%;
+  height: 320px;
+  background: var(--color-bg-container);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.timelineAxis {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+/* Glow orb at start */
+.glowOrb {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  z-index: 5;
+}
+
+.glowCore {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--color-primary);
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--color-primary);
+}
+
+.glowRing {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--color-primary);
+  border-radius: 50%;
+  opacity: 0.4;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.4;
+  }
+
+  50% {
+    transform: translate(-50%, -50%) scale(1.3);
+    opacity: 0.2;
+  }
+}
+
+/* Timeline line */
+.timelineLine {
+  position: absolute;
+  left: 20px;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 3px;
+  border-radius: 2px;
+  z-index: 1;
+}
+
+/* Event nodes */
+.eventNode {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 3;
+}
+
+.nodeBottom .eventTime {
+  top: auto;
+  bottom: -20px;
+}
+
+.eventDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--color-bg-container);
+  box-shadow: 0 0 6px currentColor;
+}
+
+.eventTime {
+  position: absolute;
+  top: -20px;
+  font-size: 9px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+/* Top events layer */
+.topEvents {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(50% + 20px);
+  height: calc(50% - 30px);
+}
+
+/* Bottom events layer */
+.bottomEvents {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(50% + 20px);
+  height: calc(50% - 30px);
+}
+
+/* Event cards */
+.eventCard {
+  position: absolute;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  bottom: 0;
+}
+
+.eventCardBottom {
+  top: 0;
+  bottom: auto;
+  /* flex-direction: column-reverse; Removed to swap order */
+}
+
+.cardContent {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 3px solid var(--event-color, var(--color-primary));
+  border-radius: 6px;
+  padding: 6px 10px;
+  max-width: 90px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.eventCard:hover .cardContent {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: var(--event-color, var(--color-primary));
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.cardTitle {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.3;
+  text-align: center;
+}
+
+/* Connectors */
+.connector {
+  width: 1px;
+  height: 15px;
+  background: linear-gradient(to top, var(--event-color, var(--color-primary)), transparent);
+  margin-top: 4px;
+}
+
+.connectorBottom {
+  width: 1px;
+  height: 15px;
+  /* Gradient top to bottom (solid to transparent) */
+  background: linear-gradient(to bottom, var(--event-color, var(--color-primary)), transparent);
+  margin-top: 4px;
+}
+
+/* Dark theme adjustments */
+[data-theme='dark'] .cardContent {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .eventCard:hover .cardContent {
+  background: rgba(255, 255, 255, 0.08);
+}

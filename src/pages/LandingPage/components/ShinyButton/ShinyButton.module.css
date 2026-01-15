@@ -1,0 +1,80 @@
+/* Register custom property for smooth angle animation */
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.shinyButton {
+  --angle: 0deg;
+  --border-color: linear-gradient(3deg, var(--color-primary), var(--color-primary-hover));
+  --bg-color: linear-gradient(#131219, #131219);
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 52px;
+  padding: 0 32px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--bg-color) padding-box,
+              conic-gradient(from var(--angle), transparent 25%, var(--color-primary) 30%, var(--color-primary-hover) 36%, var(--color-primary) 42%, transparent 50%) border-box;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  overflow: hidden;
+  animation: borderRotate 3s linear infinite;
+  transition: box-shadow 0.3s ease;
+}
+
+.shinyButton:hover {
+  box-shadow: 0 0 20px rgba(var(--color-primary-rgb), 0.4),
+              0 0 40px rgba(var(--color-primary-rgb), 0.2);
+}
+
+.shinyButton:active {
+  transform: scale(0.98);
+}
+
+.shinyButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@keyframes borderRotate {
+  to {
+    --angle: 360deg;
+  }
+}
+
+.buttonContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Light theme adjustments */
+[data-theme='light'] .shinyButton {
+  --bg-color: linear-gradient(#fff, #fff);
+  color: var(--color-text);
+}
