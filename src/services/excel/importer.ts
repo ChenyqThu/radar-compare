@@ -123,6 +123,62 @@ export async function importMultipleFromExcel(file: File): Promise<MultiSheetImp
   })
 }
 
+// Helper function to regenerate all IDs in a radar chart
+// This ensures imported data has unique IDs even if the JSON had no/duplicate IDs
+function regenerateRadarIds(radar: RadarChart): RadarChart {
+  // 1. Create vendor ID mapping: oldId -> newId
+  const vendorIdMap: Record<string, string> = {}
+  const newVendors: Vendor[] = radar.vendors.map((v, index) => {
+    const newId = nanoid()
+    vendorIdMap[v.id] = newId
+    return {
+      ...v,
+      id: newId,
+      order: index,
+      // Ensure fallback values for required fields
+      color: v.color || PRESET_COLORS[index % PRESET_COLORS.length],
+      markerType: v.markerType || PRESET_MARKERS[index % PRESET_MARKERS.length],
+      visible: v.visible !== undefined ? v.visible : true,
+    }
+  })
+
+  // Helper to remap scores with new vendor IDs
+  const remapScores = (scores: Record<string, number>): Record<string, number> => {
+    const newScores: Record<string, number> = {}
+    for (const [oldVendorId, score] of Object.entries(scores)) {
+      const newVendorId = vendorIdMap[oldVendorId]
+      if (newVendorId) {
+        newScores[newVendorId] = score
+      }
+    }
+    return newScores
+  }
+
+  // 2. Regenerate dimension and subdimension IDs, remap scores
+  const newDimensions: Dimension[] = radar.dimensions.map((d, dimIndex) => ({
+    ...d,
+    id: nanoid(),
+    order: dimIndex,
+    scores: remapScores(d.scores || {}),
+    subDimensions: (d.subDimensions || []).map((sub, subIndex) => ({
+      ...sub,
+      id: nanoid(),
+      order: subIndex,
+      scores: remapScores(sub.scores || {}),
+    })),
+  }))
+
+  const now = Date.now()
+  return {
+    ...radar,
+    id: nanoid(),
+    vendors: newVendors,
+    dimensions: newDimensions,
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
 export async function importFromJson(file: File): Promise<ValidationResult> {
   return new Promise((resolve) => {
     const reader = new FileReader()
@@ -144,11 +200,13 @@ export async function importFromJson(file: File): Promise<ValidationResult> {
 
         const firstRadar = json.radarCharts[0] as RadarChart
         if (firstRadar) {
+          // Regenerate all IDs to ensure uniqueness
+          const sanitizedRadar = regenerateRadarIds(firstRadar)
           resolve({
             isValid: true,
             errors: [],
             warnings: [],
-            preview: firstRadar,
+            preview: sanitizedRadar,
           })
         } else {
           resolve({

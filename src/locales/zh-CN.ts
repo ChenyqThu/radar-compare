@@ -389,6 +389,9 @@ export const zhCN = {
     showAll: '显示全部',
     hideType: '点击隐藏',
     showType: '点击显示',
+    hideYear: '点击隐藏该年份',
+    showYear: '点击显示该年份',
+    showAllYears: '显示全部年份',
     deleteTypeConfirm: '确定删除此类型吗？',
   },
 

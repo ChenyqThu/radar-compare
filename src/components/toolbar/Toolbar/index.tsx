@@ -12,7 +12,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { useRadarStore } from '@/stores/radarStore'
 import { useConfigStore as useManpowerConfigStore, useDataStore as useManpowerDataStore } from '@/components/manpower/stores'
 import { useI18n } from '@/locales'
-import { exportToExcel, exportMultipleToExcel, exportToJson, downloadTemplate } from '@/services/excel/exporter'
+import { exportToExcel, exportMultipleToExcel, exportCurrentTabToJson, downloadTemplate } from '@/services/excel/exporter'
 import {
   exportManpowerToExcel,
   exportManpowerToJson,
@@ -61,11 +61,11 @@ export function Toolbar({ hideTimeCompare = false, hideImport = false, hideExpor
   }
 
   const handleExportJson = () => {
-    if (!currentProject) {
-      message.warning(t.common.noData)
+    if (!activeRadar || !isRegularRadar(activeRadar)) {
+      message.warning(t.toolbar.pleaseSelectRadar)
       return
     }
-    exportToJson(currentProject)
+    exportCurrentTabToJson(activeRadar)
     message.success(t.toolbar.exportSuccess)
   }
 

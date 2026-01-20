@@ -9,6 +9,11 @@ interface EventTypeLegendProps {
   hiddenTypes: Set<string>
   onToggleType: (typeId: string) => void
   onShowAll?: () => void
+  // Year filtering props (optional for backwards compatibility)
+  years?: number[]
+  hiddenYears?: Set<number>
+  onToggleYear?: (year: number) => void
+  onShowAllYears?: () => void
 }
 
 export const EventTypeLegend: React.FC<EventTypeLegendProps> = ({
@@ -16,6 +21,10 @@ export const EventTypeLegend: React.FC<EventTypeLegendProps> = ({
   hiddenTypes,
   onToggleType,
   onShowAll,
+  years = [],
+  hiddenYears = new Set(),
+  onToggleYear,
+  onShowAllYears,
 }) => {
   const { t } = useI18n()
 
@@ -28,6 +37,15 @@ export const EventTypeLegend: React.FC<EventTypeLegendProps> = ({
     return counts
   }, [timeline.events])
 
+  // Count events by year
+  const yearCounts = useMemo(() => {
+    const counts: Record<number, number> = {}
+    timeline.events.forEach(event => {
+      counts[event.year] = (counts[event.year] || 0) + 1
+    })
+    return counts
+  }, [timeline.events])
+
   // Get all types sorted by order, only show types with events
   const types = useMemo(() => {
     return Object.entries(timeline.info.eventTypes || {})
@@ -36,40 +54,82 @@ export const EventTypeLegend: React.FC<EventTypeLegendProps> = ({
   }, [timeline.info.eventTypes, typeCounts])
 
   const hasHiddenTypes = hiddenTypes.size > 0
+  const hasHiddenYears = hiddenYears.size > 0
+  const showYearFilter = years.length > 1 // Only show year filter when span > 1 year
 
-  if (types.length === 0) {
+  if (types.length === 0 && !showYearFilter) {
     return null
   }
 
   return (
     <div className={styles.container}>
-      <div className={styles.legendItems}>
-        {types.map(([typeId, config]) => {
-          const isHidden = hiddenTypes.has(typeId)
-          const count = typeCounts[typeId] || 0
+      {/* Type filter */}
+      {types.length > 0 && (
+        <div className={styles.legendItems}>
+          {types.map(([typeId, config]) => {
+            const isHidden = hiddenTypes.has(typeId)
+            const count = typeCounts[typeId] || 0
 
-          return (
-            <div
-              key={typeId}
-              className={`${styles.legendItem} ${isHidden ? styles.legendItemHidden : ''}`}
-              onClick={() => onToggleType(typeId)}
-              title={isHidden ? t.versionTimeline.showType : t.versionTimeline.hideType}
-            >
-              <span
-                className={styles.colorDot}
-                style={{ backgroundColor: config.color }}
-              />
-              <span className={styles.label}>{config.label}</span>
-              <span className={styles.count}>({count})</span>
-            </div>
-          )
-        })}
-      </div>
+            return (
+              <div
+                key={typeId}
+                className={`${styles.legendItem} ${isHidden ? styles.legendItemHidden : ''}`}
+                onClick={() => onToggleType(typeId)}
+                title={isHidden ? t.versionTimeline.showType : t.versionTimeline.hideType}
+              >
+                <span
+                  className={styles.colorDot}
+                  style={{ backgroundColor: config.color }}
+                />
+                <span className={styles.label}>{config.label}</span>
+                <span className={styles.count}>({count})</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
-      {hasHiddenTypes && onShowAll && (
-        <Button size="small" onClick={onShowAll}>
-          {t.versionTimeline.showAll || '显示全部'}
-        </Button>
+      {/* Divider between types and years */}
+      {types.length > 0 && showYearFilter && (
+        <div className={styles.divider} />
+      )}
+
+      {/* Year filter */}
+      {showYearFilter && (
+        <div className={styles.legendItems}>
+          {years.map(year => {
+            const isHidden = hiddenYears.has(year)
+            const count = yearCounts[year] || 0
+
+            return (
+              <div
+                key={year}
+                className={`${styles.yearItem} ${isHidden ? styles.yearItemHidden : ''}`}
+                onClick={() => onToggleYear?.(year)}
+                title={isHidden ? t.versionTimeline.showYear : t.versionTimeline.hideYear}
+              >
+                <span>{year}</span>
+                <span className={styles.yearCount}>({count})</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Show All button(s) */}
+      {(hasHiddenTypes || hasHiddenYears) && (
+        <>
+          {hasHiddenTypes && onShowAll && (
+            <Button size="small" onClick={onShowAll}>
+              {t.versionTimeline.showAll || '显示全部'}
+            </Button>
+          )}
+          {hasHiddenYears && onShowAllYears && (
+            <Button size="small" onClick={onShowAllYears}>
+              {t.versionTimeline.showAllYears || '显示全部年份'}
+            </Button>
+          )}
+        </>
       )}
     </div>
   )

@@ -62,3 +62,47 @@
 :global([data-theme='dark']) .colorDot {
   border-color: rgba(255, 255, 255, 0.2);
 }
+
+/* Divider between type and year filters */
+.divider {
+  width: 1px;
+  height: 20px;
+  background-color: var(--color-border);
+  margin: 0 8px;
+  flex-shrink: 0;
+}
+
+/* Year filter chip styles (similar to type items) */
+.yearItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background-color: var(--color-fill-secondary);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.yearItem:hover {
+  background-color: var(--color-fill-tertiary);
+  color: var(--color-text-primary);
+}
+
+.yearItemHidden {
+  opacity: 0.4;
+  text-decoration: line-through;
+  background-color: transparent;
+}
+
+.yearItemHidden:hover {
+  opacity: 0.6;
+}
+
+.yearCount {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}

@@ -114,6 +114,24 @@ export function exportToJson(project: Project, filename?: string) {
   URL.revokeObjectURL(url)
 }
 
+// Export only current tab (single radar chart) as JSON
+export function exportCurrentTabToJson(radar: RadarChart, filename?: string) {
+  // Wrap in minimal project-like structure for import compatibility
+  const exportData = {
+    radarCharts: [radar]
+  }
+  const json = JSON.stringify(exportData, null, 2)
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename || `${radar.name}.json`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
 export function downloadTemplate() {
   const wb = XLSX.utils.book_new()
   const rows = [

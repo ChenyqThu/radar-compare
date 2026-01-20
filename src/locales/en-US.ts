@@ -391,6 +391,9 @@ export const enUS: Locale = {
     showAll: 'Show All',
     hideType: 'Click to hide',
     showType: 'Click to show',
+    hideYear: 'Click to hide year',
+    showYear: 'Click to show year',
+    showAllYears: 'Show All Years',
     deleteTypeConfirm: 'Are you sure to delete this type?',
   },
 

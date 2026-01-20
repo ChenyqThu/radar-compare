@@ -206,6 +206,9 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
   // Event type filtering state for legend
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set())
 
+  // Year filtering state
+  const [hiddenYears, setHiddenYears] = useState<Set<number>>(new Set())
+
   // Load z-index preferences from localStorage
   useEffect(() => {
     if (timeline && timeline.id) {
@@ -463,8 +466,10 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
     const theme = timeline.info?.theme || 'teal'
     const customThemeColor = timeline.info?.themeColor || '#0A7171'
 
-    // Filter out hidden types first
-    const visibleRawEvents = timeline.events.filter(event => !hiddenTypes.has(event.type))
+    // Filter out hidden types and hidden years
+    const visibleRawEvents = timeline.events.filter(event =>
+      !hiddenTypes.has(event.type) && !hiddenYears.has(event.year)
+    )
 
     // If all events are hidden, return empty state
     if (visibleRawEvents.length === 0) {
@@ -530,7 +535,7 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
       timeSegments: timeScale.segments,
       hasPossibleBreaks
     }
-  }, [timeline, containerWidth, zoom, enableAxisBreak, naturalWidth, perfectZoom, hiddenTypes])
+  }, [timeline, containerWidth, zoom, enableAxisBreak, naturalWidth, perfectZoom, hiddenTypes, hiddenYears])
 
   // Initialize zoom to perfectZoom once calculated, or load from storage
   useEffect(() => {
@@ -634,6 +639,31 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
   const handleShowAll = useCallback(() => {
     setHiddenTypes(new Set())
   }, [])
+
+  // Handle year filtering
+  const handleToggleYear = useCallback((year: number) => {
+    setHiddenYears(prev => {
+      const next = new Set(prev)
+      if (next.has(year)) {
+        next.delete(year)
+      } else {
+        next.add(year)
+      }
+      return next
+    })
+  }, [])
+
+  // Handle show all years (reset year filter)
+  const handleShowAllYears = useCallback(() => {
+    setHiddenYears(new Set())
+  }, [])
+
+  // Calculate unique years from events (for year filter display)
+  const uniqueYears = useMemo(() => {
+    if (!timeline?.events.length) return []
+    const years = new Set(timeline.events.map(e => e.year))
+    return Array.from(years).sort((a, b) => a - b)
+  }, [timeline?.events])
 
   // Empty state
   if (!timeline || timeline.events.length === 0) {
@@ -1015,12 +1045,16 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
         <div className={`${styles.scrollMask} ${styles.scrollMaskRight} ${canScrollRight ? styles.visible : ''}`} />
       </div>
 
-      {/* Event Type Legend */}
+      {/* Event Type Legend with Year Filter */}
       <EventTypeLegend
         timeline={timeline}
         hiddenTypes={hiddenTypes}
         onToggleType={handleToggleType}
         onShowAll={handleShowAll}
+        years={uniqueYears}
+        hiddenYears={hiddenYears}
+        onToggleYear={handleToggleYear}
+        onShowAllYears={handleShowAllYears}
       />
     </div>
   )
