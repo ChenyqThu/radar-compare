@@ -1,22 +1,25 @@
 # 产品矩阵实现清单
 
+> **最后更新**: 2026-01-21
+> **状态**: Phase 1-6 已完成，Phase 7-8 进行中
+
 ## 项目规划
 
 ### 工作量估算（更新版）
 
-| 阶段 | 工作内容 | 预计天数 | 优先级 |
-|------|----------|----------|--------|
-| Phase 0 | 新增功能（产品状态 + 花瓣图基础） | 2-3天 | P0 (MVP) |
-| Phase 1 | 数据模型和基础架构 | 2-3天 | P0 (MVP) |
-| Phase 2 | 配置管理模块 | 3-4天 | P0 (MVP) |
-| Phase 3 | 产品管理模块 | 3-4天 | P0 (MVP) |
-| Phase 4 | 矩阵可视化 | 4-5天 | P0 (MVP) |
-| Phase 4.5 | 花瓣图可视化（Canvas 渲染） | 3-4天 | P0 (MVP) |
-| Phase 5 | 分析模块 | 2-3天 | P1 (增强) |
-| Phase 5.5 | 花瓣图高级特性（多维度编码） | 2-3天 | P1 (增强) |
-| Phase 6 | 数据导入导出 | 2-3天 | P0 (MVP) |
-| Phase 7 | 集成和优化 | 2-3天 | P0 (MVP) |
-| Phase 8 | 测试和文档 | 1-2天 | P0 (MVP) |
+| 阶段 | 工作内容 | 预计天数 | 优先级 | 状态 |
+|------|----------|----------|--------|------|
+| Phase 0 | 新增功能（产品状态 + 花瓣图基础） | 2-3天 | P0 (MVP) | ✅ 完成 |
+| Phase 1 | 数据模型和基础架构 | 2-3天 | P0 (MVP) | ✅ 完成 |
+| Phase 2 | 配置管理模块 | 3-4天 | P0 (MVP) | ✅ 完成 |
+| Phase 3 | 产品管理模块 | 3-4天 | P0 (MVP) | ✅ 完成 |
+| Phase 4 | 矩阵可视化 | 4-5天 | P0 (MVP) | ✅ 完成 |
+| Phase 4.5 | 花瓣图可视化（Canvas 渲染） | 3-4天 | P0 (MVP) | ✅ 完成 |
+| Phase 5 | 分析模块 | 2-3天 | P1 (增强) | ✅ 完成 |
+| Phase 5.5 | 花瓣图高级特性（多维度编码） | 2-3天 | P1 (增强) | ✅ 完成 |
+| Phase 6 | 数据导入导出 | 2-3天 | P0 (MVP) | ✅ 完成 |
+| Phase 7 | 集成和优化 | 2-3天 | P0 (MVP) | ✅ 完成 |
+| Phase 8 | 测试和文档 | 1-2天 | P0 (MVP) | 进行中 |
 
 **总工作量**：约 **25-37 天**（单人，全职）
 - **MVP（最小可行产品）**：约 **20-27 天**（Phase 0, 1-4, 4.5, 6-8）
@@ -28,6 +31,81 @@
 - 产品状态管理：+2 天
 - 花瓣图基础可视化：+3-4 天
 - 花瓣图高级特性：+2-3 天（可选）
+
+---
+
+## 代码质量优化记录 (2026-01-21)
+
+### Phase 1 - 代码质量修复
+
+| 任务 | 描述 | 状态 |
+|------|------|------|
+| T1.1 | 删除重复的 PRODUCT_STATUS_CONFIG，统一使用 types/productMatrix.ts | ✅ 完成 |
+| T1.2 | 修复 MatrixChart.tsx 中的 any 类型，使用 ECharts 类型定义 | ✅ 完成 |
+| T1.3 | 为 ProductMatrixView.tsx 添加 useCallback 优化 | ✅ 完成 |
+| T1.4 | 修复 analysisItems useMemo 依赖项 | ✅ 完成 |
+| T1.5 | 提取 COLOR_PALETTE 到共享模块 src/utils/colorPalette.ts | ✅ 完成 |
+
+### Phase 2 - 国际化完善
+
+| 任务 | 描述 | 状态 |
+|------|------|------|
+| T2.1 | 修复 MatrixChart.tsx Tooltip 硬编码文本 | ✅ 完成 |
+| T2.2 | 修复价格显示使用 priceUnit | ✅ 完成 |
+| T2.3 | Excel 导出工作表名支持 i18n | ✅ 完成 |
+| T2.4 | 检查确认所有翻译 key 完整 | ✅ 完成 |
+
+### Phase 3 - 架构重构
+
+| 任务 | 描述 | 状态 |
+|------|------|------|
+| T3.1 | 拆分 MatrixChart.tsx - 创建 index.tsx 主组件 | ✅ 完成 |
+| T3.2 | 拆分 MatrixChart.tsx - 创建 types.ts 类型定义 | ✅ 完成 |
+| T3.3 | 拆分 MatrixChart.tsx - 创建 useMatrixChartData.ts 数据处理 hook | ✅ 完成 |
+| T3.4 | 拆分 MatrixChart.tsx - 创建 useChartOption.ts 图表配置 hook | ✅ 完成 |
+| T3.5 | 拆分 MatrixChart.tsx - 创建 AxisToolbar.tsx 轴工具栏组件 | ✅ 完成 |
+
+### Phase 4 - 状态管理优化
+
+| 任务 | 描述 | 状态 |
+|------|------|------|
+| T4.1 | 修复筛选状态在切换图表时重置问题 | ✅ 完成 |
+
+### Phase 5 - 功能完善
+
+| 任务 | 描述 | 状态 |
+|------|------|------|
+| T5.1 | 创建 StatusFilter.tsx 状态筛选器组件 | ✅ 完成 |
+| T5.2 | 创建 PetalConfigPanel.tsx 花瓣图配置面板 | ✅ 完成 |
+| T5.3 | 确认 CompetitorAnalysis 和 GapAnalysis 已完善 | ✅ 完成 |
+| T5.4 | 创建 ProductDetail.tsx 产品详情抽屉 | ✅ 完成 |
+
+### 重构后的文件结构
+
+```
+src/components/productMatrix/modules/visualization/MatrixChart/
+├── index.tsx              # 主组件 (< 200 行)
+├── types.ts               # 类型定义
+├── useMatrixChartData.ts  # 数据处理 hook
+├── useChartOption.ts      # 图表配置 hook
+├── AxisToolbar.tsx        # 轴工具栏组件
+└── MatrixChart.module.css # 样式文件
+
+src/components/productMatrix/modules/filters/
+├── StatusFilter.tsx       # 状态筛选器
+└── StatusFilter.module.css
+
+src/components/productMatrix/modules/config/
+├── PetalConfigPanel.tsx   # 花瓣图配置面板
+└── PetalConfigPanel.module.css
+
+src/components/productMatrix/modules/product/
+├── ProductDetail.tsx      # 产品详情抽屉
+└── ProductDetail.module.css
+
+src/utils/
+└── colorPalette.ts        # 共享调色板
+```
 
 ---
 

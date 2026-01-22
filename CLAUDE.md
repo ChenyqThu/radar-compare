@@ -62,6 +62,16 @@ src/
 │   │   │   └── visualization/ # 可视化图表 (Sankey/Distribution/Bar)
 │   │   ├── styles.module.css # CSS Modules 样式
 │   │   └── types/            # 类型兼容层
+│   ├── productMatrix/         # 产品矩阵模块 (Ant Design v5)
+│   │   ├── ProductMatrixView.tsx # 主视图入口
+│   │   ├── stores/           # Zustand store 适配器
+│   │   ├── hooks/            # useI18n 等
+│   │   ├── modules/
+│   │   │   ├── config/       # 配置管理 (Vendor/Dimension/Matrix)
+│   │   │   ├── product/      # 产品管理 (List/Form/Detail)
+│   │   │   ├── visualization/ # 可视化图表 (MatrixChart/PetalChart)
+│   │   │   └── analysis/     # 分析模块 (Competitor/Gap)
+│   │   └── styles.module.css # CSS Modules 样式
 │   ├── share/                 # 分享相关组件
 │   │   ├── ShareModal/       # 分享设置弹窗
 │   │   └── CollaborationsModal/ # 我的协作弹窗
@@ -422,6 +432,36 @@ radar_charts 表
 - ✅ **配置中心化**: 所有魔法数字和样式配置统一管理
 - ✅ **功能完整**: 验证、导入、错误处理全面实现
 - ✅ **只读模式**: 支持分享视图的只读展示
+
+### 12. 产品矩阵 (Product Matrix)
+
+> 新增于 2026-01 | 基于 Ant Design v5
+
+**功能概述**:
+- **多维产品对比**: 支持厂商、维度（连续/离散）多维度配置
+- **矩阵可视化**: X/Y 轴维度映射，花瓣图展示产品分布
+- **竞品分析**: 多产品得分对比、差距分析
+- **Excel 集成**: 支持完整的 Excel 导入导出功能
+
+**核心模块**:
+1. **配置管理**: 厂商配置、维度配置、矩阵设置
+2. **产品管理**: 产品列表、产品表单、产品详情
+3. **可视化**: MatrixChart（矩阵图表）、PetalChart（花瓣图）
+4. **分析模块**: CompetitorAnalysis（竞品对比）、GapAnalysis（差距分析）
+
+**技术实现**:
+- UI 框架: Ant Design v5
+- 图表: ECharts 5 (Custom Series 花瓣图)
+- 样式: CSS Modules + CSS Variables
+- 状态: Zustand Store Adapters (configStore, dataStore)
+- 数据类型: `ProductMatrixChart` (chart_type: 'productMatrix')
+- 持久化: Supabase (radar_charts 表)
+- ID 生成: 统一的 nanoid 策略 (`utils/idGenerator.ts`)
+
+**设计规范**:
+- 完全遵循主项目的 CSS 变量系统
+- 深色/浅色主题无缝切换
+- 完整的 i18n 支持 (中英文)
 
 ## 开发命令
 

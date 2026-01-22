@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Space, Tooltip, Tag, Popconfirm, message, Modal } from 'antd'
-import { SunOutlined, MoonOutlined, RadarChartOutlined, HistoryOutlined, ShareAltOutlined, EyeOutlined, EditOutlined, HomeOutlined, LogoutOutlined, CopyOutlined, TeamOutlined, UsergroupAddOutlined } from '@ant-design/icons'
+import { SunOutlined, MoonOutlined, RadarChartOutlined, HistoryOutlined, ShareAltOutlined, EyeOutlined, EditOutlined, HomeOutlined, LogoutOutlined, CopyOutlined, TeamOutlined, UsergroupAddOutlined, AppstoreOutlined } from '@ant-design/icons'
 import { useUIStore } from '@/stores/uiStore'
 import { useRadarStore } from '@/stores/radarStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -99,11 +99,14 @@ export function Navbar() {
                 if (firstTab) {
                   const { isVersionTimeline } = await import('@/types/versionTimeline')
                   const { isManpowerChart } = await import('@/types/manpower')
+                  const { isProductMatrixChart } = await import('@/types/productMatrix')
                   const appMode = isVersionTimeline(firstTab)
                     ? 'timeline'
                     : isManpowerChart(firstTab)
                       ? 'manpower'
-                      : 'radar'
+                      : isProductMatrixChart(firstTab)
+                        ? 'product-matrix'
+                        : 'radar'
                   useUIStore.getState().setAppMode(appMode)
                 }
               }
@@ -135,6 +138,7 @@ export function Navbar() {
     { key: 'radar', icon: <RadarChartOutlined />, label: t.app.radarMode || '雷达图' },
     { key: 'timeline', icon: <HistoryOutlined />, label: t.versionTimeline?.title || '大事记' },
     { key: 'manpower', icon: <UsergroupAddOutlined />, label: t.manpower?.title || '人力排布' },
+    { key: 'product-matrix', icon: <AppstoreOutlined />, label: t.productMatrix?.title || '产品矩阵' },
   ]
 
   return (

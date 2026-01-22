@@ -1,0 +1,51 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.descriptions {
+  background: var(--color-fill);
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.price {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.section {
+  margin-top: 8px;
+}
+
+.sectionTitle {
+  font-weight: 500;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border-secondary);
+  color: var(--color-text-secondary);
+}
+
+.table {
+  background: transparent;
+}
+
+.table :global(.ant-table) {
+  background: transparent;
+}
+
+.table :global(.ant-table-thead > tr > th) {
+  background: var(--color-fill);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.table :global(.ant-table-tbody > tr > td) {
+  background: transparent;
+  border-color: var(--color-border-secondary);
+}
+
+.table :global(.ant-table-tbody > tr:hover > td) {
+  background: var(--color-fill-secondary);
+}

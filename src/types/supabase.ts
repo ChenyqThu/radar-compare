@@ -12,7 +12,7 @@ export type Json =
 export type ShareType = 'readonly' | 'editable'
 export type ShareScope = 'project' | 'tabs'
 export type CollaboratorRole = 'viewer' | 'editor'
-export type ChartType = 'radar' | 'timeline' | 'version_timeline' | 'manpower'
+export type ChartType = 'radar' | 'timeline' | 'version_timeline' | 'manpower' | 'product_matrix'
 
 export interface Database {
   radar_compare: {

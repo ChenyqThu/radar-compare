@@ -25,6 +25,13 @@ export const idGenerators = {
   chart: () => generateId('chart'),
   radarChart: () => generateId('radar'),
   manpowerChart: () => generateId('manpower'),
+  // Product Matrix
+  productMatrixChart: () => generateId('matrix'),
+  vendor: () => generateId('vendor'),
+  dimension: () => generateId('dim'),
+  option: () => generateId('opt'),
+  product: () => generateId('prod'),
+  segment: () => generateId('seg'),
 } as const
 
 /**

@@ -1,0 +1,169 @@
+.container {
+  width: 100%;
+  flex: 1;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Ensure content doesn't overflow container */
+}
+
+.layoutRow {
+  display: none;
+  /* removed */
+}
+
+.vizColumn {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.activeFilter {
+  color: var(--ant-primary-color);
+  border-color: var(--ant-primary-color);
+  background: var(--ant-primary-1);
+}
+
+.chart {
+  flex: 1;
+  min-height: 0;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--color-bg-container);
+  border-bottom: 1px solid var(--color-border-secondary);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.axisSelectors {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.axisSelector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.axisLabel {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.axisSelect {
+  min-width: 150px;
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Tooltip */
+.tooltip {
+  padding: 12px;
+  max-width: 280px;
+}
+
+.tooltipHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border-secondary);
+}
+
+.tooltipVendor {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.tooltipName {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.tooltipModel {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.tooltipContent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.tooltipRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tooltipLabel {
+  color: var(--color-text-secondary);
+}
+
+.tooltipValue {
+  font-weight: 500;
+}
+
+/* Legend */
+.legendContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--color-fill);
+  border-top: 1px solid var(--color-border-secondary);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.legendItem:hover {
+  background: var(--color-bg-container);
+}
+
+.legendItem.disabled {
+  opacity: 0.4;
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legendLabel {
+  color: var(--color-text);
+}

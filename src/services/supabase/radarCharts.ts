@@ -14,6 +14,7 @@ import type { Database, RadarChartRow } from '@/types/supabase'
 import { isTimelineRadar } from '@/types'
 import { isVersionTimeline } from '@/types/versionTimeline'
 import { isManpowerChart } from '@/types/manpower'
+import { isProductMatrixChart, type ProductMatrixChart } from '@/types/productMatrix'
 
 type ChartInsert = Database['radar_compare']['Tables']['radar_charts']['Insert']
 type ChartUpdate = Database['radar_compare']['Tables']['radar_charts']['Update']
@@ -72,6 +73,23 @@ function rowToChart(row: RadarChartRow): AnyRadarChart {
     } as ManpowerChart
   }
 
+  if (row.chart_type === 'product_matrix') {
+    // ProductMatrixChart
+    return {
+      id: row.id,
+      name: row.name,
+      order: row.order_index,
+      isProductMatrixChart: true,
+      vendors: (baseData.vendors as ProductMatrixChart['vendors']) || [],
+      dimensions: (baseData.dimensions as ProductMatrixChart['dimensions']) || [],
+      products: (baseData.products as ProductMatrixChart['products']) || [],
+      matrixConfig: (baseData.matrixConfig as ProductMatrixChart['matrixConfig']),
+      petalConfig: (baseData.petalConfig as ProductMatrixChart['petalConfig']),
+      createdAt: new Date(row.created_at).getTime(),
+      updatedAt: new Date(row.updated_at).getTime(),
+    } as ProductMatrixChart
+  }
+
   // Regular RadarChart
   return {
     id: row.id,
@@ -89,7 +107,7 @@ function rowToChart(row: RadarChartRow): AnyRadarChart {
  * Convert frontend chart to database row data
  */
 function chartToRowData(chart: AnyRadarChart): {
-  chartType: 'radar' | 'timeline' | 'version_timeline' | 'manpower'
+  chartType: 'radar' | 'timeline' | 'version_timeline' | 'manpower' | 'product_matrix'
   data: Record<string, unknown>
   timeMarker: TimeMarker | null
 } {
@@ -123,6 +141,21 @@ function chartToRowData(chart: AnyRadarChart): {
         projects: chart.projects,
         timePoints: chart.timePoints,
         allocations: chart.allocations,
+      },
+      timeMarker: null,
+    }
+  }
+
+  if (isProductMatrixChart(chart)) {
+    return {
+      chartType: 'product_matrix',
+      data: {
+        isProductMatrixChart: true,
+        vendors: chart.vendors,
+        dimensions: chart.dimensions,
+        products: chart.products,
+        matrixConfig: chart.matrixConfig,
+        petalConfig: chart.petalConfig,
       },
       timeMarker: null,
     }

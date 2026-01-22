@@ -4,7 +4,49 @@
 
 ---
 
+## 实现说明 (2026-01-21 更新)
+
+### 实际采用方案
+
+**最终实现采用了 ECharts Custom Series 方案**，而非本文档原设计的 Canvas 方案。
+
+详细的技术决策记录请参考 [TECH_DECISIONS.md](./TECH_DECISIONS.md)。
+
+### 实际文件结构
+
+```
+src/components/productMatrix/modules/visualization/
+├── MatrixChart/              # 拆分后的矩阵图表模块
+│   ├── index.tsx             # 主组件入口 (106 行)
+│   ├── types.ts              # 类型定义 (57 行)
+│   ├── useMatrixChartData.ts # 数据处理 Hook (156 行)
+│   ├── useChartOption.ts     # ECharts 配置生成 (163 行)
+│   └── AxisToolbar.tsx       # 轴选择器组件 (99 行)
+├── PetalChart.tsx            # 花瓣图组件 (ECharts Custom Series)
+├── petalLayout.ts            # 花瓣布局算法
+├── layoutUtils.ts            # 通用布局工具
+└── MatrixChart.module.css    # 样式文件
+```
+
+### 与原设计的差异
+
+| 原设计 | 实际实现 |
+|--------|----------|
+| Canvas 2D 渲染器 | ECharts Custom Series |
+| 自定义交互检测 | ECharts 内置事件系统 |
+| 自定义动画系统 | ECharts 内置动画 |
+| 4 种花瓣形状 | 当前支持 diamond 形状 |
+| 多维度编码（颜色+透明度） | 厂商颜色编码 |
+
+### 未来扩展
+
+如需实现更复杂的花瓣效果（如状态分区填充），可参考本文档的 Canvas 方案设计。
+
+---
+
 ## Phase 4.5: 花瓣图可视化（Canvas 渲染）（3-4天）
+
+> **注意**: 以下为原设计文档，保留作为参考。实际实现采用了 ECharts 方案。
 
 > 优先级：P0 (MVP)
 > 前置：Phase 0（产品状态和花瓣图基础）、Phase 4（矩阵可视化）

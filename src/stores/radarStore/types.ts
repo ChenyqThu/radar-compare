@@ -19,6 +19,16 @@ import type {
   TeamUtilization,
   ManpowerStatistics,
 } from '@/types/manpower'
+import type {
+  ProductMatrixChart,
+  MatrixVendor,
+  MatrixDimension,
+  DimensionOption,
+  Product,
+  MatrixConfig,
+  PetalConfig,
+  DimensionValue,
+} from '@/types/productMatrix'
 
 // 校验结果类型
 export interface ValidationResult {
@@ -194,6 +204,53 @@ export interface RadarState {
 
   // 元数据更新
   updateManpowerMetadata: (chartId: UUID, updates: Partial<ManpowerChart['metadata']>) => void
+
+  // ==================== 产品矩阵操作 ====================
+
+  // 产品矩阵图 CRUD
+  getActiveProductMatrixChart: () => ProductMatrixChart | null
+  getProductMatrixChartById: (id: UUID) => ProductMatrixChart | null
+  addProductMatrixChart: (name?: string) => Promise<boolean>
+  deleteProductMatrixChart: (id: UUID) => Promise<boolean>
+  renameProductMatrixChart: (id: UUID, name: string) => void
+  duplicateProductMatrixChart: (id: UUID) => Promise<boolean>
+
+  // 厂商操作
+  addMatrixVendor: (chartId: UUID, vendor?: Partial<MatrixVendor>) => void
+  updateMatrixVendor: (chartId: UUID, vendorId: UUID, updates: Partial<MatrixVendor>) => void
+  deleteMatrixVendor: (chartId: UUID, vendorId: UUID) => void
+  reorderMatrixVendors: (chartId: UUID, fromIndex: number, toIndex: number) => void
+
+  // 维度操作
+  addMatrixDimension: (chartId: UUID, dimension?: Partial<MatrixDimension>) => void
+  updateMatrixDimension: (chartId: UUID, dimensionId: UUID, updates: Partial<MatrixDimension>) => void
+  deleteMatrixDimension: (chartId: UUID, dimensionId: UUID) => void
+  reorderMatrixDimensions: (chartId: UUID, fromIndex: number, toIndex: number) => void
+
+  // 维度选项操作
+  addDimensionOption: (chartId: UUID, dimensionId: UUID, option?: Partial<DimensionOption>) => void
+  updateDimensionOption: (chartId: UUID, dimensionId: UUID, optionId: UUID, updates: Partial<DimensionOption>) => void
+  deleteDimensionOption: (chartId: UUID, dimensionId: UUID, optionId: UUID) => void
+  reorderDimensionOptions: (chartId: UUID, dimensionId: UUID, fromIndex: number, toIndex: number) => void
+
+  // 产品操作
+  addMatrixProduct: (chartId: UUID, vendorId: UUID, product?: Partial<Product>) => void
+  updateMatrixProduct: (chartId: UUID, productId: UUID, updates: Partial<Product>) => void
+  deleteMatrixProduct: (chartId: UUID, productId: UUID) => void
+  deleteMatrixProducts: (chartId: UUID, productIds: UUID[]) => void
+  setProductDimensionValue: (chartId: UUID, productId: UUID, dimensionId: UUID, value: DimensionValue) => void
+
+  // 矩阵配置操作
+  updateMatrixConfig: (chartId: UUID, updates: Partial<MatrixConfig>) => void
+  setMatrixAxes: (chartId: UUID, xAxisDimensionId: UUID | null, yAxisDimensionId: UUID | null) => void
+  swapMatrixAxes: (chartId: UUID) => void
+
+  // 花瓣图配置操作
+  updatePetalConfig: (chartId: UUID, updates: Partial<PetalConfig>) => void
+
+  // 产品矩阵导入
+  importProductMatrixChart: (data: ProductMatrixChart) => Promise<boolean>
+  importProductsFromData: (chartId: UUID, products: Array<Omit<Product, 'id' | 'createdAt' | 'updatedAt'>>) => void
 }
 
 // Store setter type for actions

@@ -33,6 +33,7 @@ import { useI18n } from '@/locales'
 import { isTimelineRadar, isRegularRadar, type AnyRadarChart } from '@/types'
 import { isVersionTimeline } from '@/types/versionTimeline'
 import { isManpowerChart } from '@/types/manpower'
+import { isProductMatrixChart } from '@/types/productMatrix'
 import { TimeMarkerPicker, formatTimeMarker } from '@/components/settings/TimeMarkerPicker'
 import styles from './RadarTabs.module.css'
 
@@ -101,8 +102,12 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
     deleteManpowerChart,
     renameManpowerChart,
     duplicateManpowerChart,
+    addProductMatrixChart,
+    deleteProductMatrixChart,
+    renameProductMatrixChart,
+    duplicateProductMatrixChart,
   } = useRadarStore()
-  const { appMode, lastRadarModeTabId, lastTimelineModeTabId, lastManpowerModeTabId, setLastTabForMode, shareMode, shareInfo } = useUIStore()
+  const { appMode, lastRadarModeTabId, lastTimelineModeTabId, lastManpowerModeTabId, lastProductMatrixModeTabId, setLastTabForMode, shareMode, shareInfo } = useUIStore()
   const { t, language } = useI18n()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -137,7 +142,9 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
         ? radarCharts.filter(isVersionTimeline)
         : appMode === 'manpower'
           ? radarCharts.filter(isManpowerChart)
-          : radarCharts.filter(r => isRegularRadar(r) || isTimelineRadar(r))
+          : appMode === 'product-matrix'
+            ? radarCharts.filter(isProductMatrixChart)
+            : radarCharts.filter(r => isRegularRadar(r) || isTimelineRadar(r))
 
     // 在分享模式下，进一步过滤只显示分享的 Tab
     if (shareMode && shareInfo?.sharedTabIds && shareInfo.sharedTabIds.length > 0) {
@@ -160,7 +167,9 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
           ? lastTimelineModeTabId
           : appMode === 'manpower'
             ? lastManpowerModeTabId
-            : lastRadarModeTabId
+            : appMode === 'product-matrix'
+              ? lastProductMatrixModeTabId
+              : lastRadarModeTabId
 
       // 检查上次的 tab 是否还在目标模式的列表中，否则用第一个
       const targetTab = lastTabId && currentModeCharts.find(c => c.id === lastTabId)
@@ -169,7 +178,7 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
 
       setActiveRadar(targetTab)
     }
-  }, [appMode, currentProject, lastRadarModeTabId, lastTimelineModeTabId, lastManpowerModeTabId, setActiveRadar, shareMode, shareInfo])
+  }, [appMode, currentProject, lastRadarModeTabId, lastTimelineModeTabId, lastManpowerModeTabId, lastProductMatrixModeTabId, setActiveRadar, shareMode, shareInfo])
 
   // 当 activeRadarId 变化时，保存到对应模式的记忆
   useEffect(() => {
@@ -184,6 +193,8 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
         setLastTabForMode('timeline', activeRadarId)
       } else if (isManpowerChart(activeChart)) {
         setLastTabForMode('manpower', activeRadarId)
+      } else if (isProductMatrixChart(activeChart)) {
+        setLastTabForMode('product-matrix', activeRadarId)
       } else {
         setLastTabForMode('radar', activeRadarId)
       }
@@ -200,7 +211,9 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
       ? radarCharts.filter(isVersionTimeline)
       : appMode === 'manpower'
         ? radarCharts.filter(isManpowerChart)
-        : radarCharts.filter(r => isRegularRadar(r) || isTimelineRadar(r))
+        : appMode === 'product-matrix'
+          ? radarCharts.filter(isProductMatrixChart)
+          : radarCharts.filter(r => isRegularRadar(r) || isTimelineRadar(r))
 
   // 在分享模式下，进一步过滤只显示分享的 Tab
   if (shareMode && shareInfo?.sharedTabIds && shareInfo.sharedTabIds.length > 0) {
@@ -235,6 +248,8 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
         renameVersionTimeline(editingId, editValue.trim())
       } else if (appMode === 'manpower') {
         renameManpowerChart(editingId, editValue.trim())
+      } else if (appMode === 'product-matrix') {
+        renameProductMatrixChart(editingId, editValue.trim())
       } else {
         renameRadarChart(editingId, editValue.trim())
       }
@@ -250,6 +265,31 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
   const handleDelete = (id: string) => {
     const chart = radarCharts.find((r) => r.id === id)
     if (!chart) return
+
+    // 产品矩阵图
+    if (isProductMatrixChart(chart)) {
+      const productMatrixCharts = radarCharts.filter(isProductMatrixChart)
+      if (productMatrixCharts.length <= 1) {
+        Modal.warning({
+          title: t.common.delete,
+          content: t.tabs.confirmDelete,
+        })
+        return
+      }
+      Modal.confirm({
+        title: t.common.confirm,
+        content: t.tabs.confirmDelete,
+        okText: t.common.confirm,
+        cancelText: t.common.cancel,
+        onOk: async () => {
+          const success = await deleteProductMatrixChart(id)
+          if (!success) {
+            message.error(t.common?.saveFailed || '删除失败')
+          }
+        },
+      })
+      return
+    }
 
     // 人力排布图
     if (isManpowerChart(chart)) {
@@ -339,8 +379,9 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
 
     const isVersionTimelineChart = isVersionTimeline(chart)
     const isManpowerChartType = isManpowerChart(chart)
+    const isProductMatrixChartType = isProductMatrixChart(chart)
     const isTimeline = isTimelineRadar(chart)
-    const isReferenced = !isTimeline && !isVersionTimelineChart && !isManpowerChartType && isRadarReferencedByTimeline(id)
+    const isReferenced = !isTimeline && !isVersionTimelineChart && !isManpowerChartType && !isProductMatrixChartType && isRadarReferencedByTimeline(id)
 
     const baseItems = [
       {
@@ -351,8 +392,20 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
       },
     ]
 
-    // 人力排布图只有复制和删除
-    if (isManpowerChartType) {
+    // 产品矩阵图只有复制和删除
+    if (isProductMatrixChartType) {
+      baseItems.push({
+        key: 'duplicate',
+        icon: <CopyOutlined />,
+        label: t.tabs.duplicate,
+        onClick: async () => {
+          const success = await duplicateProductMatrixChart(id)
+          if (!success) {
+            message.error(t.common?.saveFailed || '复制失败')
+          }
+        },
+      })
+    } else if (isManpowerChartType) {
       baseItems.push({
         key: 'duplicate',
         icon: <CopyOutlined />,
@@ -518,6 +571,11 @@ export function RadarTabs({ readonly = false }: RadarTabsProps) {
       addVersionTimeline()
     } else if (appMode === 'manpower') {
       const success = await addManpowerChart()
+      if (!success) {
+        message.error(t.common?.saveFailed || '保存失败')
+      }
+    } else if (appMode === 'product-matrix') {
+      const success = await addProductMatrixChart()
       if (!success) {
         message.error(t.common?.saveFailed || '保存失败')
       }

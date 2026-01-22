@@ -1,0 +1,207 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  overflow: auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px;
+  background: var(--color-bg-container);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filterLabel {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.filterSelect {
+  min-width: 180px;
+}
+
+/* Comparison Table */
+.comparisonTable {
+  background: var(--color-bg-container);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.comparisonTable :global(.ant-table) {
+  font-size: 13px;
+}
+
+.comparisonTable :global(.ant-table-thead > tr > th) {
+  background: var(--color-fill);
+  font-weight: 500;
+  text-align: center;
+}
+
+.comparisonTable :global(.ant-table-tbody > tr > td) {
+  text-align: center;
+}
+
+/* Score Cell */
+.scoreCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.scoreValue {
+  font-weight: 500;
+  min-width: 40px;
+}
+
+.scoreBar {
+  width: 60px;
+  height: 6px;
+  background: var(--color-fill);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.scoreBarFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Winner Badge */
+.winnerBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Dimension Header */
+.dimensionHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dimensionName {
+  font-weight: 500;
+}
+
+.dimensionType {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+/* Product Column Header */
+.productHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.productName {
+  font-weight: 500;
+}
+
+.vendorTag {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+/* Summary Cards */
+.summaryCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.summaryCard {
+  background: var(--color-bg-container);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.summaryCard:hover {
+  border-color: var(--color-primary-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.summaryTitle {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+}
+
+.summaryValue {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.summaryLabel {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin-top: 4px;
+}
+
+/* Empty State */
+.empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+/* Radar Comparison */
+.radarComparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.radarCard {
+  background: var(--color-bg-container);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.radarTitle {
+  font-weight: 500;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.radarChart {
+  height: 300px;
+}
+
+@media (max-width: 768px) {
+  .radarComparison {
+    grid-template-columns: 1fr;
+  }
+}

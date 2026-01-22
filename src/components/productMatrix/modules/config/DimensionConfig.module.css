@@ -1,0 +1,290 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Dimension Card */
+.dimensionCard {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-container);
+  transition: all 0.2s ease;
+}
+
+.dimensionCard:hover {
+  border-color: var(--color-primary-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.dimensionHeader {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.dimensionHeader:hover .dragHandle {
+  opacity: 1;
+}
+
+.dragHandle {
+  opacity: 0;
+  color: var(--color-text-tertiary);
+  cursor: grab;
+  transition: all 0.2s ease;
+}
+
+.dragHandle:hover {
+  color: var(--color-primary);
+  transform: scale(1.1);
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.expandIcon {
+  color: var(--color-text-tertiary);
+  transition: transform 0.2s ease;
+  font-size: 12px;
+}
+
+.expandIcon.expanded {
+  transform: rotate(90deg);
+}
+
+.dimensionName {
+  flex: 1;
+  min-width: 0;
+}
+
+.nameInput {
+  font-weight: 500;
+}
+
+.dimensionType {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--color-fill);
+  color: var(--color-text-secondary);
+}
+
+.dimensionType.discrete {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.dimensionType.continuous {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.dimensionActions {
+  display: flex;
+  gap: 4px;
+}
+
+.actionBtn {
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.actionBtn:hover {
+  transform: scale(1.1);
+}
+
+/* Dimension Content */
+.dimensionContent {
+  padding: 0 12px 12px;
+  border-top: 1px solid var(--color-border-secondary);
+}
+
+/* Options List */
+.optionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.optionRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.optionRow:hover {
+  background: var(--color-fill);
+}
+
+.optionRow:hover .optionDragHandle {
+  opacity: 1;
+}
+
+.optionDragHandle {
+  opacity: 0;
+  color: var(--color-text-tertiary);
+  cursor: grab;
+  font-size: 12px;
+  transition: opacity 0.2s ease;
+}
+
+.optionDragHandle:active {
+  cursor: grabbing;
+}
+
+.optionLabel {
+  flex: 1;
+  min-width: 80px;
+}
+
+.optionValue {
+  width: 80px;
+}
+
+.optionDelete {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.optionRow:hover .optionDelete {
+  opacity: 1;
+}
+
+.addOptionRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.addOptionRow:hover {
+  color: var(--color-primary);
+}
+
+/* Continuous Config */
+.continuousConfig {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.configRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.configLabel {
+  width: 60px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.configValue {
+  flex: 1;
+}
+
+/* Add Dimension */
+.addDimensionRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.addDimensionRow:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.addDimensionRow:active {
+  transform: scale(0.98);
+}
+
+/* Empty State */
+.empty {
+  text-align: center;
+  padding: 32px;
+  color: var(--color-text-secondary);
+}
+
+/* Drag Overlay */
+.dragOverlay {
+  background: var(--color-bg-container);
+  box-shadow: var(--shadow-elevated);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  opacity: 0.95;
+  transform: scale(1.02);
+}
+
+.dragOverlay .dragHandle {
+  opacity: 1;
+  color: var(--color-primary);
+}
+
+/* Modal Form */
+.formItem {
+  margin-bottom: 16px;
+}
+
+.formLabel {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.typeSelector {
+  display: flex;
+  gap: 12px;
+}
+
+.typeOption {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.typeOption:hover {
+  border-color: var(--color-primary-border);
+}
+
+.typeOption.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.typeOptionTitle {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.typeOptionDesc {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}

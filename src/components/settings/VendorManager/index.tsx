@@ -23,21 +23,8 @@ import { useRadarStore } from '@/stores/radarStore'
 import { useI18n } from '@/locales'
 import type { Vendor, MarkerType } from '@/types'
 import { PRESET_MARKERS, isRegularRadar } from '@/types'
+import { COLOR_PALETTE } from '@/utils/colorPalette'
 import styles from './VendorManager.module.css'
-
-// PowerPoint 风格的预设颜色调色板
-const COLOR_PALETTE = [
-  // 主色调
-  ['#C00000', '#FF0000', '#FFC000', '#FFFF00', '#92D050', '#00B050', '#00B0F0', '#0070C0', '#002060', '#7030A0'],
-  // 浅色调
-  ['#F8CBAD', '#FCE4D6', '#FFF2CC', '#FFFFCC', '#E2EFDA', '#C6EFCE', '#DAEEF3', '#BDD7EE', '#B4C6E7', '#E4DFEC'],
-  // 中等色调
-  ['#F4B183', '#F8CBA0', '#FFE699', '#FFFF99', '#C5E0B3', '#A9D08E', '#9DC3E6', '#8FAADC', '#8EA9DB', '#CCC0DA'],
-  // 深色调
-  ['#ED7D31', '#F4A460', '#FFD966', '#FFCC00', '#A8D08D', '#70AD47', '#5B9BD5', '#4472C4', '#305496', '#7B68EE'],
-  // 更深色调
-  ['#C65911', '#BF8F00', '#BF9000', '#806000', '#548235', '#375623', '#2F75B5', '#2E5A8B', '#1F4E79', '#5B3D87'],
-]
 
 // 标记形状 SVG 组件
 function MarkerShape({ type, size = 16, color = 'currentColor' }: { type: MarkerType; size?: number; color?: string }) {

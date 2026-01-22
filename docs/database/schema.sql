@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS radar_compare.radar_charts (
   id TEXT PRIMARY KEY,
   project_id TEXT NOT NULL REFERENCES radar_compare.projects(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  chart_type TEXT NOT NULL DEFAULT 'radar' CHECK (chart_type IN ('radar', 'timeline', 'version_timeline', 'manpower')),
+  chart_type TEXT NOT NULL DEFAULT 'radar' CHECK (chart_type IN ('radar', 'timeline', 'version_timeline', 'manpower', 'product_matrix')),
   order_index INTEGER NOT NULL DEFAULT 0,
   data JSONB NOT NULL,                        -- 图表数据 (根据类型不同)
   time_marker JSONB,                          -- 时间标记 { year, month? }
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS radar_compare.radar_charts (
 );
 
 COMMENT ON TABLE radar_compare.radar_charts IS '雷达图表数据，每个 Tab 对应一条记录';
-COMMENT ON COLUMN radar_compare.radar_charts.chart_type IS '图表类型: radar=普通雷达图, timeline=时间轴雷达图, version_timeline=版本时间轴, manpower=人力排布';
+COMMENT ON COLUMN radar_compare.radar_charts.chart_type IS '图表类型: radar=普通雷达图, timeline=时间轴雷达图, version_timeline=版本时间轴, manpower=人力排布, product_matrix=产品矩阵';
 COMMENT ON COLUMN radar_compare.radar_charts.data IS '图表数据: radar={dimensions,vendors}, timeline={sourceRadarIds}, version_timeline={info,events}, manpower={metadata,teams,projects,timePoints,allocations}';
 COMMENT ON COLUMN radar_compare.radar_charts.time_marker IS '时间标记，用于时间轴对比功能';
 
@@ -504,6 +504,7 @@ GRANT EXECUTE ON FUNCTION radar_compare.get_project_by_share_token(text) TO anon
 --     - chart_type='timeline': data={sourceRadarIds}
 --     - chart_type='version_timeline': data={info, events}
 --     - chart_type='manpower': data={metadata, teams, projects, timePoints, allocations}
+--     - chart_type='product_matrix': data={vendors, dimensions, products, matrixConfig, petalConfig}
 --
 -- 迁移说明:
 --   v2.2: 参见 migration_v2.2_manpower_chart.sql

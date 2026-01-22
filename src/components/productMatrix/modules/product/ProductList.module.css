@@ -1,0 +1,72 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.searchInput {
+  width: 200px;
+}
+
+.filterSelect {
+  min-width: 150px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Table */
+.table {
+  flex: 1;
+  overflow: auto;
+}
+
+.table :global(.ant-table) {
+  font-size: 13px;
+}
+
+.table :global(.ant-table-thead > tr > th) {
+  background: var(--color-fill);
+  font-weight: 500;
+}
+
+/* Product Name Cell */
+.productName {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.productModel {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+/* Vendor Tag */
+.vendorTag {
+  margin: 0;
+}
+
+/* Empty State */
+.empty {
+  padding: 48px 0;
+}

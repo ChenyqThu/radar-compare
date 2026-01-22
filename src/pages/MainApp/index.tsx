@@ -19,6 +19,7 @@ import {
 } from '@/components/versionTimeline'
 import { ManpowerView } from '@/components/manpower'
 import { ManpowerSettingsDrawer } from '@/components/manpower/ManpowerSettingsDrawer'
+import { ProductMatrixView, ProductMatrixSettingsDrawer } from '@/components/productMatrix'
 import { useRadarStore } from '@/stores/radarStore'
 import { useUIStore } from '@/stores/uiStore'
 import { getCloudProjects } from '@/services/supabase'
@@ -40,6 +41,7 @@ export function MainApp() {
     getActiveRadar,
     getActiveVersionTimeline,
     getActiveManpowerChart,
+    getActiveProductMatrixChart,
   } = useRadarStore()
   const {
     settingsDrawerVisible,
@@ -63,6 +65,7 @@ export function MainApp() {
   const activeRadar = getActiveRadar()
   const activeVersionTimeline = getActiveVersionTimeline()
   const activeManpowerChart = getActiveManpowerChart()
+  const activeProductMatrixChart = getActiveProductMatrixChart()
   const isTimeline = activeRadar && isTimelineRadar(activeRadar)
   const isVersionTimelineMode = activeRadar && isVersionTimeline(activeRadar)
 
@@ -109,6 +112,7 @@ export function MainApp() {
         if (project) {
           const { isVersionTimeline } = await import('@/types/versionTimeline')
           const { isManpowerChart } = await import('@/types/manpower')
+          const { isProductMatrixChart } = await import('@/types/productMatrix')
           const { isRegularRadar, isTimelineRadar } = await import('@/types')
           const currentAppMode = useUIStore.getState().appMode
 
@@ -126,6 +130,13 @@ export function MainApp() {
               // No ManpowerChart, switch back to radar mode
               useUIStore.getState().setAppMode('radar')
             }
+          } else if (currentAppMode === 'product-matrix') {
+            // Check if project has ProductMatrixChart
+            const hasProductMatrixChart = project.radarCharts.some(chart => isProductMatrixChart(chart))
+            if (!hasProductMatrixChart) {
+              // No ProductMatrixChart, switch back to radar mode
+              useUIStore.getState().setAppMode('radar')
+            }
           } else {
             // If in radar mode, check if we have regular radar charts
             const hasRadarChart = project.radarCharts.some(chart => isRegularRadar(chart) || isTimelineRadar(chart))
@@ -139,6 +150,12 @@ export function MainApp() {
                 const hasManpowerChart = project.radarCharts.some(chart => isManpowerChart(chart))
                 if (hasManpowerChart) {
                   useUIStore.getState().setAppMode('manpower')
+                } else {
+                  // Try product-matrix mode
+                  const hasProductMatrixChart = project.radarCharts.some(chart => isProductMatrixChart(chart))
+                  if (hasProductMatrixChart) {
+                    useUIStore.getState().setAppMode('product-matrix')
+                  }
                 }
               }
             }
@@ -235,9 +252,9 @@ export function MainApp() {
   }
 
   return (
-    <Layout className={`${styles.layout} ${appMode === 'manpower' ? styles.layoutManpower : ''}`}>
+    <Layout className={`${styles.layout} ${appMode === 'manpower' || appMode === 'product-matrix' ? styles.layoutManpower : ''}`}>
       <Navbar />
-      <Content className={`${styles.content} ${appMode === 'manpower' ? styles.contentManpower : ''}`}>
+      <Content className={`${styles.content} ${appMode === 'manpower' || appMode === 'product-matrix' ? styles.contentManpower : ''}`}>
         {appMode === 'timeline' ? (
           // Version Timeline mode
           <div className={styles.timelineMode}>
@@ -296,6 +313,23 @@ export function MainApp() {
             </div>
             {!isReadonly && <SettingsButton keyShortcut="s" />}
             {!isReadonly && <ManpowerSettingsDrawer />}
+          </div>
+        ) : appMode === 'product-matrix' ? (
+          // Product Matrix mode
+          <div className={styles.manpowerMode}>
+            <div className={styles.header}>
+              <RadarTabs readonly={isReadonly} />
+              {!isReadonly && <Toolbar hideTimeCompare />}
+            </div>
+            <div className={styles.chartArea}>
+              {activeProductMatrixChart ? (
+                <ProductMatrixView readonly={isReadonly} />
+              ) : (
+                <Empty description={t.productMatrix?.noProducts || '暂无数据'} />
+              )}
+            </div>
+            {!isReadonly && <SettingsButton keyShortcut="s" />}
+            {!isReadonly && <ProductMatrixSettingsDrawer />}
           </div>
         ) : (
           // Radar chart mode

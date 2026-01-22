@@ -56,13 +56,8 @@ export const PROJECT_STATUS_STYLES = {
 } as const
 
 // ============ PowerPoint 风格调色板 ============
-export const COLOR_PALETTE = [
-  ['#C00000', '#FF0000', '#FFC000', '#FFFF00', '#92D050', '#00B050', '#00B0F0', '#0070C0', '#002060', '#7030A0'],
-  ['#F8CBAD', '#FCE4D6', '#FFF2CC', '#FFFFCC', '#E2EFDA', '#C6EFCE', '#DAEEF3', '#BDD7EE', '#B4C6E7', '#E4DFEC'],
-  ['#F4B183', '#F8CBA0', '#FFE699', '#FFFF99', '#C5E0B3', '#A9D08E', '#9DC3E6', '#8FAADC', '#8EA9DB', '#CCC0DA'],
-  ['#ED7D31', '#F4A460', '#FFD966', '#FFCC00', '#A8D08D', '#70AD47', '#5B9BD5', '#4472C4', '#305496', '#7B68EE'],
-  ['#C65911', '#BF8F00', '#BF9000', '#806000', '#548235', '#375623', '#2F75B5', '#2E5A8B', '#1F4E79', '#5B3D87'],
-] as const
+// Re-export from shared utility for backward compatibility
+export { COLOR_PALETTE } from '@/utils/colorPalette'
 
 // ============ 团队标号选项 ============
 export const BADGE_OPTIONS = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'] as const

@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 import type { UUID } from '@/types'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
-export type AppMode = 'radar' | 'timeline' | 'manpower'
+export type AppMode = 'radar' | 'timeline' | 'manpower' | 'product-matrix'
 export type ShareType = 'readonly' | 'editable'
 
 // 分享信息
@@ -30,6 +30,7 @@ interface UIState {
   lastRadarModeTabId: UUID | null
   lastTimelineModeTabId: UUID | null
   lastManpowerModeTabId: UUID | null
+  lastProductMatrixModeTabId: UUID | null
   setLastTabForMode: (mode: AppMode, tabId: UUID | null) => void
 
   // 主题
@@ -114,12 +115,15 @@ export const useUIStore = create<UIState>()(
       lastRadarModeTabId: null,
       lastTimelineModeTabId: null,
       lastManpowerModeTabId: null,
+      lastProductMatrixModeTabId: null,
       setLastTabForMode: (mode, tabId) => set(
         mode === 'radar'
           ? { lastRadarModeTabId: tabId }
           : mode === 'timeline'
             ? { lastTimelineModeTabId: tabId }
-            : { lastManpowerModeTabId: tabId }
+            : mode === 'manpower'
+              ? { lastManpowerModeTabId: tabId }
+              : { lastProductMatrixModeTabId: tabId }
       ),
 
       theme: initialTheme,
@@ -164,6 +168,7 @@ export const useUIStore = create<UIState>()(
         lastRadarModeTabId: state.lastRadarModeTabId,
         lastTimelineModeTabId: state.lastTimelineModeTabId,
         lastManpowerModeTabId: state.lastManpowerModeTabId,
+        lastProductMatrixModeTabId: state.lastProductMatrixModeTabId,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {

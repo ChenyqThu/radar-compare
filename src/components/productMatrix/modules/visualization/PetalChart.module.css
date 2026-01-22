@@ -1,0 +1,183 @@
+.container {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-container);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border-secondary);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.toolbarLeft {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.toolbarRight {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.productSelector {
+  min-width: 200px;
+}
+
+.canvasWrapper {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.canvas {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Legend */
+.legendContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--color-fill);
+  border-top: 1px solid var(--color-border-secondary);
+  justify-content: center;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  background: var(--color-bg-container);
+  border: 1px solid var(--color-border);
+}
+
+.legendItem:hover {
+  border-color: var(--color-primary-border);
+}
+
+.legendItem.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.legendDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.legendLabel {
+  color: var(--color-text);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dimension Labels */
+.dimensionLabels {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.dimensionLabel {
+  position: absolute;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-container);
+  padding: 2px 6px;
+  border-radius: 4px;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Empty State */
+.empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Tooltip */
+.tooltip {
+  position: absolute;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: var(--shadow-elevated);
+  pointer-events: none;
+  z-index: 100;
+  max-width: 250px;
+}
+
+.tooltipHeader {
+  font-weight: 500;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border-secondary);
+}
+
+.tooltipVendor {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+
+.tooltipContent {
+  font-size: 12px;
+}
+
+.tooltipRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.tooltipLabel {
+  color: var(--color-text-secondary);
+}
+
+.tooltipValue {
+  font-weight: 500;
+}
+
+/* Controls */
+.controlGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.controlLabel {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}

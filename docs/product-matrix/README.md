@@ -4,6 +4,56 @@
 
 ---
 
+## 最近更新 (2026-01-21)
+
+### 代码质量优化
+- 删除重复的常量定义，统一使用 `types/productMatrix.ts`
+- 修复 TypeScript 类型安全问题（移除 `any` 类型）
+- 添加 `useCallback` 优化性能
+- 提取 `COLOR_PALETTE` 到共享模块 `src/utils/colorPalette.ts`
+
+### 国际化完善
+- 修复 Tooltip 和 Excel 导出的硬编码文本
+- 支持价格单位 (`priceUnit`) 动态显示
+- Excel 工作表名支持中英文切换
+
+### 架构重构
+- 拆分 `MatrixChart.tsx` (430行) 为 5 个子模块：
+  - `index.tsx` - 主组件入口
+  - `types.ts` - 类型定义
+  - `useMatrixChartData.ts` - 数据处理 Hook
+  - `useChartOption.ts` - ECharts 配置生成
+  - `AxisToolbar.tsx` - 轴选择器组件
+
+### 新增组件
+- `StatusFilter.tsx` - 产品状态筛选器
+- `PetalConfigPanel.tsx` - 花瓣图配置面板
+- `ProductDetail.tsx` - 产品详情抽屉
+
+### 状态管理优化
+- 修复筛选状态在切换图表时不重置的问题
+
+### 技术决策
+- 花瓣图采用 **ECharts Custom Series** 而非原设计的 Canvas 方案
+- 详见 [TECH_DECISIONS.md](./TECH_DECISIONS.md)
+
+---
+
+## 模块状态
+
+| 功能模块 | 状态 | 说明 |
+|----------|------|------|
+| 厂商管理 | ✅ 完成 | VendorConfig 组件 |
+| 维度定义 | ✅ 完成 | DimensionConfig 组件 |
+| 产品管理 | ✅ 完成 | ProductList + ProductForm + ProductDetail |
+| 矩阵可视化 | ✅ 完成 | MatrixChart (ECharts Scatter + Custom Petal) |
+| 花瓣图 | ✅ 完成 | 使用 ECharts Custom Series 实现 |
+| 状态筛选 | ✅ 完成 | StatusFilter 组件 |
+| Excel 导入导出 | ✅ 完成 | productMatrixExporter/Importer |
+| 竞品分析 | ✅ 完成 | CompetitorAnalysis + GapAnalysis |
+
+---
+
 ## 📋 文档导航
 
 本次需求分析和方案设计包含以下文档：
@@ -15,7 +65,8 @@
 | [功能设计](./feature-design.md) | 功能模块、UI 设计、交互流程 | 产品经理、设计师、开发人员 |
 | [花瓣图可视化设计](./petal-visualization-design.md) | 花瓣图详细设计、多维度编码、Canvas 渲染方案 | 开发人员、设计师 |
 | [实现清单](./implementation-checklist.md) | 开发任务分解、工作量估算（含新增功能） | 开发人员、项目经理 |
-| [花瓣图实现清单](./petal-implementation.md) | 花瓣图 Canvas 渲染的详细开发任务 | 开发人员 |
+| [花瓣图实现清单](./petal-implementation.md) | 花瓣图实现任务（实际采用 ECharts 方案） | 开发人员 |
+| [技术决策记录](./TECH_DECISIONS.md) | 关键技术决策及原因 | 开发人员 |
 
 ---
 
