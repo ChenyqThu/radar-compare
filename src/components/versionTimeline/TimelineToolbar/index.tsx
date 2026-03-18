@@ -64,7 +64,8 @@ export function TimelineToolbar({ onAddEvent, onEditInfo, onImport }: TimelineTo
             title: '事件标题（必填）',
             description: '事件描述（可选）',
             type: '事件类型（必填，如 milestone/major/minor）',
-            highlight: '高亮关键词数组（可选）'
+            highlight: '高亮关键词数组（可选）',
+            tags: '标签数组（可选，如 ["云管理", "Wi-Fi 6"]）'
           }
         }
       },
@@ -101,14 +102,16 @@ export function TimelineToolbar({ onAddEvent, onEditInfo, onImport }: TimelineTo
           month: 1,
           title: '公司成立',
           description: '在深圳成立，开始产品研发',
-          type: 'milestone'
+          type: 'milestone',
+          tags: ['创业', '深圳']
         },
         {
           year: 2020,
           month: 6,
           title: '推出 v1.0',
           description: '首个正式版本发布',
-          type: 'major'
+          type: 'major',
+          tags: ['产品发布', 'v1.0']
         },
         {
           year: 2021,

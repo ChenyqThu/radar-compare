@@ -396,6 +396,8 @@ export const enUS: Locale = {
     showYear: 'Click to show year',
     showAllYears: 'Show All Years',
     deleteTypeConfirm: 'Are you sure to delete this type?',
+    tags: 'Tags',
+    tagsPlaceholder: 'Press Enter to add, semicolons to separate',
   },
 
   // Manpower

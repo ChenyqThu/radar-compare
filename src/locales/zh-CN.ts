@@ -394,6 +394,8 @@ export const zhCN = {
     showYear: '点击显示该年份',
     showAllYears: '显示全部年份',
     deleteTypeConfirm: '确定删除此类型吗？',
+    tags: '标签',
+    tagsPlaceholder: '输入标签后按回车，支持分号分隔',
   },
 
   // Manpower (人力排布)

@@ -693,6 +693,27 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
   // Check if we have multiple layers (need to use reduced card height)
   const hasMultipleLayers = topLayer1.length > 0 || bottomLayer1.length > 0
 
+  // Shared card content renderer to avoid duplicating across 4 layers
+  const renderCardContent = (event: LayoutEvent) => (
+    <div className={getCardContentClasses(timeline.info.cardStyle, hasMultipleLayers)}>
+      <div className={styles.eventTitle}>
+        {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
+      </div>
+      {event.tags && event.tags.length > 0 && (
+        <div className={styles.eventTags}>
+          {event.tags.map(tag => (
+            <span key={tag} className={styles.eventTag}>{tag}</span>
+          ))}
+        </div>
+      )}
+      {event.description && (
+        <div className={styles.eventDescription}>
+          {highlightText(event.description, event.highlight, event.styleColor || themeColor)}
+        </div>
+      )}
+    </div>
+  )
+
 
 
   // Calculate pixel position for events
@@ -901,16 +922,7 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
                       onMouseLeave={() => setHoveredEventId(null)}
                       title={t.versionTimeline.doubleClickToReorder}
                     >
-                      <div className={getCardContentClasses(timeline.info.cardStyle, hasMultipleLayers)}>
-                        <div className={styles.eventTitle}>
-                          {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
-                        </div>
-                        {event.description && (
-                          <div className={styles.eventDescription}>
-                            {highlightText(event.description, event.highlight, event.styleColor || themeColor)}
-                          </div>
-                        )}
-                      </div>
+                      {renderCardContent(event)}
                       <div className={`${styles.eventConnector} ${styles.eventConnectorTop} ${styles.connectorLong}`} />
                     </div>
                   )
@@ -942,16 +954,7 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
                       onMouseLeave={() => setHoveredEventId(null)}
                       title={t.versionTimeline.doubleClickToReorder}
                     >
-                      <div className={getCardContentClasses(timeline.info.cardStyle, hasMultipleLayers)}>
-                        <div className={styles.eventTitle}>
-                          {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
-                        </div>
-                        {event.description && (
-                          <div className={styles.eventDescription}>
-                            {highlightText(event.description, event.highlight, event.styleColor || themeColor)}
-                          </div>
-                        )}
-                      </div>
+                      {renderCardContent(event)}
                       <div className={`${styles.eventConnector} ${styles.eventConnectorTop}`} />
                     </div>
                   )
@@ -983,16 +986,7 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
                       onMouseLeave={() => setHoveredEventId(null)}
                     >
                       <div className={`${styles.eventConnector} ${styles.eventConnectorBottom}`} />
-                      <div className={getCardContentClasses(timeline.info.cardStyle, hasMultipleLayers)}>
-                        <div className={styles.eventTitle}>
-                          {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
-                        </div>
-                        {event.description && (
-                          <div className={styles.eventDescription}>
-                            {highlightText(event.description, event.highlight, event.styleColor || themeColor)}
-                          </div>
-                        )}
-                      </div>
+                      {renderCardContent(event)}
                     </div>
                   )
                 })}
@@ -1023,16 +1017,7 @@ export const VersionTimelineView: React.FC<VersionTimelineViewProps> = ({
                       onMouseLeave={() => setHoveredEventId(null)}
                     >
                       <div className={`${styles.eventConnector} ${styles.eventConnectorBottom} ${styles.connectorLong}`} />
-                      <div className={getCardContentClasses(timeline.info.cardStyle, hasMultipleLayers)}>
-                        <div className={styles.eventTitle}>
-                          {highlightText(event.title, event.highlight, event.styleColor || themeColor)}
-                        </div>
-                        {event.description && (
-                          <div className={styles.eventDescription}>
-                            {highlightText(event.description, event.highlight, event.styleColor || themeColor)}
-                          </div>
-                        )}
-                      </div>
+                      {renderCardContent(event)}
                     </div>
                   )
                 })}

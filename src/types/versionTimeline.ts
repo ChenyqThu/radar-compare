@@ -26,6 +26,7 @@ export interface VersionEvent {
   type: string                     // 事件类型（支持自定义类型）
   position?: 'top' | 'bottom'      // 显示位置（上层或下层，由算法自动分配，可选）
   highlight?: string[]             // 需要高亮的关键词
+  tags?: string[]                  // 标签列表（可选）
   icon?: string                    // 图标（可选）
   order?: number                   // 同年内排序（可选，由布局算法自动计算）
 }

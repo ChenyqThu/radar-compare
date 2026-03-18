@@ -63,6 +63,7 @@ export const VersionEventEditor: React.FC<VersionEventEditorProps> = ({
           title: event.title,
           description: event.description || '',
           type: event.type,
+          tags: event.tags || [],
         })
         setHighlights(event.highlight || [])
       } else {
@@ -70,6 +71,7 @@ export const VersionEventEditor: React.FC<VersionEventEditorProps> = ({
         form.setFieldsValue({
           year: new Date().getFullYear(),
           type: 'minor',
+          tags: [],
         })
         setHighlights([])
       }
@@ -99,6 +101,7 @@ export const VersionEventEditor: React.FC<VersionEventEditorProps> = ({
         description: values.description || undefined,
         type: values.type,
         highlight: highlights.length > 0 ? highlights : undefined,
+        tags: values.tags?.length > 0 ? values.tags : undefined,
         position: 'top',
       }
 
@@ -202,6 +205,18 @@ export const VersionEventEditor: React.FC<VersionEventEditorProps> = ({
           <Input.TextArea
             rows={3}
             placeholder={t.versionTimeline.descriptionPlaceholder}
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="tags"
+          label={t.versionTimeline.tags}
+        >
+          <Select
+            mode="tags"
+            placeholder={t.versionTimeline.tagsPlaceholder}
+            tokenSeparators={[';', '；']}
+            style={{ width: '100%' }}
           />
         </Form.Item>
 

@@ -654,6 +654,29 @@
   overflow: visible;
 }
 
+.eventTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.eventTag {
+  display: inline-block;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background-color: color-mix(in srgb, var(--event-color, var(--theme-color, #0A7171)) 15%, transparent);
+  color: var(--event-color, var(--theme-color, #0A7171));
+  border: 1px solid color-mix(in srgb, var(--event-color, var(--theme-color, #0A7171)) 30%, transparent);
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .eventDescription {
   font-size: 11px;
   color: var(--text-secondary, #666666);

@@ -98,6 +98,11 @@ function validateTimelineData(data: unknown): ParseResult {
     type: (e.type as string) || 'minor', // Preserve original type, default to 'minor'
     position: 'top' as const,
     highlight: Array.isArray(e.highlight) ? e.highlight as string[] : undefined,
+    tags: Array.isArray(e.tags)
+      ? (e.tags as unknown[]).filter(t => typeof t === 'string') as string[]
+      : typeof e.tags === 'string'
+        ? (e.tags as string).split(/[;；]/).map(s => s.trim()).filter(Boolean)
+        : undefined,
     icon: e.icon as string | undefined,
   }))
 
